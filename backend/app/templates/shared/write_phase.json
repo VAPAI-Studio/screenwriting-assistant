@@ -1,0 +1,61 @@
+{
+  "id": "write",
+  "name": "Write",
+  "order": 3,
+  "subsections": [
+    {
+      "key": "script_writer_wizard",
+      "name": "Script Writer Wizard",
+      "description": "Generate your episodes here, then view and edit them in the Screenplay Editor.",
+      "ui_pattern": "wizard",
+      "wizard_config": {
+        "item_label": "Screenplay",
+        "item_label_plural": "Screenplays",
+        "default_count": null,
+        "count_selector": false,
+        "duration_selector": true,
+        "duration_options": [
+          {"value": 60, "label": "60 seconds (~1 page / ~200 Words)"},
+          {"value": 120, "label": "120 seconds (~2 pages / ~400 Words)"},
+          {"value": 180, "label": "180 seconds (~3 pages / ~600 Words)"},
+          {"value": 300, "label": "5 minutes (~5 pages / ~1000 Words)"},
+          {"value": 600, "label": "10 minutes (~10 pages / ~2000 Words)"}
+        ],
+        "duration_description": "Choose how long each episode should run. The writer will tailor pacing, structure, and beat density to match this runtime.",
+        "episode_selector": true,
+        "episode_selector_max": 10,
+        "readiness_checks": [
+          {"source": "scenes", "label": "Episodes", "count_items": true, "item_type": "episode"},
+          {"source": "story.core", "label": "Core Story Elements", "count_fields": ["series_premise", "story_engine"]},
+          {"source": "story.characters", "label": "Characters", "count_items": true}
+        ],
+        "custom_guidance": true,
+        "generate_button": "Select Episodes to Generate"
+      }
+    },
+    {
+      "key": "screenplay_editor",
+      "name": "Screenplay Editor",
+      "description": "View and edit your screenplay.",
+      "ui_pattern": "screenplay_editor",
+      "editor_config": {
+        "split_pane": true,
+        "left_panel": "screenplay_text",
+        "right_panel": "episode_context",
+        "toolbar": {
+          "actions_dropdown": true,
+          "ai_query": true,
+          "commands": true
+        }
+      }
+    },
+    {
+      "key": "screenplay_analyzer",
+      "name": "Screenplay Analyzer",
+      "description": "Analyze and polish your screenplay \u2013 view and edit dialogue by character.",
+      "ui_pattern": "analyzer",
+      "requires_content": true,
+      "empty_message": "No screenplay content found. Create scenes in the Screenplay Editor first."
+    }
+  ]
+}

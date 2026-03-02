@@ -1,0 +1,618 @@
+// frontend/src/lib/api.ts
+
+import {
+  Project, Section, ChecklistItem, ReviewRequest, ReviewResponse,
+  Book, Concept, Agent, ChatSession, ChatMessage,
+  TemplateConfig, TemplateListItem, PhaseDataResponse, ListItemResponse,
+  AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
+} from '../types';
+import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT, CHAT_TIMEOUT } from './constants';
+
+// Get auth token from localStorage or use mock token for development
+const getAuthToken = () => {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  return token ? `Bearer ${token}` : 'Bearer mock-token';
+};
+
+const getHeaders = (): Record<string, string> => ({
+  'Content-Type': 'application/json',
+  'Authorization': getAuthToken()
+});
+
+// Create a fetch wrapper with timeout
+const fetchWithTimeout = async (url: string, options: RequestInit = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+};
+
+export const api = {
+  // Auth
+  async getMockToken(): Promise<{ access_token: string; token_type: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/token/mock`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error('Failed to get mock token');
+    return response.json();
+  },
+
+  async requestMagicLink(email: string): Promise<{ message: string; magic_link: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/magic-link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    if (!response.ok) throw new Error('Failed to request magic link');
+    return response.json();
+  },
+
+  async verifyMagicLink(token: string): Promise<{ access_token: string; token_type: string }> {
+    const response = await fetch(`${API_BASE_URL}/auth/verify-magic-link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token })
+    });
+    if (!response.ok) throw new Error('Failed to verify magic link');
+    return response.json();
+  },
+
+  // Projects
+  async getProjects(): Promise<Project[]> {
+    const response = await fetch(`${API_BASE_URL}/projects/`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch projects');
+    return response.json();
+  },
+
+  async getProject(id: string): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch project');
+    return response.json();
+  },
+
+  async createProject(data: { title: string; framework: string }): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects/`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create project');
+    return response.json();
+  },
+
+  async updateProject(id: string, data: Partial<Project>): Promise<Project> {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update project');
+    return response.json();
+  },
+
+  async deleteProject(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete project');
+  },
+
+  // Sections
+  async getSection(id: string): Promise<Section> {
+    const response = await fetch(`${API_BASE_URL}/sections/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch section');
+    return response.json();
+  },
+
+  async updateSection(id: string, data: { user_notes: string }): Promise<Section> {
+    const response = await fetch(`${API_BASE_URL}/sections/${id}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update section');
+    return response.json();
+  },
+
+  // Checklist items
+  async createChecklistItem(sectionId: string, data: Partial<ChecklistItem>): Promise<ChecklistItem> {
+    const response = await fetch(`${API_BASE_URL}/sections/${sectionId}/checklist`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create checklist item');
+    return response.json();
+  },
+
+  async updateChecklistItem(itemId: string, data: Partial<ChecklistItem>): Promise<ChecklistItem> {
+    const response = await fetch(`${API_BASE_URL}/sections/checklist/${itemId}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update checklist item');
+    return response.json();
+  },
+
+  // Review
+  async reviewSection(data: ReviewRequest): Promise<ReviewResponse> {
+    const response = await fetch(`${API_BASE_URL}/review/`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to get review');
+    return response.json();
+  },
+
+  // ============================================================
+  // Books
+  // ============================================================
+
+  async uploadBook(formData: FormData): Promise<{ id: string; status: string; message: string }> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/books/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': getAuthToken() },
+      body: formData
+    });
+    if (!response.ok) throw new Error('Failed to upload book');
+    return response.json();
+  },
+
+  async getBooks(): Promise<Book[]> {
+    const response = await fetch(`${API_BASE_URL}/books/`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch books');
+    return response.json();
+  },
+
+  async getBook(id: string): Promise<Book> {
+    const response = await fetch(`${API_BASE_URL}/books/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch book');
+    return response.json();
+  },
+
+  async getBookConcepts(bookId: string): Promise<Concept[]> {
+    const response = await fetch(`${API_BASE_URL}/books/${bookId}/concepts`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch concepts');
+    return response.json();
+  },
+
+  async deleteBook(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/books/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete book');
+  },
+
+  // ============================================================
+  // Agents
+  // ============================================================
+
+  async getAgents(): Promise<Agent[]> {
+    const response = await fetch(`${API_BASE_URL}/agents/`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch agents');
+    return response.json();
+  },
+
+  async seedDefaultAgents(): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/agents/seed-defaults`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to seed default agents');
+  },
+
+  async linkBookToAgent(agentId: string, bookId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/agents/${agentId}/books/${bookId}`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to link book to agent');
+  },
+
+  async unlinkBookFromAgent(agentId: string, bookId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/agents/${agentId}/books/${bookId}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to unlink book from agent');
+  },
+
+  // ============================================================
+  // Chat
+  // ============================================================
+
+  async createChatSession(data: { agent_id: string; project_id: string; title?: string }): Promise<ChatSession> {
+    const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create chat session');
+    return response.json();
+  },
+
+  async getChatSessions(projectId?: string): Promise<ChatSession[]> {
+    const url = projectId
+      ? `${API_BASE_URL}/chat/sessions?project_id=${projectId}`
+      : `${API_BASE_URL}/chat/sessions`;
+    const response = await fetch(url, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch chat sessions');
+    return response.json();
+  },
+
+  async getChatMessages(sessionId: string): Promise<ChatMessage[]> {
+    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch messages');
+    return response.json();
+  },
+
+  async sendChatMessage(sessionId: string, content: string): Promise<{ content: string; book_references: any[]; message_id: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ content }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to send message');
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
+  },
+
+  async triggerChatReview(sessionId: string, sectionId: string): Promise<{ review: any; message_id: string }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/review`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ section_id: sectionId }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to trigger review');
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
+  },
+
+  async deleteChatSession(sessionId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete session');
+  },
+
+  // ============================================================
+  // Templates
+  // ============================================================
+
+  async getTemplates(): Promise<TemplateListItem[]> {
+    const response = await fetch(`${API_BASE_URL}/templates/`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch templates');
+    return response.json();
+  },
+
+  async getTemplate(id: string): Promise<TemplateConfig> {
+    const response = await fetch(`${API_BASE_URL}/templates/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch template');
+    return response.json();
+  },
+
+  // Template-based project creation
+  async createProjectV2(data: { title: string; template: string }): Promise<ProjectV2> {
+    const response = await fetch(`${API_BASE_URL}/projects/v2`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create project');
+    return response.json();
+  },
+
+  // ============================================================
+  // Phase Data
+  // ============================================================
+
+  async getPhaseData(projectId: string, phase: string): Promise<PhaseDataResponse[]> {
+    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch phase data');
+    return response.json();
+  },
+
+  async getSubsectionData(projectId: string, phase: string, subsectionKey: string): Promise<PhaseDataResponse> {
+    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}/${subsectionKey}`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch subsection data');
+    return response.json();
+  },
+
+  async updateSubsectionData(projectId: string, phase: string, subsectionKey: string, content: Record<string, any>): Promise<PhaseDataResponse> {
+    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}/${subsectionKey}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ content })
+    });
+    if (!response.ok) throw new Error('Failed to update subsection data');
+    return response.json();
+  },
+
+  async getReadiness(projectId: string, phase: string): Promise<Record<string, any>> {
+    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/readiness/${phase}`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch readiness');
+    return response.json();
+  },
+
+  // ============================================================
+  // List Items (Episodes, Scenes, Characters)
+  // ============================================================
+
+  async getListItems(phaseDataId: string): Promise<ListItemResponse[]> {
+    const response = await fetch(`${API_BASE_URL}/list-items/${phaseDataId}`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch list items');
+    return response.json();
+  },
+
+  async getListItem(itemId: string): Promise<ListItemResponse> {
+    const response = await fetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch list item');
+    return response.json();
+  },
+
+  async createListItem(phaseDataId: string, data: { item_type: string; content: Record<string, any>; sort_order?: number }): Promise<ListItemResponse> {
+    const response = await fetch(`${API_BASE_URL}/list-items/${phaseDataId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create list item');
+    return response.json();
+  },
+
+  async updateListItem(itemId: string, data: { content?: Record<string, any>; status?: string }): Promise<ListItemResponse> {
+    const response = await fetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to update list item');
+    return response.json();
+  },
+
+  async deleteListItem(itemId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete list item');
+  },
+
+  async reorderListItems(phaseDataId: string, items: Array<{ id: string; sort_order: number }>): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/list-items/${phaseDataId}/reorder`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ items })
+    });
+    if (!response.ok) throw new Error('Failed to reorder items');
+  },
+
+  // ============================================================
+  // AI Chat (Template system)
+  // ============================================================
+
+  async lookupAISession(projectId: string, phase: string, subsectionKey: string, contextItemId?: string): Promise<AISessionResponse | null> {
+    const params = new URLSearchParams({ project_id: projectId, phase, subsection_key: subsectionKey });
+    if (contextItemId) params.set('context_item_id', contextItemId);
+    const response = await fetch(`${API_BASE_URL}/ai/sessions/lookup?${params}`, {
+      headers: getHeaders()
+    });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error('Failed to lookup AI session');
+    return response.json();
+  },
+
+  async createAISession(data: { project_id: string; phase: string; subsection_key: string; context_item_id?: string }): Promise<AISessionResponse> {
+    const response = await fetch(`${API_BASE_URL}/ai/sessions`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to create AI session');
+    return response.json();
+  },
+
+  async getAIMessages(sessionId: string): Promise<AIMessageResponse[]> {
+    const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch AI messages');
+    return response.json();
+  },
+
+  async sendAIMessage(sessionId: string, content: string, mode: 'brainstorm' | 'action' = 'brainstorm'): Promise<AIMessageResponse> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ content, mode }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to send AI message');
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
+  },
+
+  async sendAIMessageStream(
+    sessionId: string,
+    content: string,
+    mode: 'brainstorm' | 'action' = 'brainstorm',
+    onChunk: (chunk: string) => void,
+    onDone: (data: { id?: string; metadata?: Record<string, any> }) => void,
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages/stream`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ content, mode }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to send AI message');
+
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6);
+          if (payload === '[DONE]') return;
+
+          try {
+            const data = JSON.parse(payload);
+            if (data.chunk) {
+              onChunk(data.chunk);
+            } else if (data.field_updates !== undefined) {
+              // Action mode: field updates arrived after streaming completed
+              onDone({ id: data.id, metadata: { field_updates: data.field_updates, applied: data.applied } });
+            } else if (data.done) {
+              onDone({ id: data.id });
+            }
+          } catch {
+            // skip malformed events
+          }
+        }
+      }
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
+  },
+
+  async deleteAISession(sessionId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete AI session');
+  },
+
+  async fillBlanks(data: { project_id: string; phase: string; subsection_key: string; item_id?: string }): Promise<Record<string, any>> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/ai/fill-blanks`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to fill blanks');
+    return response.json();
+  },
+
+  async giveNotes(data: { project_id: string; phase: string; subsection_key: string; item_id?: string }): Promise<Record<string, any>> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/ai/give-notes`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to get notes');
+    return response.json();
+  },
+
+  async analyzeStructure(data: { project_id: string; phase: string; subsection_key: string }): Promise<Record<string, any>> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/ai/analyze-structure`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to analyze structure');
+    return response.json();
+  },
+
+  // ============================================================
+  // Wizards
+  // ============================================================
+
+  async runWizard(data: { project_id: string; wizard_type: string; phase: string; config: Record<string, any> }): Promise<WizardRunResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/wizards/run`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error('Failed to run wizard');
+    return response.json();
+  },
+
+  async getWizardRun(runId: string): Promise<WizardRunResponse> {
+    const response = await fetch(`${API_BASE_URL}/wizards/${runId}`, {
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch wizard run');
+    return response.json();
+  },
+
+  async applyWizardResults(runId: string): Promise<Record<string, any>> {
+    const response = await fetch(`${API_BASE_URL}/wizards/${runId}/apply`, {
+      method: 'POST',
+      headers: getHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to apply wizard results');
+    return response.json();
+  },
+};

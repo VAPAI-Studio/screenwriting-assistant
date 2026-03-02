@@ -1,0 +1,161 @@
+/* Screenwriter Assistant — "Cinematic Amber" Theme */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core backgrounds — deep noir */
+    --background: 240 6% 3.5%;
+    --foreground: 0 0% 97%;
+
+    --card: 240 5% 7%;
+    --card-foreground: 0 0% 95%;
+
+    --muted: 240 4% 14%;
+    --muted-foreground: 240 5% 50%;
+
+    /* Accent — warm amber/gold */
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 98%;
+
+    --primary: 38 92% 50%;
+    --primary-foreground: 24 10% 6%;
+
+    --secondary: 240 4% 14%;
+    --secondary-foreground: 0 0% 88%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 4% 15%;
+    --input: 240 5% 10%;
+    --ring: 38 92% 50%;
+
+    --radius: 0.625rem;
+
+    /* Extended palette */
+    --surface: 240 5% 10%;
+    --surface-hover: 240 4% 14%;
+    --border-strong: 240 4% 22%;
+
+    /* Phase colors */
+    --phase-idea: 263 70% 58%;
+    --phase-story: 217 91% 60%;
+    --phase-scenes: 38 92% 50%;
+    --phase-write: 160 84% 39%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Elegant thin scrollbars */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(240 4% 18%);
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(240 4% 26%);
+  }
+
+  /* Selection */
+  ::selection {
+    background: hsl(38 92% 50% / 0.25);
+    color: hsl(0 0% 98%);
+  }
+}
+
+@layer components {
+  /* Noise grain overlay for cinematic feel */
+  .noise-overlay {
+    position: relative;
+    isolation: isolate;
+  }
+  .noise-overlay::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.018;
+    z-index: 50;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  }
+  .font-screenplay {
+    font-family: 'Courier Prime', 'Courier New', monospace;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Warm ambient glows */
+  .glow-amber {
+    box-shadow:
+      0 0 15px hsl(38 92% 50% / 0.06),
+      0 0 30px hsl(38 92% 50% / 0.03);
+  }
+  .glow-amber-strong {
+    box-shadow:
+      0 0 20px hsl(38 92% 50% / 0.12),
+      0 0 50px hsl(38 92% 50% / 0.06);
+  }
+  .glow-amber-border {
+    box-shadow:
+      0 0 0 1px hsl(38 92% 50% / 0.2),
+      0 0 15px hsl(38 92% 50% / 0.06);
+  }
+
+  /* Phase-specific glows */
+  .glow-idea {
+    box-shadow: 0 0 20px hsl(263 70% 58% / 0.1);
+  }
+  .glow-story {
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.1);
+  }
+  .glow-scenes {
+    box-shadow: 0 0 20px hsl(38 92% 50% / 0.1);
+  }
+  .glow-write {
+    box-shadow: 0 0 20px hsl(160 84% 39% / 0.1);
+  }
+
+  /* Gradient text */
+  .text-gradient-amber {
+    background: linear-gradient(135deg, hsl(38 92% 55%), hsl(28 85% 45%));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Surface variants */
+  .bg-surface {
+    background-color: hsl(var(--surface));
+  }
+  .bg-surface-hover {
+    background-color: hsl(var(--surface-hover));
+  }
+  .border-strong {
+    border-color: hsl(var(--border-strong));
+  }
+}

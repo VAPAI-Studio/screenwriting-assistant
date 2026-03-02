@@ -1,0 +1,516 @@
+# backend/app/models/schemas.py
+
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
+from typing import List, Optional, Dict
+from datetime import datetime
+from uuid import UUID
+from .database import SectionType, ChecklistStatus, Framework, TemplateType, PhaseType
+
+# Base models
+class ChecklistItemBase(BaseModel):
+    prompt: str = Field(..., min_length=5, max_length=500)
+    answer: Optional[str] = Field(default="", max_length=1000)
+    status: ChecklistStatus = ChecklistStatus.PENDING
+    order: int = Field(default=0, ge=0)
+
+    @field_validator('prompt')
+    def validate_prompt(cls, v):
+        if not v.strip():
+            raise ValueError("Prompt cannot be empty or just whitespace")
+        return v.strip()
+
+    @field_validator('answer')
+    def validate_answer(cls, v):
+        if v is None:
+            return ""
+        return v.strip()
+
+class ChecklistItemCreate(ChecklistItemBase):
+    pass
+
+class ChecklistItem(ChecklistItemBase):
+    id: UUID
+    section_id: UUID
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class SectionBase(BaseModel):
+    type: SectionType
+    user_notes: Optional[str] = Field(default="", max_length=10000)
+
+    @field_validator('user_notes')
+    def validate_notes(cls, v):
+        if v is None:
+            return ""
+        return v.strip()
+
+class SectionCreate(SectionBase):
+    pass
+
+class SectionUpdate(BaseModel):
+    user_notes: Optional[str] = Field(None, max_length=10000)
+
+    @field_validator('user_notes')
+    def validate_notes(cls, v):
+        if v is None:
+            return v
+        return v.strip()
+
+class Section(SectionBase):
+    id: UUID
+    project_id: UUID
+    ai_suggestions: Dict = Field(default_factory=dict)
+    updated_at: Optional[datetime] = None
+    checklist_items: List[ChecklistItem] = Field(default_factory=list)
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class ProjectBase(BaseModel):
+    title: str = Field(..., min_length=2, max_length=255)
+    framework: Framework = Framework.THREE_ACT
+
+    @field_validator('title')
+    def validate_title(cls, v):
+        if not v.strip():
+            raise ValueError("Title cannot be empty or just whitespace")
+        return v.strip()
+
+class ProjectCreate(ProjectBase):
+    pass
+
+class ProjectUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=2, max_length=255)
+    framework: Optional[Framework] = None
+
+    @field_validator('title')
+    def validate_title(cls, v):
+        if v is None:
+            return v
+        if not v.strip():
+            raise ValueError("Title cannot be empty or just whitespace")
+        return v.strip()
+
+class Project(ProjectBase):
+    id: UUID
+    owner_id: UUID
+    framework: Optional[Framework] = None  # Nullable for template-based projects
+    template: Optional[TemplateType] = None
+    current_phase: Optional[str] = None
+    template_config: Dict = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    sections: List[Section] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Review models
+class ReviewRequest(BaseModel):
+    section_id: UUID
+    text: str = Field(..., min_length=20, max_length=10000)
+    framework: Framework = Framework.THREE_ACT
+
+    @field_validator('text')
+    def validate_text(cls, v):
+        if not v.strip():
+            raise ValueError("Review text cannot be empty or just whitespace")
+        if len(v.strip()) < 20:
+            raise ValueError("Review text must be at least 20 characters for meaningful analysis")
+        return v.strip()
+
+class ReviewResponse(BaseModel):
+    issues: List[str] = Field(default_factory=list)
+    suggestions: List[str] = Field(default_factory=list)
+
+# Auth models
+class User(BaseModel):
+    id: UUID
+    email: EmailStr
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+class MagicLinkRequest(BaseModel):
+    email: EmailStr
+
+class MagicLinkResponse(BaseModel):
+    message: str
+    magic_link: str  # In production, this would be sent via email
+
+
+# ============================================================
+# Book schemas
+# ============================================================
+
+class BookResponse(BaseModel):
+    id: UUID
+    title: str
+    author: Optional[str] = None
+    filename: str
+    file_type: str
+    file_size_bytes: int
+    status: str
+    processing_step: Optional[str] = None
+    total_chunks: int = 0
+    total_concepts: int = 0
+    processing_error: Optional[str] = None
+    uploaded_at: datetime
+    processed_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BookUploadResponse(BaseModel):
+    id: str
+    status: str
+    message: str
+
+
+# ============================================================
+# Concept schemas
+# ============================================================
+
+class ConceptResponse(BaseModel):
+    id: UUID
+    name: str
+    definition: str
+    chapter_source: Optional[str] = None
+    page_range: Optional[str] = None
+    examples: List[Dict] = Field(default_factory=list)
+    actionable_questions: List[str] = Field(default_factory=list)
+    section_relevance: Dict = Field(default_factory=dict)
+    tags: List[str] = Field(default_factory=list)
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ConceptRelationshipResponse(BaseModel):
+    source_concept: str
+    target_concept: str
+    relationship: str
+    description: Optional[str] = None
+
+
+# ============================================================
+# Agent schemas
+# ============================================================
+
+class AgentCreate(BaseModel):
+    name: str = Field(..., min_length=2, max_length=255)
+    description: Optional[str] = None
+    system_prompt_template: str = Field(..., min_length=50)
+    personality: Optional[str] = None
+    color: str = Field(default="#6366f1", pattern=r'^#[0-9a-fA-F]{6}$')
+    icon: str = Field(default="book", max_length=50)
+
+
+class AgentUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    description: Optional[str] = None
+    personality: Optional[str] = None
+    color: Optional[str] = Field(None, pattern=r'^#[0-9a-fA-F]{6}$')
+    icon: Optional[str] = Field(None, max_length=50)
+    is_active: Optional[bool] = None
+
+
+class AgentResponse(BaseModel):
+    id: UUID
+    name: str
+    description: Optional[str] = None
+    personality: Optional[str] = None
+    color: str
+    icon: str
+    is_active: bool
+    is_default: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Chat schemas
+# ============================================================
+
+class ChatSessionCreate(BaseModel):
+    agent_id: UUID
+    project_id: UUID
+    title: Optional[str] = None
+
+
+class ChatSessionResponse(BaseModel):
+    id: UUID
+    agent_id: UUID
+    project_id: UUID
+    title: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ChatMessageCreate(BaseModel):
+    content: str = Field(..., min_length=1, max_length=5000)
+
+    @field_validator('content')
+    def validate_content(cls, v):
+        if not v.strip():
+            raise ValueError("Message cannot be empty")
+        return v.strip()
+
+
+class ChatReviewRequest(BaseModel):
+    section_id: UUID
+
+
+class BookReferenceSchema(BaseModel):
+    concept_name: Optional[str] = None
+    book_title: Optional[str] = None
+    chapter: Optional[str] = None
+    page: Optional[str] = None
+
+
+class ChatMessageResponse(BaseModel):
+    id: UUID
+    role: str
+    content: str
+    message_type: str = "chat"
+    book_references: List[BookReferenceSchema] = Field(default_factory=list)
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Multi-agent review schemas
+# ============================================================
+
+class MultiAgentReviewRequest(BaseModel):
+    section_id: UUID
+    text: str = Field(..., min_length=20, max_length=10000)
+    framework: Framework = Framework.THREE_ACT
+    agent_ids: Optional[List[UUID]] = None
+
+    @field_validator('text')
+    def validate_text(cls, v):
+        if not v.strip():
+            raise ValueError("Review text cannot be empty")
+        return v.strip()
+
+
+class AgentReviewResult(BaseModel):
+    agent_id: str
+    agent_name: str
+    agent_color: str
+    agent_icon: str
+    issues: List[str] = Field(default_factory=list)
+    suggestions: List[str] = Field(default_factory=list)
+    book_references: List[Dict] = Field(default_factory=list)
+    status: str
+    error: Optional[str] = None
+
+
+class ReviewSummary(BaseModel):
+    total_agents: int
+    completed: int
+    errors: int
+    total_issues: int
+    total_suggestions: int
+
+
+class MultiAgentReviewResponse(BaseModel):
+    agent_reviews: List[AgentReviewResult]
+    summary: ReviewSummary
+
+
+# ============================================================
+# Template system schemas
+# ============================================================
+
+class TemplateListItem(BaseModel):
+    id: str
+    name: str
+    description: str
+    icon: str
+
+
+class ProjectCreateV2(BaseModel):
+    title: str = Field(..., min_length=2, max_length=255)
+    template: TemplateType
+
+    @field_validator('title')
+    def validate_title(cls, v):
+        if not v.strip():
+            raise ValueError("Title cannot be empty or just whitespace")
+        return v.strip()
+
+
+class ProjectResponseV2(BaseModel):
+    id: UUID
+    owner_id: UUID
+    title: str
+    template: Optional[TemplateType] = None
+    current_phase: Optional[str] = None
+    template_config: Dict = Field(default_factory=dict)
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PhaseDataUpdate(BaseModel):
+    content: Dict = Field(default_factory=dict)
+
+
+class PhaseDataResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    phase: str
+    subsection_key: str
+    content: Dict = Field(default_factory=dict)
+    ai_suggestions: Dict = Field(default_factory=dict)
+    sort_order: int = 0
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ListItemCreate(BaseModel):
+    item_type: str = Field(..., max_length=50)
+    content: Dict = Field(default_factory=dict)
+    sort_order: Optional[int] = None
+
+
+class ListItemUpdate(BaseModel):
+    content: Optional[Dict] = None
+    status: Optional[str] = None
+
+
+class ListItemResponse(BaseModel):
+    id: UUID
+    phase_data_id: UUID
+    item_type: str
+    sort_order: int
+    content: Dict = Field(default_factory=dict)
+    ai_suggestions: Dict = Field(default_factory=dict)
+    status: str = "draft"
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ReorderItem(BaseModel):
+    id: UUID
+    sort_order: int
+
+
+class ReorderRequest(BaseModel):
+    items: List[ReorderItem]
+
+
+class AISessionCreate(BaseModel):
+    project_id: UUID
+    phase: str
+    subsection_key: str
+    context_item_id: Optional[UUID] = None
+
+
+class AISessionResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    phase: str
+    subsection_key: str
+    context_item_id: Optional[UUID] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AIMessageCreate(BaseModel):
+    content: str = Field(..., min_length=1, max_length=10000)
+    mode: str = Field(default="brainstorm", pattern="^(brainstorm|action)$")
+
+    @field_validator('content')
+    def validate_content(cls, v):
+        if not v.strip():
+            raise ValueError("Message cannot be empty")
+        return v.strip()
+
+
+class AIMessageResponse(BaseModel):
+    id: UUID
+    session_id: UUID
+    role: str
+    content: str
+    message_type: str = "chat"
+    metadata: Dict = Field(default_factory=dict, validation_alias="metadata_")
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class WizardRunRequest(BaseModel):
+    project_id: UUID
+    wizard_type: str = Field(..., max_length=50)
+    phase: str
+    config: Dict = Field(default_factory=dict)
+
+
+class WizardRunResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    wizard_type: str
+    phase: str
+    status: str
+    config: Dict = Field(default_factory=dict)
+    result: Dict = Field(default_factory=dict)
+    error_message: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FillBlanksRequest(BaseModel):
+    project_id: UUID
+    phase: str
+    subsection_key: str
+    item_id: Optional[UUID] = None
+
+
+class GiveNotesRequest(BaseModel):
+    project_id: UUID
+    phase: str
+    subsection_key: str
+    item_id: Optional[UUID] = None
+
+
+class AnalyzeStructureRequest(BaseModel):
+    project_id: UUID
+    phase: str
+    subsection_key: str
+
+
+class AIActionResponse(BaseModel):
+    content: Dict = Field(default_factory=dict)
+    notes: List[str] = Field(default_factory=list)
+
+
+class ScreenplayContentUpdate(BaseModel):
+    content: str = ""
+    formatted_content: Dict = Field(default_factory=dict)
+
+
+class ScreenplayContentResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    list_item_id: Optional[UUID] = None
+    content: str = ""
+    formatted_content: Dict = Field(default_factory=dict)
+    version: int = 1
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)

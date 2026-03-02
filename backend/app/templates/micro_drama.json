@@ -1,0 +1,371 @@
+{
+  "id": "micro_drama",
+  "name": "Micro-Drama Series",
+  "description": "Create high-octane serialized micro-dramas with 50-100 episodes. Every episode ends in a cliffhanger with rapid twists every 20 seconds - perfect for binge-worthy short-form content.",
+  "icon": "tv",
+  "phases": [
+    {
+      "id": "idea",
+      "name": "Idea",
+      "order": 0,
+      "subsections": [
+        {
+          "key": "import_project",
+          "name": "Import Project",
+          "description": "Bring an existing screenplay to seed beats, scenes, and the screenplay editor. Paste or upload your screenplay, optionally include guidance, and we will align beats, scenes, and screenplay sequences for you.",
+          "ui_pattern": "import_wizard",
+          "fields": [
+            {"key": "screenplay_text", "label": "Paste Screenplay", "type": "textarea", "placeholder": "Paste your screenplay here..."},
+            {"key": "guidance", "label": "Guidance (Optional)", "type": "textarea", "placeholder": "Any specific guidance for how to align beats and scenes..."}
+          ],
+          "ai_actions": [
+            {"key": "align", "label": "Align Beats, Scenes & Screenplay", "prompt_template": "import_and_align"}
+          ]
+        },
+        {
+          "key": "idea_wizard",
+          "name": "Idea Wizard",
+          "description": "Unsure of your overall story idea? Use the Idea Wizard to have a back-and-forth discussion where it will suggest you various directions to where you could take your story.",
+          "ui_pattern": "wizard_with_chat",
+          "fields": [
+            {"key": "genre", "label": "Genre", "type": "text", "placeholder": "e.g., Drama, Thriller, Romance..."},
+            {"key": "initial_idea", "label": "Initial Idea", "type": "textarea", "placeholder": "Describe your story concept, even if it's rough..."},
+            {"key": "tone", "label": "Tone", "type": "text", "placeholder": "e.g., Dark, Comedic, Suspenseful..."},
+            {"key": "target_audience", "label": "Target Audience", "type": "text", "placeholder": "Who will watch this?"}
+          ],
+          "sidebar_chat": true,
+          "chat_system_prompt": "You are an expert micro-drama story development partner. Help the user develop their micro-drama series idea through creative discussion. Suggest explosive premises, character dynamics, and series hooks that will keep audiences watching 50-100 episodes. Focus on cliffhangers, betrayals, identity reveals, and power shifts."
+        },
+        {
+          "key": "beat_wizard",
+          "name": "Beat Wizard",
+          "description": "Turn your story idea into story beats. Your input can be just a few words or several pages of notes. We analyse your idea, using advanced screenwriting techniques to fill in the story beats, filling in the blanks to form a complete story outline.",
+          "ui_pattern": "wizard",
+          "fields": [
+            {"key": "story_input", "label": "Story Idea", "type": "textarea", "placeholder": "From a few words to several pages - describe your story idea here...", "min_length": 10}
+          ],
+          "ai_actions": [
+            {"key": "generate_beats", "label": "Generate Story Beats", "prompt_template": "beat_generation", "result_target": "story.story_arc"}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "story",
+      "name": "Story",
+      "order": 1,
+      "subsections": [
+        {
+          "key": "core",
+          "name": "Core",
+          "description": "Establish the EXPLOSIVE foundation of your micro-drama series. These core beats define the powder-keg world where secrets destroy empires and every character hides devastating truths. Your premise must promise MAXIMUM drama and endless betrayals.",
+          "ui_pattern": "structured_form",
+          "ai_actions": [
+            {"key": "fill_blanks", "label": "Fill in blanks", "icon": "wand"},
+            {"key": "give_notes", "label": "Give notes", "icon": "message-square"}
+          ],
+          "field_groups": [
+            {
+              "label": null,
+              "fields": [
+                {"key": "series_premise", "label": "Series Premise", "type": "textarea", "placeholder": "The EXPLOSIVE premise that promises 100 episodes of devastating drama."},
+                {"key": "story_engine", "label": "Story Engine", "type": "textarea", "placeholder": "The EXPLOSIVE conflict engine that generates endless betrayals and revelations."}
+              ]
+            },
+            {
+              "label": "Identities, Loyalty & Power",
+              "description": "Define the core engines that keep the micro-drama addictive: who is really who, how loyalties flip, and how power changes hands in an instant.",
+              "fields": [
+                {"key": "hidden_identities", "label": "Hidden Identities", "type": "textarea", "placeholder": "Who is really who?"},
+                {"key": "loyalty_shifts", "label": "Loyalty Shifts", "type": "textarea", "placeholder": "How do loyalties flip?"},
+                {"key": "power_dynamics", "label": "Power Dynamics", "type": "textarea", "placeholder": "How does power change hands?"}
+              ]
+            },
+            {
+              "label": "World Setup",
+              "description": "The setting and universe where all episodes take place.",
+              "fields": [
+                {"key": "setting", "label": "Setting", "type": "textarea", "placeholder": "Where does this take place?"},
+                {"key": "rules", "label": "Rules", "type": "textarea", "placeholder": "What are the rules of this world?"},
+                {"key": "limitations", "label": "Limitations", "type": "textarea", "placeholder": "What constraints exist?"},
+                {"key": "quirk", "label": "Quirk", "type": "textarea", "placeholder": "What makes this world unique?"}
+              ]
+            },
+            {
+              "label": null,
+              "fields": [
+                {"key": "target_audience", "label": "Target Audience", "type": "textarea", "placeholder": "Who will watch this and where."},
+                {"key": "tone", "label": "Tone & Style", "type": "textarea", "placeholder": "The series feel, format, and stylistic approach."}
+              ]
+            }
+          ]
+        },
+        {
+          "key": "characters",
+          "name": "Characters",
+          "description": "Design characters with EXPLOSIVE dramatic potential. Every character must have: a shocking secret identity, a devastating hidden agenda, and connections that will destroy everything when revealed. Characters must be capable of betrayal, obsession, and world-shattering revelations.",
+          "ui_pattern": "repeatable_cards",
+          "ai_actions": [
+            {"key": "fill_blanks", "label": "Fill in blanks", "icon": "wand"},
+            {"key": "give_notes", "label": "Give notes", "icon": "message-square"}
+          ],
+          "card_groups": [
+            {
+              "key": "main_characters",
+              "label": "Main Character(s)",
+              "description": "The ARCHETYPAL protagonist with explosive secrets, a signature voice, and hidden identity.",
+              "item_type": "character",
+              "min_items": 1,
+              "max_items": 5,
+              "fields": [
+                {"key": "name", "label": "Name", "type": "text"},
+                {"key": "core_trait", "label": "Core Trait", "type": "textarea"},
+                {"key": "fatal_flaw", "label": "Fatal Flaw", "type": "textarea"},
+                {"key": "signature_behavior", "label": "Signature Behavior", "type": "textarea"},
+                {"key": "dialogue_style", "label": "Unique Dialogue Style", "type": "textarea"},
+                {"key": "want_vs_need", "label": "Want Vs Need", "type": "textarea"},
+                {"key": "character_arc", "label": "Character Arc", "type": "textarea"}
+              ]
+            },
+            {
+              "key": "antagonists",
+              "label": "Main Antagonist(s)",
+              "description": "Define the primary opposing force(s) whose betrayals, secrets, power plays, and razor-edged voice drive relentless conflict.",
+              "item_type": "character",
+              "min_items": 1,
+              "max_items": 5,
+              "fields": [
+                {"key": "name", "label": "Name", "type": "text"},
+                {"key": "core_trait", "label": "Core Trait", "type": "textarea"},
+                {"key": "fatal_flaw", "label": "Fatal Flaw", "type": "textarea"},
+                {"key": "signature_behavior", "label": "Signature Behavior", "type": "textarea"},
+                {"key": "dialogue_style", "label": "Unique Dialogue Style", "type": "textarea"},
+                {"key": "want_vs_need", "label": "Want Vs Need", "type": "textarea"},
+                {"key": "character_arc", "label": "Character Arc", "type": "textarea"}
+              ]
+            },
+            {
+              "key": "supporting_cast",
+              "label": "Supporting Cast",
+              "description": "Recurring characters who appear frequently but not always — make their voices as distinct as their secrets.",
+              "item_type": "character",
+              "min_items": 0,
+              "max_items": 10,
+              "fields": [
+                {"key": "recurring_characters", "label": "Recurring Characters", "type": "textarea"},
+                {"key": "their_roles", "label": "Their Roles", "type": "textarea"},
+                {"key": "dialogue_style", "label": "Unique Dialogue Style", "type": "textarea"},
+                {"key": "relationship_dynamics", "label": "Relationship Dynamics", "type": "textarea"}
+              ]
+            },
+            {
+              "key": "character_dynamics",
+              "label": "Character Dynamics",
+              "description": "How characters interact, clash, and sound on the page.",
+              "item_type": "character_dynamics",
+              "is_singleton": true,
+              "fields": [
+                {"key": "core_relationships", "label": "Core Relationships", "type": "textarea"},
+                {"key": "conflict_patterns", "label": "Conflict Patterns", "type": "textarea"},
+                {"key": "dialogue_style", "label": "Unique Dialogue Style", "type": "textarea"},
+                {"key": "resolution_styles", "label": "Resolution Styles", "type": "textarea"}
+              ]
+            }
+          ]
+        },
+        {
+          "key": "story_arc",
+          "name": "Series Story Arc",
+          "description": "Plan for hooks, twist cadence, the midpoint shake-up, and a clean sprint to endgame. Do not resolve per-episode; define the season's escalation.",
+          "ui_pattern": "structured_form",
+          "ai_actions": [
+            {"key": "fill_blanks", "label": "Fill in blanks", "icon": "wand"},
+            {"key": "give_notes", "label": "Give notes", "icon": "message-square"}
+          ],
+          "field_groups": [
+            {
+              "label": "Opening Explosion (0\u201320%)",
+              "description": "Launch the series with immediate stakes and multiple hooks.",
+              "fields": [
+                {"key": "hook_cluster", "label": "Hook Cluster", "type": "textarea"},
+                {"key": "first_power_flip", "label": "First Power Flip", "type": "textarea"},
+                {"key": "inciting_incident", "label": "Inciting Incident", "type": "textarea"},
+                {"key": "first_identity_pressure", "label": "First Identity Pressure", "type": "textarea"}
+              ]
+            },
+            {
+              "label": "First Reversal (20\u201335%)",
+              "description": "The first major reversal that changes momentum.",
+              "fields": [
+                {"key": "new_goal", "label": "New Goal", "type": "textarea"},
+                {"key": "reversal", "label": "Reversal", "type": "textarea"}
+              ]
+            },
+            {
+              "label": "Rising Betrayals (35\u201350%)",
+              "description": "Escalate betrayals, flip loyalties, vary cliffhangers.",
+              "fields": [
+                {"key": "loyalty_shifts", "label": "Loyalty Shifts", "type": "textarea"},
+                {"key": "betrayal_cascade", "label": "Betrayal Cascade", "type": "textarea"}
+              ]
+            },
+            {
+              "label": "Midpoint Shake\u2011Up (\u224850%)",
+              "description": "The season\u2019s game-changer that resets stakes and direction.",
+              "fields": [
+                {"key": "shakeup", "label": "Shakeup", "type": "textarea"},
+                {"key": "power_structure_change", "label": "Power Structure Change", "type": "textarea"}
+              ]
+            },
+            {
+              "label": "Spiral of Escalation (50\u201375%)",
+              "description": "Pile on secrets, deploy reversal triggers, and raise stakes.",
+              "fields": [
+                {"key": "stakes_escalation", "label": "Stakes Escalation", "type": "textarea"},
+                {"key": "compounding_secrets", "label": "Compounding Secrets", "type": "textarea"}
+              ]
+            },
+            {
+              "label": "Darkest Hour (75\u201385%)",
+              "description": "Everything falls apart. The price of prior wins comes due.",
+              "fields": [
+                {"key": "losses", "label": "Losses", "type": "textarea"},
+                {"key": "last_secrets", "label": "Last Secrets", "type": "textarea"}
+              ]
+            },
+            {
+              "label": "Final Gambit (85\u201395%)",
+              "description": "The last desperate plan and the enemy\u2019s countermoves.",
+              "fields": [
+                {"key": "endgame_plan", "label": "Endgame Plan", "type": "textarea"},
+                {"key": "counter_moves", "label": "Counter Moves", "type": "textarea"}
+              ]
+            },
+            {
+              "label": "Climax & Aftermath (95\u2013100%)",
+              "description": "How the season culminates and what teaser remains.",
+              "fields": [
+                {"key": "last_teaser", "label": "Last Teaser", "type": "textarea"},
+                {"key": "final_reveal", "label": "Final Reveal", "type": "textarea"},
+                {"key": "power_resolution", "label": "Power Resolution", "type": "textarea"}
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scenes",
+      "name": "Scenes / Episodes",
+      "order": 2,
+      "subsections": [
+        {
+          "key": "episode_wizard",
+          "name": "Episode Wizard",
+          "description": "Generate multiple episodes for your series based on your story foundation and characters.",
+          "ui_pattern": "wizard",
+          "wizard_config": {
+            "item_label": "Episode",
+            "item_label_plural": "Episodes",
+            "default_count": 50,
+            "count_options": [
+              {"value": 25, "label": "25 Episodes"},
+              {"value": 50, "label": "50 Episodes (Season 1)"},
+              {"value": 75, "label": "75 Episodes"},
+              {"value": 100, "label": "100 Episodes"}
+            ],
+            "count_description": "Generate episodes in batches. Micro-dramas typically have 50-100 episodes per season to maintain viewer engagement.",
+            "readiness_checks": [
+              {"source": "story.core", "label": "Core Story Elements", "count_fields": ["series_premise", "story_engine", "hidden_identities", "loyalty_shifts", "power_dynamics", "tone"]},
+              {"source": "story.characters", "label": "Characters", "count_items": true, "item_groups": ["main_characters", "antagonists", "supporting_cast", "character_dynamics"]}
+            ],
+            "approaches": [
+              {
+                "key": "classic",
+                "name": "Classic Micro-Drama (default)",
+                "description": "Universal serialized structure that faithfully implements your Series Core and Story Arc with maximum drama and mandatory cliffhangers.",
+                "is_default": true
+              },
+              {
+                "key": "betrayal_focused",
+                "name": "Betrayal Web",
+                "description": "Focus on layered betrayals where every character has a hidden agenda. Each episode reveals a new deception."
+              },
+              {
+                "key": "identity_reveal",
+                "name": "Identity Reveal Chain",
+                "description": "Structure around cascading identity reveals. Who is really who drives every twist."
+              },
+              {
+                "key": "power_struggle",
+                "name": "Power Struggle",
+                "description": "Focus on shifting power dynamics. Every episode changes who holds control."
+              },
+              {
+                "key": "mystery_box",
+                "name": "Mystery Box",
+                "description": "Layer mysteries within mysteries. Each answer opens three new questions."
+              }
+            ],
+            "custom_guidance": true,
+            "generate_button": "Generate More Episodes"
+          }
+        },
+        {
+          "key": "episode_list",
+          "name": "Episode List",
+          "description": "Organize your 50-100 episode high-drama season.",
+          "ui_pattern": "ordered_list",
+          "list_config": {
+            "item_type": "episode",
+            "sortable": true,
+            "addable": true,
+            "deletable": true,
+            "expandable": true,
+            "analyze_button": true,
+            "sidebar_chat": true,
+            "display_field": "summary"
+          }
+        },
+        {
+          "key": "episode_detail",
+          "name": "Individual Episodes",
+          "description": "Edit individual episodes to perfect their HIGH-DRAMA structure. Each episode has 11 fields that create an EXPLOSIVE arc with mandatory twists and cliffhangers. Every episode must hook instantly, deliver 3-4 shocking revelations, and end on an IMPOSSIBLE cliffhanger that demands the next episode.",
+          "ui_pattern": "individual_editor",
+          "editor_config": {
+            "item_type": "episode",
+            "navigator": true,
+            "layout": "single_column",
+            "fields": [
+              {"key": "summary", "label": "Summary", "type": "textarea", "full_width": true},
+              {"key": "arena", "label": "Arena", "type": "textarea"},
+              {"key": "inciting_incident", "label": "Inciting Incident", "type": "textarea"},
+              {"key": "goal", "label": "Goal", "type": "textarea"},
+              {"key": "subtext", "label": "Subtext", "type": "textarea", "placeholder": "What are the characters really feeling or wanting beneath their words and actions? The emotional truth they can't or won't say directly."},
+              {"key": "opposition", "label": "Opposition", "type": "textarea"},
+              {"key": "plan", "label": "Plan", "type": "textarea"},
+              {"key": "progressive_complication", "label": "Progressive Complication", "type": "textarea"},
+              {"key": "turning_point", "label": "Turning Point", "type": "textarea"},
+              {"key": "crisis", "label": "Crisis", "type": "textarea"},
+              {"key": "climax", "label": "Climax", "type": "textarea"}
+            ],
+            "ai_actions": [
+              {"key": "fill_blanks", "label": "Fill in blanks", "icon": "wand"},
+              {"key": "give_notes", "label": "Give notes", "icon": "message-square"}
+            ],
+            "sidebar_chat": true,
+            "bottom_bar": {
+              "show_item_number": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "write",
+      "name": "Write",
+      "order": 3,
+      "$ref": "shared/write_phase.json"
+    }
+  ]
+}
