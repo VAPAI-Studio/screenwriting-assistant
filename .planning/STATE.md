@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: executing
+stopped_at: Completed 01-02-PLAN.md (Snippet Management Foundation)
+last_updated: "2026-03-05T23:39:00.171Z"
+last_activity: 2026-03-05 — Completed 01-01 (Snippet Test Scaffold)
+progress:
+  total_phases: 3
+  completed_phases: 0
+  total_plans: 3
+  completed_plans: 2
+  percent: 67
+---
+
 # Project State
 
 ## Project Reference
@@ -14,7 +30,7 @@ Plan: 1 of 3 in current phase
 Status: In progress
 Last activity: 2026-03-05 — Completed 01-01 (Snippet Test Scaffold)
 
-Progress: [█░░░░░░░░░] 11%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -34,6 +50,7 @@ Progress: [█░░░░░░░░░] 11%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-backend-foundation-and-data-safety P02 | 5 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -48,6 +65,9 @@ Recent decisions affecting current work:
 - SafeVector patched to Text() in conftest (not database.py) — keeps production model clean, patch only applies to SQLite test engine
 - pytest.fail() not pytest.skip() for test stubs — stubs must be RED to satisfy Nyquist verification requirement
 - mock_embed patches at embedding_service definition site — ensures all importers see the mock
+- [Phase 01-backend-foundation-and-data-safety]: IS NOT TRUE rather than = FALSE for is_deleted filter — handles pre-migration NULL rows defensively
+- [Phase 01-backend-foundation-and-data-safety]: synchronize_session=False on retry_book() bulk .delete() — required for SQLAlchemy 2.x ORM correctness
+- [Phase 01-backend-foundation-and-data-safety]: Partial indexes on book_chunks (not_deleted, user_created) instead of full indexes for targeted query optimization
 
 ### Pending Todos
 
@@ -59,6 +79,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-05
-Stopped at: Completed 01-01-PLAN.md (Snippet Test Scaffold)
+Last session: 2026-03-05T23:39:00.169Z
+Stopped at: Completed 01-02-PLAN.md (Snippet Management Foundation)
 Resume file: None

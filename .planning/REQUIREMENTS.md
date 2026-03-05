@@ -22,14 +22,14 @@
 ### Snippet Editing
 
 - [ ] **EDIT-01**: User can edit the text content of any chunk inline; changes persist permanently
-- [ ] **EDIT-02**: Editing a chunk's content triggers re-embedding automatically (atomic: content + embedding + token count updated together)
+- [x] **EDIT-02**: Editing a chunk's content triggers re-embedding automatically (atomic: content + embedding + token count updated together)
 - [ ] **EDIT-03**: User sees a loading indicator while re-embedding is in progress, and an error message if it fails (with no data corruption — rollback if embed fails)
-- [ ] **EDIT-04**: User can delete a chunk; deleted chunks are excluded from all future agent context retrieval
+- [x] **EDIT-04**: User can delete a chunk; deleted chunks are excluded from all future agent context retrieval
 
 ### Custom Snippets
 
 - [ ] **CUST-01**: User can create a new custom snippet from scratch for a selected book
-- [ ] **CUST-02**: Custom snippets are marked with an "is_user_created" flag that survives book reprocessing (retry_book() must not delete them)
+- [x] **CUST-02**: Custom snippets are marked with an "is_user_created" flag that survives book reprocessing (retry_book() must not delete them)
 - [ ] **CUST-03**: New custom snippets are embedded automatically on creation
 
 ### Annotations
@@ -83,11 +83,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | BROW-05 | Phase 2 | Pending |
 | BROW-06 | Phase 2 | Pending |
 | EDIT-01 | Phase 1 | Pending |
-| EDIT-02 | Phase 1 | Pending |
+| EDIT-02 | Phase 1 | Complete |
 | EDIT-03 | Phase 2 | Pending |
-| EDIT-04 | Phase 1 | Pending |
+| EDIT-04 | Phase 1 | Complete |
 | CUST-01 | Phase 1 | Pending |
-| CUST-02 | Phase 1 | Pending |
+| CUST-02 | Phase 1 | Complete |
 | CUST-03 | Phase 1 | Pending |
 | ANNO-01 | Phase 3 | Pending |
 | ANNO-02 | Phase 3 | Pending |
