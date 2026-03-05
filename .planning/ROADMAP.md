@@ -28,11 +28,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Deleting a chunk via API excludes it from all subsequent retrieval (soft delete with is_deleted flag)
   4. Creating a custom snippet via API embeds it automatically and marks it with is_user_created=True
   5. Reprocessing a book (retry_book) preserves all user-created and user-edited chunks
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
+- [ ] 01-01-PLAN.md — Test scaffold: conftest SafeVector patch + embed mock fixture + 7 failing test stubs
+- [ ] 01-02-PLAN.md — DB foundation: migration 006, BookChunk model extension, RAG soft-delete filters, retry_book safety fix
+- [ ] 01-03-PLAN.md — Snippets router: 4 endpoints (list/edit/delete/create), Pydantic schemas, main.py wiring
 
 ### Phase 2: Frontend Snippets Page
 **Goal**: Writers can browse, search, edit, delete, and add custom snippets for any book through a dedicated Snippets page
@@ -67,6 +68,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Backend Foundation and Data Safety | 0/TBD | Not started | - |
+| 1. Backend Foundation and Data Safety | 0/3 | Not started | - |
 | 2. Frontend Snippets Page | 0/TBD | Not started | - |
 | 3. RAG Integration and Enrichment | 0/TBD | Not started | - |
