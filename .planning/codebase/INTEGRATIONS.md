@@ -1,165 +1,136 @@
 # External Integrations
 
-**Analysis Date:** 2026-03-01
+**Analysis Date:** 2026-03-05
 
 ## APIs & External Services
 
-**AI Models (Dual Provider Support):**
-- OpenAI GPT Models
-  - SDK/Client: `openai==1.12.0` (AsyncOpenAI for async operations)
-  - Auth: `OPENAI_API_KEY` environment variable
-  - Usage: Section reviews, content generation, embeddings
-  - Models configured in `backend/app/config.py`: `OPENAI_MODEL` (default: "gpt-4o"), `EMBEDDING_MODEL` (default: "text-embedding-3-small")
-  - Implementation: `backend/app/services/ai_provider.py` (unified wrapper)
+**Large Language Models:**
+- **OpenAI** - GPT-4 chat completions and embeddings
+  - SDK/Client: `openai` (1.12.0)
+  - Auth: Environment variable `OPENAI_API_KEY`
+  - Models: `gpt-4o` (chat), `text-embedding-3-small` (embeddings)
+  - Used by: `backend/app/services/ai_provider.py`, `backend/app/services/embedding_service.py`
 
-- Anthropic Claude Models
-  - SDK/Client: `anthropic>=0.39.0` (AsyncAnthropic for async operations)
-  - Auth: `ANTHROPIC_API_KEY` environment variable
-  - Usage: Alternative AI provider for chat completion and content generation
-  - Models configured in `backend/app/config.py`: `ANTHROPIC_MODEL` (default: "claude-sonnet-4-6")
-  - Implementation: `backend/app/services/ai_provider.py` (unified wrapper with provider switching via `AI_PROVIDER` setting)
-
-**Vector Embeddings:**
-- OpenAI Embeddings API
-  - Model: `text-embedding-3-small` (configurable via `EMBEDDING_MODEL`)
-  - Dimension: 1536 (configurable via `EMBEDDING_DIMENSION`)
-  - Service: `backend/app/services/embedding_service.py`
-  - In-memory LRU caching with 500-item max size
-  - Batch processing with rate limit handling (exponential backoff: 2, 4, 8, 16, 32 seconds)
+- **Anthropic** - Claude chat completions (alternative provider)
+  - SDK/Client: `anthropic` (>=0.39.0)
+  - Auth: Environment variable `ANTHROPIC_API_KEY`
+  - Model: `claude-sonnet-4-6` (configurable)
+  - Used by: `backend/app/services/ai_provider.py`
+  - Provider Selection: Controlled by `AI_PROVIDER` config (default: "anthropic")
 
 ## Data Storage
 
 **Databases:**
-- PostgreSQL 15 with pgvector extension
-  - Connection: `DATABASE_URL` environment variable (format: `postgresql://user:password@host:port/database`)
-  - Client: SQLAlchemy 2.0.27 ORM
-  - Vector Search: pgvector 0.3.6 for semantic search on embeddings
-  - Initialization: SQL migrations in `backend/migrations/init_db.sql` and `backend/migrations/002_knowledge_graph.sql`
-  - Tables managed directly via SQL migrations (not Alembic)
+- **PostgreSQL 15**
+  - Connection: Environment variable `DATABASE_URL` (via `backend/app/config.py`)
+  - Client: psycopg2-binary 2.9.9
+  - ORM: SQLAlchemy 2.0.27
+  - Location: Container service `db` in `docker-compose.yml`
+  - Schema: Defined in `backend/migrations/` (5 migration files)
+  - Vector Storage: pgvector 0.3.6 extension for embeddings
 
 **File Storage:**
-- Local filesystem only (development and Docker volumes)
-  - Upload directory: `backend/uploads/` (configurable via `UPLOAD_DIR` setting)
-  - Max file size: 50MB (configurable via `MAX_BOOK_SIZE_MB`)
-  - Supported formats: PDF, EPUB (processed by PyPDF2 and ebooklib)
-  - Storage mechanism: Docker volume `book_uploads` for persistence
+- **Local filesystem** - Document uploads via `backend/uploads/` directory
+  - Mounted volume: `book_uploads` in Docker Compose
+  - Path configured: `backend/app/config.py` → `UPLOAD_DIR`
+  - Max file size: `MAX_BOOK_SIZE_MB` (default: 50MB)
+  - Supported formats: PDF (PyPDF2), EPUB (ebooklib)
 
 **Caching:**
-- In-Memory LRU Caching
-  - OpenAI reviews: 100-item max (OrderedDict in `OpenAIService`)
-  - Embeddings: 500-item max (OrderedDict in `EmbeddingService`)
-  - TTL: 15 minutes (900 seconds, configurable via `CACHE_TTL`)
-  - No external cache service (Redis, Memcached) - all in-process
+- **In-memory** - No external cache service
+  - Query response caching: 15-minute TTL in services
+  - Embedding LRU cache: 500-item max in `backend/app/services/embedding_service.py`
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- Custom JWT-based (development MVP mode)
+- **Custom JWT-based (Mock for MVP)**
   - Implementation: `backend/app/services/auth_service.py`
-  - Token type: Bearer tokens via Authorization header
-  - Mock auth for development: `Bearer mock-token` for API testing
-  - JWT signing: `python-jose[cryptography]` 3.3.0
-  - Secret key: `SECRET_KEY` environment variable (must be changed in production)
-
-**Auth Endpoints:**
-- `POST /api/auth/token/mock` - Get mock token for development
-- `POST /api/auth/magic-link` - Request magic link authentication
-- `POST /api/auth/verify-magic-link` - Verify magic link token
+  - Token: Mock token `"mock-token"` used in development
+  - Endpoint: `POST /api/auth/token/mock` (development only)
+  - Token storage (frontend): `localStorage` with key `AUTH_TOKEN_KEY`
+  - Token format: Bearer token in `Authorization` header
+  - Libraries: python-jose 3.3.0 (JWT), passlib 1.7.4 (password hashing)
+  - Middleware: `backend/app/middleware.py` → `SecurityMiddleware`
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Not detected (no Sentry, Rollbar, or similar integration)
-- Standard logging via Python `logging` module to stdout
+- Not detected - No error tracking service integrated
 
 **Logs:**
-- Backend: Python `logging` module with configurable levels
-  - Development: DEBUG level
-  - Production: INFO level
-  - Log format: `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
-  - Logged to console/stdout (no file persistence configured)
-- Frontend: Browser console logging only
-
-**Monitoring Metrics:**
-- Health check endpoint: `GET /health` returns `{"status": "healthy"}`
-- No metrics collection (Prometheus, DataDog, etc.)
+- **Standard logging** - Python logging module
+  - Configuration: `backend/app/main.py` → `logging.basicConfig()`
+  - Format: `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
+  - Levels: DEBUG in development, INFO in production
+  - Middleware logging: `backend/app/middleware.py` → `LoggingMiddleware`
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Docker Compose for local/development deployment
-- Services: PostgreSQL (db), FastAPI backend, React frontend
-- Environment: Configurable via `.env` file or `docker-compose.yml` environment variables
+- Docker Compose (local/self-hosted) - All services containerized
+- No cloud platform integration detected
 
 **CI Pipeline:**
-- Not detected (no GitHub Actions, GitLab CI, or other automated testing)
-- Manual testing via pytest and npm scripts
-
-**Deployment Configuration:**
-- Docker Compose orchestration in `docker-compose.yml`
-- Backend runs on port 8000 (Uvicorn)
-- Frontend runs on port 5173 (Vite dev server in Docker)
-- Database runs on port 5432 (PostgreSQL)
-- Frontend proxy: Vite proxies `/api` requests to `http://localhost:8000`
+- Not detected - No GitHub Actions, GitLab CI, or other CI service configured
 
 ## Environment Configuration
 
-**Required env vars (Backend):**
+**Required env vars:**
 - `DATABASE_URL` - PostgreSQL connection string
-- `OPENAI_API_KEY` - OpenAI API key (if using OpenAI)
-- `ANTHROPIC_API_KEY` - Anthropic API key (if using Anthropic)
-- `SECRET_KEY` - JWT signing secret
-- `AI_PROVIDER` - "openai" or "anthropic" (default: "anthropic")
-- `ALLOWED_ORIGINS` - CORS-allowed origins (comma-separated list)
-- `ENVIRONMENT` - "development", "staging", "production"
+- `SECRET_KEY` - JWT signing key (must not be default in production)
+- `OPENAI_API_KEY` - Required if using OpenAI provider
+- `ANTHROPIC_API_KEY` - Required if using Anthropic provider
+- `AI_PROVIDER` - Either "openai" or "anthropic" (default: "anthropic")
+- `POSTGRES_PASSWORD` - PostgreSQL password (required for Docker)
 
-**Optional env vars (Backend):**
+**Optional env vars:**
+- `POSTGRES_USER` - PostgreSQL username (default: "screenwriter")
+- `POSTGRES_DB` - PostgreSQL database name (default: "screenwriter_db")
+- `ENVIRONMENT` - "development", "staging", or "production" (default: "development")
 - `OPENAI_MODEL` - OpenAI model name (default: "gpt-4o")
 - `ANTHROPIC_MODEL` - Anthropic model name (default: "claude-sonnet-4-6")
 - `EMBEDDING_MODEL` - Embedding model (default: "text-embedding-3-small")
-- `EMBEDDING_DIMENSION` - Embedding vector dimension (default: 1536)
-- `MAX_TOKENS` - Max tokens per API response (default: 1500)
-- `MAX_SECTION_LENGTH` - Max input text length (default: 1500)
-- `CACHE_TTL` - Cache time-to-live in seconds (default: 900)
-- `MAX_BOOK_SIZE_MB` - Max file upload size (default: 50)
-- `PORT` - Server port (default: 8000)
-
-**Required env vars (Frontend):**
-- `VITE_API_URL` - Backend API base URL (default: `http://localhost:8000/api`)
+- `ALLOWED_ORIGINS` - CORS allowlist JSON array
+- `MAX_TOKENS` - Max response tokens (default: 1500)
+- `CACHE_TTL` - Cache TTL in seconds (default: 900)
+- `VITE_API_URL` - Frontend API base URL (docker-compose: "http://localhost:8000/api")
 
 **Secrets location:**
-- Development: `.env` file in project root (not committed)
-- Docker Compose: `.env` file (loaded by docker-compose)
-- Production: Environment variables from deployment platform (Heroku, AWS, etc.)
+- Development: `.env` file (not committed, see `.gitignore`)
+- Production: Environment variables passed to Docker containers (via docker-compose.yml)
+- Docker Compose uses conditional env var injection (e.g., `${OPENAI_API_KEY:?OPENAI_API_KEY must be set}`)
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- Not detected - no webhook endpoints configured
+- Not detected - No webhook ingestion endpoints
 
 **Outgoing:**
-- Not detected - no outbound webhook triggers
-- Possible future: Magic link email delivery (not yet implemented)
+- Not detected - No outbound webhook triggers
 
-## Rate Limiting
+## AI Service Integration Details
 
-**API Rate Limiting:**
-- RateLimitMiddleware in `backend/app/middleware.py`
-- Limit: 60 requests per minute per IP
-- Middleware order: Applied at request processing level
+**Chat Completion Flow:**
+- All AI requests route through `backend/app/services/ai_provider.py`
+- Unified `chat_completion()` function supports both OpenAI and Anthropic
+- Supports both standard and streaming responses
+- Request: `messages` list (system/user/assistant roles), `temperature`, `max_tokens`
+- Response: Text content string (auto-extracted from provider response)
 
-**AI API Rate Limiting:**
-- OpenAI: Handled via EmbeddingService with exponential backoff (up to 32 seconds)
-- Anthropic: Handled via native client rate limiting
-- Retry logic: 5 attempts with exponential backoff for embedding batches
+**Embedding Service:**
+- Dedicated `backend/app/services/embedding_service.py`
+- Uses OpenAI's `text-embedding-3-small` model
+- Features: LRU in-memory caching (500 items), batch processing (50 items/batch)
+- Rate limit handling: Exponential backoff retry (2^attempt * 2 seconds, max 5 attempts)
+- Storage: Vectors stored in PostgreSQL via pgvector extension
 
-## Request Size Limits
-
-**Backend:**
-- RequestSizeLimitMiddleware in `backend/app/middleware.py`
-- Max payload size: 10MB
-- Applies to all POST/PATCH requests
+**Knowledge Graph & RAG:**
+- Document embeddings stored in `pgvector` for semantic search
+- Service: `backend/app/services/rag_service.py`
+- Token counting via `tiktoken` for accurate prompt sizing
+- Document processing: `backend/app/services/book_processing_service.py`
 
 ---
 
-*Integration audit: 2026-03-01*
+*Integration audit: 2026-03-05*
