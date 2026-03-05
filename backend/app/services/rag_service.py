@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -137,8 +137,9 @@ class RAGService:
                        b.title as book_title, b.author as book_author
                 FROM book_chunks bc
                 JOIN books b ON bc.book_id = b.id
-                WHERE bc.book_id = ANY(:book_ids::uuid[])
+                WHERE bc.book_id = ANY(CAST(:book_ids AS uuid[]))
                   AND bc.concept_ids ?| :concept_ids
+                  AND bc.is_deleted IS NOT TRUE
                 LIMIT :top_k
             """),
             {
@@ -163,42 +164,111 @@ class RAGService:
     async def semantic_search(
         self,
         query_text: str,
-        agent_id: UUID,
-        db: Session,
+        agent_id: Optional[UUID] = None,
+        owner_id: Optional[UUID] = None,
+        tags_filter: Optional[List[str]] = None,
+        db: Session = None,
         top_k_concepts: int = 5,
         top_k_chunks: int = 4,
     ) -> Dict:
-        """Mode 2: Semantic search across concepts and chunks for chat follow-ups."""
+        """Mode 2: Semantic search across concepts and chunks for chat follow-ups.
+
+        Routes to tag-based path when owner_id + tags_filter are provided,
+        otherwise uses agent_id → AgentBook path (existing behavior).
+        """
         query_embedding = await embedding_service.embed_text(query_text)
 
-        book_ids = [
-            str(row[0])
-            for row in db.query(AgentBook.book_id)
-            .filter(AgentBook.agent_id == agent_id)
-            .all()
-        ]
+        if tags_filter is not None and owner_id is not None:
+            # TAG_BASED path: search across all user's books filtered by tags
+            concept_results = db.execute(
+                sql_text("""
+                    SELECT c.id, c.name, c.definition, c.chapter_source, c.page_range,
+                           c.examples, c.actionable_questions, c.tags,
+                           1 - (c.embedding <=> CAST(:embedding AS vector)) as similarity
+                    FROM concepts c
+                    JOIN books b ON c.book_id = b.id
+                    WHERE b.owner_id = :owner_id
+                      AND c.tags ?| :tags
+                      AND c.embedding IS NOT NULL
+                    ORDER BY c.embedding <=> CAST(:embedding AS vector)
+                    LIMIT :top_k
+                """),
+                {
+                    "embedding": str(query_embedding),
+                    "owner_id": str(owner_id),
+                    "tags": tags_filter,
+                    "top_k": top_k_concepts,
+                },
+            )
 
-        if not book_ids:
-            return {"concepts": [], "chunks": []}
+            chunk_results = db.execute(
+                sql_text("""
+                    SELECT bc.content, bc.chapter_title, bc.page_number,
+                           b.title as book_title, b.author as book_author,
+                           1 - (bc.embedding <=> CAST(:embedding AS vector)) as similarity
+                    FROM book_chunks bc
+                    JOIN books b ON bc.book_id = b.id
+                    WHERE b.owner_id = :owner_id
+                      AND bc.embedding IS NOT NULL
+                      AND bc.is_deleted IS NOT TRUE
+                    ORDER BY bc.embedding <=> CAST(:embedding AS vector)
+                    LIMIT :top_k
+                """),
+                {
+                    "embedding": str(query_embedding),
+                    "owner_id": str(owner_id),
+                    "top_k": top_k_chunks,
+                },
+            )
+        else:
+            # BOOK_BASED path: existing behavior via AgentBook join
+            book_ids = [
+                str(row[0])
+                for row in db.query(AgentBook.book_id)
+                .filter(AgentBook.agent_id == agent_id)
+                .all()
+            ]
 
-        # Search concepts by embedding similarity
-        concept_results = db.execute(
-            sql_text("""
-                SELECT c.id, c.name, c.definition, c.chapter_source, c.page_range,
-                       c.examples, c.actionable_questions, c.tags,
-                       1 - (c.embedding <=> :embedding::vector) as similarity
-                FROM concepts c
-                WHERE c.book_id = ANY(:book_ids::uuid[])
-                  AND c.embedding IS NOT NULL
-                ORDER BY c.embedding <=> :embedding::vector
-                LIMIT :top_k
-            """),
-            {
-                "embedding": str(query_embedding),
-                "book_ids": book_ids,
-                "top_k": top_k_concepts,
-            },
-        )
+            if not book_ids:
+                return {"concepts": [], "chunks": []}
+
+            concept_results = db.execute(
+                sql_text("""
+                    SELECT c.id, c.name, c.definition, c.chapter_source, c.page_range,
+                           c.examples, c.actionable_questions, c.tags,
+                           1 - (c.embedding <=> CAST(:embedding AS vector)) as similarity
+                    FROM concepts c
+                    WHERE c.book_id = ANY(CAST(:book_ids AS uuid[]))
+                      AND c.embedding IS NOT NULL
+                    ORDER BY c.embedding <=> CAST(:embedding AS vector)
+                    LIMIT :top_k
+                """),
+                {
+                    "embedding": str(query_embedding),
+                    "book_ids": book_ids,
+                    "top_k": top_k_concepts,
+                },
+            )
+
+            chunk_results = db.execute(
+                sql_text("""
+                    SELECT bc.content, bc.chapter_title, bc.page_number,
+                           b.title as book_title, b.author as book_author,
+                           1 - (bc.embedding <=> CAST(:embedding AS vector)) as similarity
+                    FROM book_chunks bc
+                    JOIN books b ON bc.book_id = b.id
+                    WHERE bc.book_id = ANY(CAST(:book_ids AS uuid[]))
+                      AND bc.embedding IS NOT NULL
+                      AND bc.is_deleted IS NOT TRUE
+                    ORDER BY bc.embedding <=> CAST(:embedding AS vector)
+                    LIMIT :top_k
+                """),
+                {
+                    "embedding": str(query_embedding),
+                    "book_ids": book_ids,
+                    "top_k": top_k_chunks,
+                },
+            )
 
         concepts = []
         for row in concept_results:
@@ -210,28 +280,9 @@ class RAGService:
                 "page_range": row.page_range,
                 "examples": row.examples or [],
                 "actionable_questions": row.actionable_questions or [],
+                "tags": row.tags or [],
                 "similarity": float(row.similarity),
             })
-
-        # Search chunks by embedding similarity
-        chunk_results = db.execute(
-            sql_text("""
-                SELECT bc.content, bc.chapter_title, bc.page_number,
-                       b.title as book_title, b.author as book_author,
-                       1 - (bc.embedding <=> :embedding::vector) as similarity
-                FROM book_chunks bc
-                JOIN books b ON bc.book_id = b.id
-                WHERE bc.book_id = ANY(:book_ids::uuid[])
-                  AND bc.embedding IS NOT NULL
-                ORDER BY bc.embedding <=> :embedding::vector
-                LIMIT :top_k
-            """),
-            {
-                "embedding": str(query_embedding),
-                "book_ids": book_ids,
-                "top_k": top_k_chunks,
-            },
-        )
 
         chunks = []
         for row in chunk_results:
@@ -245,6 +296,70 @@ class RAGService:
             })
 
         return {"concepts": concepts, "chunks": chunks}
+
+    def get_concepts_by_tags(
+        self,
+        tags: List[str],
+        owner_id: UUID,
+        db: Session,
+        top_k: int = None,
+        quality_threshold: float = 0.5,
+    ) -> List[Dict]:
+        """Get concepts from all user's books that match any of the given tags."""
+        top_k = top_k or settings.MAX_CONCEPTS_PER_REVIEW
+
+        result = db.execute(
+            sql_text("""
+                SELECT c.id, c.name, c.definition, c.chapter_source, c.page_range,
+                       c.examples, c.actionable_questions, c.section_relevance,
+                       c.tags, c.quality_score
+                FROM concepts c
+                JOIN books b ON c.book_id = b.id
+                WHERE b.owner_id = :owner_id
+                  AND c.tags ?| :tags
+                  AND (c.quality_score IS NULL OR c.quality_score >= :threshold)
+                ORDER BY c.quality_score DESC NULLS LAST
+                LIMIT :top_k
+            """),
+            {
+                "owner_id": str(owner_id),
+                "tags": tags,
+                "threshold": quality_threshold,
+                "top_k": top_k,
+            },
+        )
+
+        concepts = []
+        for row in result:
+            concepts.append({
+                "id": str(row.id),
+                "name": row.name,
+                "definition": row.definition,
+                "chapter_source": row.chapter_source,
+                "page_range": row.page_range,
+                "examples": row.examples or [],
+                "actionable_questions": row.actionable_questions or [],
+                "section_relevance": row.section_relevance or {},
+                "tags": row.tags or [],
+                "quality_score": row.quality_score,
+            })
+
+        return concepts
+
+    def get_all_tags(self, owner_id: UUID, db: Session) -> List[str]:
+        """Return all unique concept tags from the user's processed books."""
+        result = db.execute(
+            sql_text("""
+                SELECT DISTINCT jsonb_array_elements_text(c.tags) as tag
+                FROM concepts c
+                JOIN books b ON c.book_id = b.id
+                WHERE b.owner_id = :owner_id
+                  AND b.status = 'completed'
+                ORDER BY tag
+            """),
+            {"owner_id": str(owner_id)},
+        )
+        return [row.tag for row in result]
 
 
 rag_service = RAGService()

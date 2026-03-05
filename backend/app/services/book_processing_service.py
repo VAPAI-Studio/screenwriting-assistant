@@ -1,16 +1,23 @@
+import asyncio
 import logging
+import os
 from datetime import datetime, timezone
+from typing import Dict
 from uuid import UUID
 
 from sqlalchemy.orm import Session
 
 from ..config import settings
+from ..db import SessionLocal
 from ..models.database import Book, BookChunk, BookStatus, Concept, ConceptRelationship, RelationshipType
 from .document_service import document_service
 from .embedding_service import embedding_service
 from .knowledge_extraction_service import knowledge_extraction_service
 
 logger = logging.getLogger(__name__)
+
+# Registry of active processing tasks: book_id (str) → asyncio.Task
+_active_tasks: Dict[str, asyncio.Task] = {}
 
 
 class BookProcessingService:
@@ -22,79 +29,130 @@ class BookProcessingService:
     5. Link chunks to concepts
     """
 
-    async def process_book(self, book_id: UUID, file_path: str, db: Session) -> None:
+    async def process_book(
+        self,
+        book_id: UUID,
+        file_path: str,
+        db: Session,
+        start_chapter: int = 0,
+    ) -> None:
         book = db.query(Book).filter(Book.id == book_id).first()
         if not book:
             logger.error(f"Book {book_id} not found")
             return
 
+        # Register this coroutine's task so it can be cancelled
+        current_task = asyncio.current_task()
+        if current_task:
+            _active_tasks[str(book_id)] = current_task
+
         try:
-            # ── Step 1: Extract text ──
-            self._update_status(book, BookStatus.EXTRACTING, "Extracting text from document", db)
-            pages = document_service.extract_text(file_path, book.file_type)
+            if start_chapter == 0:
+                # ── Step 1: Extract text ──
+                self._update_status(book, BookStatus.EXTRACTING, "Extracting text from document", db, progress=5)
+                pages = document_service.extract_text(file_path, book.file_type)
 
-            if not pages:
-                raise ValueError("No text could be extracted from the document")
+                if not pages:
+                    raise ValueError("No text could be extracted from the document")
 
-            logger.info(f"Extracted {len(pages)} pages/sections from {book.filename}")
+                logger.info(f"Extracted {len(pages)} pages/sections from {book.filename}")
 
-            # ── Step 2: Create raw chunks + embeddings ──
-            self._update_status(book, BookStatus.EMBEDDING, "Creating text chunks and embeddings", db)
+                # ── Step 2: Create raw chunks + embeddings ──
+                self._update_status(book, BookStatus.EMBEDDING, "Creating text chunks and embeddings", db, progress=8)
 
-            chunks = document_service.chunk_text(pages)
-            logger.info(f"Created {len(chunks)} chunks")
+                chunks = document_service.chunk_text(pages)
+                logger.info(f"Created {len(chunks)} chunks")
 
-            chunk_texts = [c.content for c in chunks]
-            chunk_embeddings = await embedding_service.embed_batch(chunk_texts)
+                chunk_texts = [c.content for c in chunks]
+                chunk_embeddings = await embedding_service.embed_batch(chunk_texts)
 
-            db_chunks = []
-            for chunk, emb in zip(chunks, chunk_embeddings):
-                db_chunk = BookChunk(
-                    book_id=book_id,
-                    chunk_index=chunk.chunk_index,
-                    content=chunk.content,
-                    token_count=chunk.token_count,
-                    embedding=emb,
-                    chapter_title=chunk.chapter_title,
-                    page_number=chunk.page_number,
-                )
-                db.add(db_chunk)
-                db_chunks.append(db_chunk)
+                db_chunks = []
+                for chunk, emb in zip(chunks, chunk_embeddings):
+                    db_chunk = BookChunk(
+                        book_id=book_id,
+                        chunk_index=chunk.chunk_index,
+                        content=chunk.content,
+                        token_count=chunk.token_count,
+                        embedding=emb,
+                        chapter_title=chunk.chapter_title,
+                        page_number=chunk.page_number,
+                    )
+                    db.add(db_chunk)
+                    db_chunks.append(db_chunk)
 
-            book.total_chunks = len(chunks)
-            db.commit()
+                book.total_chunks = len(chunks)
+                book.progress = 10
+                db.commit()
+            else:
+                # Resuming: fetch existing chunks for concept-linking later
+                logger.info(f"Resuming book {book_id} from chapter {start_chapter}")
+                pages = document_service.extract_text(file_path, book.file_type)
+                db_chunks = db.query(BookChunk).filter(BookChunk.book_id == book_id).all()
 
             # ── Step 3: Extract knowledge graph ──
-            self._update_status(book, BookStatus.ANALYZING, "Extracting knowledge graph with GPT-4", db)
+            self._update_status(book, BookStatus.ANALYZING, "Extracting knowledge graph", db, progress=book.progress)
 
             chapters = document_service.split_into_chapters(pages)
-            logger.info(f"Processing {len(chapters)} chapters for knowledge extraction")
+            chapters_total = len(chapters)
+
+            # Set total on first pass; preserve on resume
+            if start_chapter == 0:
+                book.chapters_total = chapters_total
+                db.commit()
+
+            logger.info(f"Processing {chapters_total} chapters (starting at {start_chapter})")
 
             all_concepts = []
             all_relationships = []
 
-            for chapter in chapters:
-                chapter_result = await knowledge_extraction_service.process_chapter(
-                    chapter_text=chapter["text"],
-                    chapter_title=chapter.get("title", "Untitled"),
-                    book_title=book.title,
-                )
-                all_concepts.extend(chapter_result.get("concepts", []))
-                all_relationships.extend(chapter_result.get("relationships", []))
+            try:
+                for idx, chapter in enumerate(chapters):
+                    if idx < start_chapter:
+                        continue  # Skip already-processed chapters
 
-                # Update progress
-                book.processing_step = f"Analyzed {len(all_concepts)} concepts so far"
+                    chapter_result = await knowledge_extraction_service.process_chapter(
+                        chapter_text=chapter["text"],
+                        chapter_title=chapter.get("title", "Untitled"),
+                        book_title=book.title,
+                    )
+                    all_concepts.extend(chapter_result.get("concepts", []))
+                    all_relationships.extend(chapter_result.get("relationships", []))
+
+                    # Update per-chapter progress
+                    book.chapters_processed = idx + 1
+                    book.progress = 10 + int(75 * (book.chapters_processed / chapters_total))
+                    book.processing_step = f"Analyzed chapter {idx + 1} of {chapters_total}"
+                    db.commit()
+
+            except asyncio.CancelledError:
+                logger.info(f"Book {book_id} processing cancelled — saving PAUSED state")
+                book.status = BookStatus.PAUSED
+                book.processing_step = f"Paused at chapter {book.chapters_processed} of {book.chapters_total}"
                 db.commit()
+                _active_tasks.pop(str(book_id), None)
+                return
 
             logger.info(f"Extracted {len(all_concepts)} concepts, {len(all_relationships)} relationships")
 
+            # ── Quality filter ──
+            QUALITY_THRESHOLD = 0.5
+            filtered_concepts = [
+                c for c in all_concepts
+                if c.get("quality_score", QUALITY_THRESHOLD) >= QUALITY_THRESHOLD
+            ]
+            if len(filtered_concepts) < len(all_concepts):
+                logger.info(
+                    f"Quality filter: {len(all_concepts)} → {len(filtered_concepts)} concepts "
+                    f"(dropped {len(all_concepts) - len(filtered_concepts)} low-quality)"
+                )
+            all_concepts = filtered_concepts
+
             # ── Step 4: Store concepts + generate concept embeddings ──
-            self._update_status(book, BookStatus.EMBEDDING, "Generating concept embeddings", db)
+            self._update_status(book, BookStatus.EMBEDDING, "Generating concept embeddings", db, progress=90)
 
             concept_definitions = [c["definition"] for c in all_concepts]
             concept_embeddings = await embedding_service.embed_batch(concept_definitions) if concept_definitions else []
 
-            # Map concept names to DB objects for relationship linking
             concept_name_to_db = {}
 
             for concept_data, emb in zip(all_concepts, concept_embeddings):
@@ -108,13 +166,17 @@ class BookProcessingService:
                     actionable_questions=concept_data.get("actionable_questions", []),
                     section_relevance=concept_data.get("section_relevance", {}),
                     tags=concept_data.get("tags", []),
+                    quality_score=concept_data.get("quality_score"),
                     embedding=emb,
                 )
                 db.add(db_concept)
-                db.flush()  # Get the ID
+                db.flush()
                 concept_name_to_db[concept_data["name"]] = db_concept
 
             # ── Step 5: Store relationships ──
+            book.progress = 97
+            db.commit()
+
             for rel_data in all_relationships:
                 source = concept_name_to_db.get(rel_data["source"])
                 target = concept_name_to_db.get(rel_data["target"])
@@ -134,7 +196,6 @@ class BookProcessingService:
                     db.add(db_rel)
 
             # ── Step 6: Link chunks to concepts ──
-            # Simple heuristic: if a concept name appears in a chunk, link them
             for db_chunk in db_chunks:
                 linked_ids = []
                 chunk_lower = db_chunk.content.lower()
@@ -149,6 +210,8 @@ class BookProcessingService:
             book.total_concepts = len(all_concepts)
             book.processed_at = datetime.now(timezone.utc)
             book.processing_step = "Complete"
+            book.progress = 100
+            book.chapters_processed = chapters_total
             db.commit()
 
             logger.info(
@@ -158,16 +221,102 @@ class BookProcessingService:
                 f"{len(all_relationships)} relationships"
             )
 
+        except asyncio.CancelledError:
+            # Cancelled outside the chapter loop (e.g. during embedding)
+            logger.info(f"Book {book_id} cancelled during embedding — saving PAUSED state")
+            book = db.query(Book).filter(Book.id == book_id).first()
+            if book:
+                book.status = BookStatus.PAUSED
+                book.processing_step = f"Paused at chapter {book.chapters_processed} of {book.chapters_total}"
+                db.commit()
+            _active_tasks.pop(str(book_id), None)
+            return
+
         except Exception as e:
             logger.error(f"Error processing book {book_id}: {e}", exc_info=True)
-            book.status = BookStatus.FAILED
-            book.processing_error = str(e)
-            book.processing_step = "Failed"
+            book = db.query(Book).filter(Book.id == book_id).first()
+            if book:
+                book.status = BookStatus.FAILED
+                book.processing_error = str(e)
+                book.processing_step = "Failed"
+                db.commit()
+
+        finally:
+            _active_tasks.pop(str(book_id), None)
+
+    def pause_book(self, book_id: str) -> bool:
+        """Cancel the active processing task for a book. Returns True if cancelled."""
+        task = _active_tasks.get(book_id)
+        if task and not task.done():
+            task.cancel()
+            return True
+        return False
+
+    async def resume_book(self, book_id: str, owner_id: str) -> None:
+        """Resume processing a paused book from its last checkpoint."""
+        db = SessionLocal()
+        try:
+            book = db.query(Book).filter(Book.id == book_id).first()
+            if not book:
+                logger.error(f"resume_book: book {book_id} not found")
+                return
+
+            start_chapter = book.chapters_processed
+            file_path = os.path.join(settings.UPLOAD_DIR, owner_id, book.filename)
+
+            # Clean up any partially-written concepts from the interrupted chapter
+            # (chapter_source matches the chapter index that was in progress)
+            # Since we re-process from start_chapter, we delete concepts from that chapter onward
+            # Actually, concepts are stored after the full loop - so partial chapters have no concepts.
+            # Safe to just resume from chapters_processed.
+
+            book.status = BookStatus.ANALYZING
+            book.processing_error = None
+            book.processing_step = f"Resuming from chapter {start_chapter}"
             db.commit()
 
-    def _update_status(self, book: Book, status: BookStatus, step: str, db: Session) -> None:
+            await self.process_book(book.id, file_path, db, start_chapter=start_chapter)
+        finally:
+            db.close()
+
+    async def retry_book(self, book_id: str, owner_id: str) -> None:
+        """Delete all extracted data and reprocess the book from scratch."""
+        db = SessionLocal()
+        try:
+            book = db.query(Book).filter(Book.id == book_id).first()
+            if not book:
+                logger.error(f"retry_book: book {book_id} not found")
+                return
+
+            # Delete existing extracted data — preserve user-created snippets
+            db.query(BookChunk).filter(
+                BookChunk.book_id == book.id,
+                BookChunk.is_user_created == False,
+            ).delete(synchronize_session=False)
+            db.query(Concept).filter(Concept.book_id == book.id).delete()
+
+            # Reset counters
+            book.status = BookStatus.PENDING
+            book.chapters_total = 0
+            book.chapters_processed = 0
+            book.progress = 0
+            book.total_chunks = 0
+            book.total_concepts = 0
+            book.processing_error = None
+            book.processing_step = None
+            book.processed_at = None
+            db.commit()
+
+            file_path = os.path.join(settings.UPLOAD_DIR, owner_id, book.filename)
+            await self.process_book(book.id, file_path, db)
+        finally:
+            db.close()
+
+    def _update_status(self, book: Book, status: BookStatus, step: str, db: Session, progress: int = -1) -> None:
         book.status = status
         book.processing_step = step
+        if progress >= 0:
+            book.progress = progress
         db.commit()
         logger.info(f"Book '{book.title}': {step}")
 
