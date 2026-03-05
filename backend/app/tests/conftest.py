@@ -3,9 +3,10 @@ import uuid
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, String, Enum as SAEnum
+from sqlalchemy import create_engine, String, Text, Enum as SAEnum
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from unittest.mock import AsyncMock, patch
 
 from app.models.database import Base
 from app.main import app
@@ -15,8 +16,9 @@ SQLALCHEMY_TEST_DATABASE_URL = "sqlite://"
 
 
 def _patch_uuid_columns_for_sqlite():
-    """Patch PostgreSQL UUID columns and Enum columns to work with SQLite."""
+    """Patch PostgreSQL UUID columns, Enum columns, and SafeVector columns to work with SQLite."""
     from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+    from app.models.database import SafeVector
 
     # Tell sqlite3 how to adapt Python UUID objects to strings
     sqlite3.register_adapter(uuid.UUID, lambda u: str(u))
@@ -30,6 +32,9 @@ def _patch_uuid_columns_for_sqlite():
             elif isinstance(column.type, SAEnum):
                 # SQLite doesn't support native enums; use String instead
                 column.type = String(50)
+            elif isinstance(column.type, SafeVector):
+                # SQLite doesn't support vector types; use Text instead
+                column.type = Text()
 
 
 @pytest.fixture(scope="session")
@@ -76,3 +81,19 @@ def client(db_session):
 def mock_auth_headers():
     """Return headers with mock authentication token."""
     return {"Authorization": "Bearer mock-token"}
+
+
+@pytest.fixture
+def mock_embed():
+    """Mock embedding_service.embed_text to return a fixed 1536-float vector.
+
+    Use this fixture in any test that triggers snippet creation or editing,
+    so no live OpenAI calls are made during the test suite.
+    """
+    fake_embedding = [0.1] * 1536
+    with patch(
+        "app.services.embedding_service.embedding_service.embed_text",
+        new_callable=AsyncMock,
+        return_value=fake_embedding,
+    ) as mock:
+        yield mock
