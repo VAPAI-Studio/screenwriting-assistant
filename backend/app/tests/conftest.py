@@ -1,3 +1,4 @@
+import json
 import sqlite3
 import uuid
 
@@ -6,6 +7,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, String, Text, Enum as SAEnum
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
+from sqlalchemy.types import TypeDecorator
 from unittest.mock import AsyncMock, patch
 
 from app.models.database import Base
@@ -13,6 +15,36 @@ from app.main import app
 from app.db import get_db
 
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite://"
+
+
+class VectorAsText(TypeDecorator):
+    """Serialize vector lists to JSON text for SQLite test engine.
+
+    SafeVector uses a custom bind_processor that formats list to pgvector's
+    "[v1,v2,...]" notation. When replaced with plain Text(), SQLite receives
+    a raw Python list and fails. This TypeDecorator stores lists as JSON
+    strings so SQLite can round-trip them without error.
+    """
+
+    impl = Text
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, (list, tuple)):
+            return json.dumps(value)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if isinstance(value, str):
+            try:
+                return json.loads(value)
+            except (ValueError, TypeError):
+                return value
+        return value
 
 
 def _patch_uuid_columns_for_sqlite():
@@ -33,8 +65,9 @@ def _patch_uuid_columns_for_sqlite():
                 # SQLite doesn't support native enums; use String instead
                 column.type = String(50)
             elif isinstance(column.type, SafeVector):
-                # SQLite doesn't support vector types; use Text instead
-                column.type = Text()
+                # SQLite doesn't support vector types; use VectorAsText to
+                # serialize/deserialize list values as JSON strings.
+                column.type = VectorAsText()
 
 
 @pytest.fixture(scope="session")
