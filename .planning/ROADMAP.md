@@ -12,7 +12,7 @@ This milestone gives writers full visibility and control over the book knowledge
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Backend Foundation and Data Safety** - Database migration, BookChunk model extensions, snippet CRUD API with transactional re-embedding, and retry_book() safety fix
+- [x] **Phase 1: Backend Foundation and Data Safety** - Database migration, BookChunk model extensions, snippet CRUD API with transactional re-embedding, and retry_book() safety fix (completed 2026-03-05)
 - [ ] **Phase 2: Frontend Snippets Page** - Top-level Snippets page with book selector, paginated chunk browsing, inline editing, custom snippet creation, search, and processing-state handling
 - [ ] **Phase 3: RAG Integration and Enrichment** - Annotations, priority weights, RAG query modifications, and agent context injection
 
@@ -68,6 +68,6 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Backend Foundation and Data Safety | 2/3 | In Progress|  |
+| 1. Backend Foundation and Data Safety | 3/3 | Complete   | 2026-03-05 |
 | 2. Frontend Snippets Page | 0/TBD | Not started | - |
 | 3. RAG Integration and Enrichment | 0/TBD | Not started | - |
