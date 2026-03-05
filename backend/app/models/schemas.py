@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
 from typing import List, Optional, Dict
 from datetime import datetime
 from uuid import UUID
-from .database import SectionType, ChecklistStatus, Framework, TemplateType, PhaseType
+from .database import SectionType, ChecklistStatus, Framework, TemplateType, PhaseType, AgentType
 
 # Base models
 class ChecklistItemBase(BaseModel):
@@ -183,6 +183,7 @@ class ConceptResponse(BaseModel):
     actionable_questions: List[str] = Field(default_factory=list)
     section_relevance: Dict = Field(default_factory=dict)
     tags: List[str] = Field(default_factory=list)
+    quality_score: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -205,6 +206,8 @@ class AgentCreate(BaseModel):
     personality: Optional[str] = None
     color: str = Field(default="#6366f1", pattern=r'^#[0-9a-fA-F]{6}$')
     icon: str = Field(default="book", max_length=50)
+    agent_type: AgentType = AgentType.BOOK_BASED
+    tags_filter: List[str] = Field(default_factory=list)
 
 
 class AgentUpdate(BaseModel):
@@ -214,6 +217,7 @@ class AgentUpdate(BaseModel):
     color: Optional[str] = Field(None, pattern=r'^#[0-9a-fA-F]{6}$')
     icon: Optional[str] = Field(None, max_length=50)
     is_active: Optional[bool] = None
+    tags_filter: Optional[List[str]] = None
 
 
 class AgentResponse(BaseModel):
@@ -225,6 +229,8 @@ class AgentResponse(BaseModel):
     icon: str
     is_active: bool
     is_default: bool
+    agent_type: str = "book_based"
+    tags_filter: List[str] = Field(default_factory=list)
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -253,6 +259,7 @@ class ChatSessionResponse(BaseModel):
 
 class ChatMessageCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=5000)
+    field_context: Optional[Dict] = None
 
     @field_validator('content')
     def validate_content(cls, v):
@@ -278,6 +285,7 @@ class ChatMessageResponse(BaseModel):
     content: str
     message_type: str = "chat"
     book_references: List[BookReferenceSchema] = Field(default_factory=list)
+    consulted_agents: List[Dict] = Field(default_factory=list)
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -432,6 +440,7 @@ class AISessionResponse(BaseModel):
 class AIMessageCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=10000)
     mode: str = Field(default="brainstorm", pattern="^(brainstorm|action)$")
+    allow_field_suggestions: bool = False
 
     @field_validator('content')
     def validate_content(cls, v):
@@ -514,3 +523,45 @@ class ScreenplayContentResponse(BaseModel):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Snippet schemas (Phase 1 — Snippet Manager)
+# ============================================================
+
+class SnippetResponse(BaseModel):
+    """Single chunk returned in list or after edit/create."""
+    id: str
+    book_id: str
+    chunk_index: int
+    content: str
+    token_count: int
+    chapter_title: Optional[str] = None
+    page_number: Optional[int] = None
+    is_deleted: bool
+    is_user_created: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SnippetListResponse(BaseModel):
+    """Paginated list of snippets."""
+    items: List[SnippetResponse]
+    total: int
+    page: int
+    per_page: int
+    pages: int
+
+
+class SnippetEdit(BaseModel):
+    """Body for PATCH /api/books/{book_id}/snippets/{chunk_id}."""
+    content: str = Field(..., min_length=1, max_length=50000)
+
+
+class SnippetCreate(BaseModel):
+    """Body for POST /api/books/{book_id}/snippets."""
+    content: str = Field(..., min_length=1, max_length=50000)
+    chapter_title: Optional[str] = Field(None, max_length=500)
+    page_number: Optional[int] = Field(None, ge=1)
