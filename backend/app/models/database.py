@@ -1,6 +1,6 @@
 # backend/app/models/database.py
 
-from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Text, JSON, func, Integer, Boolean, BigInteger, UniqueConstraint
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum, Text, JSON, func, Integer, Boolean, BigInteger, UniqueConstraint, Float
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship as sa_relationship, deferred
@@ -227,6 +227,7 @@ class BookStatus(str, enum.Enum):
     EMBEDDING = "embedding"
     COMPLETED = "completed"
     FAILED = "failed"
+    PAUSED = "paused"
 
 
 class RelationshipType(str, enum.Enum):
@@ -236,6 +237,12 @@ class RelationshipType(str, enum.Enum):
     EXAMPLE_OF = "example_of"
     CONTRADICTS = "contradicts"
     EXTENDS = "extends"
+
+
+class AgentType(str, enum.Enum):
+    BOOK_BASED = "book_based"
+    TAG_BASED = "tag_based"
+    ORCHESTRATOR = "orchestrator"
 
 
 class Book(Base):
@@ -253,6 +260,9 @@ class Book(Base):
     total_chunks = Column(Integer, default=0)
     total_concepts = Column(Integer, default=0)
     processing_error = Column(Text)
+    chapters_total = Column(Integer, default=0)
+    chapters_processed = Column(Integer, default=0)
+    progress = Column(Integer, default=0)  # 0-100
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
     processed_at = Column(DateTime(timezone=True))
     metadata_ = Column("metadata", JSON, default=dict)
@@ -275,6 +285,10 @@ class BookChunk(Base):
     page_number = Column(Integer)
     concept_ids = Column(JSON, default=list)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Phase 1 — Snippet Manager
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    is_user_created = Column(Boolean, default=False, nullable=False)
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     book = sa_relationship("Book", back_populates="chunks")
 
@@ -292,6 +306,7 @@ class Concept(Base):
     actionable_questions = Column(JSON, default=list)
     section_relevance = Column(JSON, default=dict)
     tags = Column(JSON, default=list)
+    quality_score = Column(Float, nullable=True)
     embedding = deferred(Column(SafeVector(1536)))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -336,6 +351,12 @@ class Agent(Base):
     icon = Column(String(50), default="book")
     is_active = Column(Boolean, default=True)
     is_default = Column(Boolean, default=False)
+    agent_type = Column(
+        Enum(AgentType, values_callable=lambda x: [e.value for e in x]),
+        default=AgentType.BOOK_BASED,
+        nullable=False,
+    )
+    tags_filter = Column(JSON, default=list)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -375,6 +396,7 @@ class ChatMessage(Base):
     message_type = Column(String(20), default="chat")
     book_references = Column(JSON, default=list)
     concepts_used = Column(JSON, default=list)
+    consulted_agents = Column(JSON, default=list)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     session = sa_relationship("ChatSession", back_populates="messages")
