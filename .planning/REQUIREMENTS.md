@@ -12,12 +12,12 @@
 
 ### Snippet Browsing
 
-- [ ] **BROW-01**: User can view all chunks for a selected book, paginated (50 per page)
-- [ ] **BROW-02**: User can see chunk content preview with chapter title, page number, and token count per chunk
-- [ ] **BROW-03**: User can distinguish auto-generated chunks from user-created snippets via a visual badge
-- [ ] **BROW-04**: User can search/filter chunks by text within the current book (frontend filter, no API call)
+- [ ] **BROW-01**: User can view all snippets for a selected book, paginated (50 per page)
+- [ ] **BROW-02**: User can see snippet content preview with chapter title, page number, and token count per snippet
+- [ ] **BROW-03**: User can see which concept(s) each snippet illustrates (via concept name label)
+- [ ] **BROW-04**: User can search/filter snippets by text within the current book (frontend filter, no API call)
 - [ ] **BROW-05**: User sees a clear message when a book is still processing (editing disabled until complete)
-- [ ] **BROW-06**: User can see the total token count across all chunks for the selected book
+- [ ] **BROW-06**: User can see the total token count across all snippets for the selected book
 
 ### Snippet Editing
 
@@ -26,11 +26,11 @@
 - [ ] **EDIT-03**: User sees a loading indicator while re-embedding is in progress, and an error message if it fails (with no data corruption — rollback if embed fails)
 - [x] **EDIT-04**: User can delete a chunk; deleted chunks are excluded from all future agent context retrieval
 
-### Custom Snippets
+### Snippet Extraction (Backend)
 
-- [ ] **CUST-01**: User can create a new custom snippet from scratch for a selected book
-- [x] **CUST-02**: Custom snippets are marked with an "is_user_created" flag that survives book reprocessing (retry_book() must not delete them)
-- [ ] **CUST-03**: New custom snippets are embedded automatically on creation
+- [ ] **EXTR-01**: During book processing (knowledge extraction phase), the AI identifies and stores N key passages per chapter as `Snippet` records — distinct from raw `BookChunk` records
+- [ ] **EXTR-02**: Each `Snippet` is linked to the concept(s) it best illustrates (via concept_ids) and gets an embedding for future semantic search
+- [ ] **EXTR-03**: Snippets are created automatically; there is no user-facing snippet creation form
 
 ### Annotations
 
@@ -86,9 +86,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | EDIT-02 | Phase 1 | Complete |
 | EDIT-03 | Phase 2 | Pending |
 | EDIT-04 | Phase 1 | Complete |
-| CUST-01 | Phase 1 | Pending |
-| CUST-02 | Phase 1 | Complete |
-| CUST-03 | Phase 1 | Pending |
+| EXTR-01 | Phase 2 | Pending |
+| EXTR-02 | Phase 2 | Pending |
+| EXTR-03 | Phase 2 | Pending |
 | ANNO-01 | Phase 3 | Pending |
 | ANNO-02 | Phase 3 | Pending |
 | ANNO-03 | Phase 3 | Pending |

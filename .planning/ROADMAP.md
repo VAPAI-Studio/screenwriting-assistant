@@ -38,7 +38,7 @@ Plans:
 ### Phase 2: Frontend Snippets Page
 **Goal**: Writers can browse, search, edit, delete, and add custom snippets for any book through a dedicated Snippets page
 **Depends on**: Phase 1
-**Requirements**: NAV-01, NAV-02, BROW-02, BROW-03, BROW-04, BROW-05, BROW-06, EDIT-03
+**Requirements**: NAV-01, NAV-02, BROW-02, BROW-03, BROW-04, BROW-05, BROW-06, EDIT-03, EXTR-01, EXTR-02, EXTR-03
 **Success Criteria** (what must be TRUE):
   1. User can navigate to a top-level "Snippets" page from the main navigation and select any uploaded book to view its chunks
   2. User sees chunk content previews with metadata (chapter title, page number, token count) and can distinguish auto-generated chunks from user-created snippets via a visual badge
