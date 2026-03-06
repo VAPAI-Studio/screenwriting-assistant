@@ -565,3 +565,33 @@ class SnippetCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=50000)
     chapter_title: Optional[str] = Field(None, max_length=500)
     page_number: Optional[int] = Field(None, ge=1)
+
+
+# ============================================================
+# Snippet Manager schemas (Phase 2 — /api/snippets endpoint)
+# Distinct from SnippetResponse (Phase 1 BookChunk-based)
+# ============================================================
+
+class SnippetManagerResponse(BaseModel):
+    id: str
+    book_id: str
+    chapter_title: Optional[str] = None
+    page_number: Optional[int] = None
+    content: str
+    justification: Optional[str] = None
+    concept_ids: list = []
+    concept_names: list = []
+    token_count: int
+    is_deleted: bool
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SnippetManagerListResponse(BaseModel):
+    items: List[SnippetManagerResponse]
+    total: int
+    page: int
+    per_page: int
+    pages: int
+    book_status: str
