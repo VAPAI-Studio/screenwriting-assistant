@@ -5,6 +5,7 @@ import {
   Book, Concept, Agent, ChatSession, ChatMessage,
   TemplateConfig, TemplateListItem, PhaseDataResponse, ListItemResponse,
   AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
+  Snippet, SnippetListResponse,
 } from '../types';
 import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT, CHAT_TIMEOUT } from './constants';
 
@@ -614,5 +615,64 @@ export const api = {
     });
     if (!response.ok) throw new Error('Failed to apply wizard results');
     return response.json();
+  },
+
+  // ============================================================
+  // Snippet Manager (/api/snippets) — Phase 2
+  // ============================================================
+
+  async getSnippets(
+    bookId: string,
+    params: { page?: number; per_page?: number } = {}
+  ): Promise<SnippetListResponse> {
+    const p = new URLSearchParams({ book_id: bookId });
+    if (params.page) p.set('page', String(params.page));
+    if (params.per_page) p.set('per_page', String(params.per_page));
+    const response = await fetch(`${API_BASE_URL}/snippets/?${p}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch snippets');
+    return response.json();
+  },
+
+  async editSnippet(snippetId: string, content: string): Promise<Snippet> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/snippets/${snippetId}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify({ content }),
+    });
+    if (!response.ok) throw new Error('Failed to update snippet');
+    return response.json();
+  },
+
+  async deleteSnippet(snippetId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/snippets/${snippetId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete snippet');
+  },
+
+  // Fix pre-existing missing methods (BookManager.tsx calls these):
+  async pauseBook(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/books/${id}/pause`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to pause book');
+  },
+
+  async resumeBook(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/books/${id}/resume`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to resume book');
+  },
+
+  async retryBook(id: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/books/${id}/retry`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to retry book');
   },
 };

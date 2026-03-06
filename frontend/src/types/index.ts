@@ -172,3 +172,31 @@ export interface AgentReviewResult {
 
 // Re-export template types
 export * from './template';
+
+// ============================================================
+// Snippet Manager (Phase 2)
+// ============================================================
+
+export interface Snippet {
+  id: string;
+  book_id: string;
+  chapter_title: string | null;
+  page_number: number | null;
+  content: string;
+  justification: string | null;
+  concept_ids: string[];
+  concept_names: string[];
+  token_count: number;
+  is_deleted: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface SnippetListResponse {
+  items: Snippet[];
+  total: number;
+  page: number;
+  per_page: number;
+  pages: number;
+  book_status: string;
+}

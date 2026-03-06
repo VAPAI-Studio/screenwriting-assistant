@@ -160,6 +160,7 @@ export const QUERY_KEYS = {
   BOOKS: 'books',
   BOOK: (id: string) => ['book', id],
   BOOK_CONCEPTS: (id: string) => ['book-concepts', id],
+  SNIPPETS: (bookId: string) => ['snippets', bookId],
   AGENTS: 'agents',
   CHAT_SESSIONS: (projectId: string) => ['chat-sessions', projectId],
   CHAT_MESSAGES: (sessionId: string) => ['chat-messages', sessionId],
@@ -232,6 +233,7 @@ export const ROUTES = {
     return path;
   },
   BOOKS: '/books',
+  SNIPPETS: '/snippets',
   TEMPLATES: '/templates',
   AI_ASSISTANT: '/ai-assistant',
   SETTINGS: '/settings',
