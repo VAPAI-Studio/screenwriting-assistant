@@ -7,6 +7,7 @@ import { ProjectList } from './components/Projects/ProjectList';
 import { Editor } from './components/Editor/Editor';
 import { BookManager } from './components/Books/BookManager';
 import { ProjectWorkspace } from './components/Workspace/ProjectWorkspace';
+import { SnippetManager } from './components/Snippets/SnippetManager';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,7 @@ function App() {
             <Route path="/projects/:projectId/:phase/:subsectionKey" element={<ProjectWorkspace />} />
             <Route path="/projects/:projectId/:phase/:subsectionKey/:itemId" element={<ProjectWorkspace />} />
             <Route path="/books" element={<BookManager />} />
+            <Route path="/snippets" element={<SnippetManager />} />
           </Routes>
         </Layout>
       </Router>

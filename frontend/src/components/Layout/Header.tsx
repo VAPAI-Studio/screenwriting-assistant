@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Scissors } from 'lucide-react';
 import { APP_NAME, ROUTES } from '../../lib/constants';
 
 export function Header() {
@@ -49,6 +49,17 @@ export function Header() {
             >
               <BookOpen className="h-3.5 w-3.5" />
               Books
+            </Link>
+            <Link
+              to={ROUTES.SNIPPETS}
+              className={`relative flex items-center gap-1.5 px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors
+                ${isActive('/snippets')
+                  ? 'text-foreground bg-muted/60'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                }`}
+            >
+              <Scissors className="h-3.5 w-3.5" />
+              Snippets
             </Link>
           </nav>
         </div>
