@@ -13,8 +13,8 @@
 ### Snippet Browsing
 
 - [ ] **BROW-01**: User can view all snippets for a selected book, paginated (50 per page)
-- [ ] **BROW-02**: User can see snippet content preview with chapter title, page number, and token count per snippet
-- [ ] **BROW-03**: User can see which concept(s) each snippet illustrates (via concept name label)
+- [x] **BROW-02**: User can see snippet content preview with chapter title, page number, and token count per snippet
+- [x] **BROW-03**: User can see which concept(s) each snippet illustrates (via concept name label)
 - [ ] **BROW-04**: User can search/filter snippets by text within the current book (frontend filter, no API call)
 - [ ] **BROW-05**: User sees a clear message when a book is still processing (editing disabled until complete)
 - [ ] **BROW-06**: User can see the total token count across all snippets for the selected book
@@ -23,14 +23,14 @@
 
 - [ ] **EDIT-01**: User can edit the text content of any chunk inline; changes persist permanently
 - [x] **EDIT-02**: Editing a chunk's content triggers re-embedding automatically (atomic: content + embedding + token count updated together)
-- [ ] **EDIT-03**: User sees a loading indicator while re-embedding is in progress, and an error message if it fails (with no data corruption — rollback if embed fails)
+- [x] **EDIT-03**: User sees a loading indicator while re-embedding is in progress, and an error message if it fails (with no data corruption — rollback if embed fails)
 - [x] **EDIT-04**: User can delete a chunk; deleted chunks are excluded from all future agent context retrieval
 
 ### Snippet Extraction (Backend)
 
-- [ ] **EXTR-01**: During book processing (knowledge extraction phase), the AI identifies and stores N key passages per chapter as `Snippet` records — distinct from raw `BookChunk` records
-- [ ] **EXTR-02**: Each `Snippet` is linked to the concept(s) it best illustrates (via concept_ids) and gets an embedding for future semantic search
-- [ ] **EXTR-03**: Snippets are created automatically; there is no user-facing snippet creation form
+- [x] **EXTR-01**: During book processing (knowledge extraction phase), the AI identifies and stores N key passages per chapter as `Snippet` records — distinct from raw `BookChunk` records
+- [x] **EXTR-02**: Each `Snippet` is linked to the concept(s) it best illustrates (via concept_ids) and gets an embedding for future semantic search
+- [x] **EXTR-03**: Snippets are created automatically; there is no user-facing snippet creation form
 
 ### Annotations
 
@@ -77,18 +77,18 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NAV-01 | Phase 2 | Pending |
 | NAV-02 | Phase 2 | Pending |
 | BROW-01 | Phase 1 | Pending |
-| BROW-02 | Phase 2 | Pending |
-| BROW-03 | Phase 2 | Pending |
+| BROW-02 | Phase 2 | Complete |
+| BROW-03 | Phase 2 | Complete |
 | BROW-04 | Phase 2 | Pending |
 | BROW-05 | Phase 2 | Pending |
 | BROW-06 | Phase 2 | Pending |
 | EDIT-01 | Phase 1 | Pending |
 | EDIT-02 | Phase 1 | Complete |
-| EDIT-03 | Phase 2 | Pending |
+| EDIT-03 | Phase 2 | Complete |
 | EDIT-04 | Phase 1 | Complete |
-| EXTR-01 | Phase 2 | Pending |
-| EXTR-02 | Phase 2 | Pending |
-| EXTR-03 | Phase 2 | Pending |
+| EXTR-01 | Phase 2 | Complete |
+| EXTR-02 | Phase 2 | Complete |
+| EXTR-03 | Phase 2 | Complete |
 | ANNO-01 | Phase 3 | Pending |
 | ANNO-02 | Phase 3 | Pending |
 | ANNO-03 | Phase 3 | Pending |
