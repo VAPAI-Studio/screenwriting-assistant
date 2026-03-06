@@ -270,6 +270,7 @@ class Book(Base):
     chunks = sa_relationship("BookChunk", back_populates="book", cascade="all, delete-orphan")
     concepts = sa_relationship("Concept", back_populates="book", cascade="all, delete-orphan")
     agents = sa_relationship("Agent", secondary="agent_books", back_populates="books")
+    snippets = sa_relationship("Snippet", back_populates="book", cascade="all, delete-orphan")
 
 
 class BookChunk(Base):
@@ -291,6 +292,26 @@ class BookChunk(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     book = sa_relationship("Book", back_populates="chunks")
+
+
+class Snippet(Base):
+    __tablename__ = "snippets"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    book_id = Column(UUID(as_uuid=True), ForeignKey("books.id"), nullable=False, index=True)
+    chapter_title = Column(String(500))
+    page_number = Column(Integer)
+    content = Column(Text, nullable=False)
+    justification = Column(Text)
+    concept_ids = Column(JSON, default=list)
+    concept_names = Column(JSON, default=list)
+    token_count = Column(Integer, default=0)
+    embedding = deferred(Column(SafeVector(1536)))
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    book = sa_relationship("Book", back_populates="snippets")
 
 
 class Concept(Base):
