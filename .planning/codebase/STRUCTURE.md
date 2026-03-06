@@ -1,297 +1,300 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-03-05
+**Analysis Date:** 2026-03-06
 
 ## Directory Layout
 
 ```
 screenwriting-assistant/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── endpoints/          # Route handlers by domain
-│   │   │   └── dependencies.py     # DI for DB session and auth
-│   │   ├── models/
-│   │   │   ├── database.py         # SQLAlchemy ORM models
-│   │   │   └── schemas.py          # Pydantic v2 request/response schemas
-│   │   ├── services/               # Business logic layer
-│   │   ├── templates/              # JSON-based project workflow configs
-│   │   ├── utils/                  # Validators and helpers
-│   │   ├── tests/                  # pytest test suite
-│   │   ├── main.py                 # FastAPI app entry point
-│   │   ├── middleware.py           # Custom middleware (logging, security, rate limit)
-│   │   ├── config.py               # Pydantic Settings from env
-│   │   ├── db.py                   # SQLAlchemy engine and session factory
-│   │   ├── exceptions.py           # Custom exception classes
-│   │   └── api_docs.py             # OpenAPI schema customization
-│   ├── migrations/                 # SQL migration files (003-005)
-│   ├── uploads/                    # User-uploaded files (books)
-│   ├── requirements.txt            # Python dependencies
-│   ├── Dockerfile                  # Container image for backend
-│   └── .env.example.txt            # Environment variable template
-├── frontend/
+├── backend/                    # FastAPI Python backend
+│   ├── app/                    # Application package
+│   │   ├── api/                # HTTP layer
+│   │   │   ├── endpoints/      # Route handlers (one file per domain)
+│   │   │   └── dependencies.py # DI for auth + DB sessions
+│   │   ├── models/             # Data models
+│   │   │   ├── database.py     # SQLAlchemy ORM models + enums
+│   │   │   └── schemas.py      # Pydantic v2 request/response schemas
+│   │   ├── services/           # Business logic + AI orchestration
+│   │   ├── templates/          # JSON template definitions (data-driven UI)
+│   │   │   ├── shared/         # Shared template fragments + prompts
+│   │   │   │   └── prompts/    # Reusable AI prompt templates
+│   │   │   ├── micro_drama.json
+│   │   │   ├── short_movie.json
+│   │   │   └── registry.py     # Template loading + lookup functions
+│   │   ├── utils/              # Input validation + sanitization
+│   │   ├── tests/              # Backend test suite
+│   │   ├── main.py             # FastAPI app + middleware + router registration
+│   │   ├── db.py               # SQLAlchemy engine + session factory
+│   │   ├── config.py           # Pydantic Settings (env var loading)
+│   │   ├── middleware.py       # Custom middleware stack
+│   │   ├── exceptions.py       # Custom exception hierarchy
+│   │   └── api_docs.py         # OpenAPI schema customization
+│   ├── migrations/             # Raw SQL migration files
+│   ├── uploads/                # User-uploaded book files (runtime)
+│   ├── requirements.txt        # Python dependencies
+│   ├── Dockerfile              # Backend container build
+│   └── venv/                   # Local virtualenv (not committed)
+├── frontend/                   # React + TypeScript SPA
 │   ├── src/
-│   │   ├── components/
-│   │   │   ├── Books/              # BookManager, AgentManager components
-│   │   │   ├── Editor/             # Legacy section editor (SectionEditor, Checklist, ReviewPanel, ChatSidebar)
-│   │   │   ├── Layout/             # Header, Layout wrapper
-│   │   │   ├── Projects/           # ProjectList, ProjectCard, CreateProjectModal
-│   │   │   ├── Patterns/           # Template-driven views (CardGridView, WizardView, ScreenplayEditorView, etc.)
-│   │   │   ├── Shared/             # Reusable: AIActionBar, SidebarChat, MarkdownContent, FieldRenderer
-│   │   │   ├── UI/                 # Primitives: Button, ResizablePanel
-│   │   │   └── Workspace/          # New template-based editor (ProjectWorkspace, PhaseNavigation, SubsectionSidebar, ContentArea)
-│   │   ├── hooks/                  # Custom React hooks (useKeyboardShortcuts)
-│   │   ├── lib/
-│   │   │   ├── api.tsx             # HTTP fetch wrapper and API client
-│   │   │   ├── constants.ts        # Magic numbers, feature flags, configs
-│   │   │   ├── section-config.ts   # Framework/section metadata
-│   │   │   └── utils.ts            # Helper functions
-│   │   ├── types/
-│   │   │   ├── index.ts            # TypeScript interfaces (Project, Section, Book, Agent, etc.)
-│   │   │   └── template.ts         # Template structure types (PhaseConfig, SubsectionConfig, etc.)
-│   │   ├── App.tsx                 # Router setup, QueryClient init
-│   │   ├── main.tsx                # React 18 root render
-│   │   └── index.css               # Global tailwind styles
-│   ├── public/                     # Static assets
-│   ├── dist/                       # Built output (Vite)
-│   ├── package.json                # npm dependencies
-│   ├── package-lock.json           # Locked versions
-│   ├── tsconfig.json               # TypeScript config
-│   ├── vite.config.ts              # Vite build config with /api proxy
-│   ├── tailwind.config.js          # Tailwind CSS with HSL variables
-│   ├── Dockerfile                  # Container image for frontend
-│   └── .env.example.txt            # Environment template (VITE_API_URL)
-├── docker-compose.yml              # Multi-container orchestration
-├── CLAUDE.md                       # Project guidelines
-└── .planning/
-    └── codebase/                   # GSD codebase analysis docs
+│   │   ├── components/         # React components by domain
+│   │   │   ├── Books/          # Book management UI
+│   │   │   ├── Editor/         # Legacy framework editor
+│   │   │   ├── Layout/         # App shell (Header, Layout)
+│   │   │   ├── Patterns/       # Template UI pattern views
+│   │   │   ├── Projects/       # Project list + creation
+│   │   │   ├── Shared/         # Cross-cutting components
+│   │   │   ├── Snippets/       # Snippet management UI
+│   │   │   ├── UI/             # Primitive UI components
+│   │   │   └── Workspace/      # Template workspace orchestration
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── lib/                # Utilities, API client, constants
+│   │   ├── types/              # TypeScript type definitions
+│   │   ├── App.tsx             # Root component with routes
+│   │   ├── main.tsx            # React DOM entry point
+│   │   └── index.css           # Global CSS + Tailwind directives
+│   ├── public/                 # Static assets
+│   ├── dist/                   # Built output (not committed)
+│   ├── package.json            # NPM dependencies + scripts
+│   ├── vite.config.ts          # Vite build + dev proxy config
+│   ├── Dockerfile              # Frontend container build
+│   └── tailwind.config.js      # Tailwind CSS configuration
+├── docker-compose.yml          # Multi-service orchestration
+├── CLAUDE.md                   # Project instructions for Claude Code
+└── .planning/                  # GSD planning documents
+    ├── codebase/               # Architecture + convention docs
+    ├── phases/                 # Phase plans + execution logs
+    └── research/               # Research documents
 ```
 
 ## Directory Purposes
 
-**backend/app/api/endpoints/:**
-- Purpose: HTTP endpoint handlers, organized by feature domain
-- Contains: One file per domain (projects.py, agents.py, chat.py, books.py, sections.py, templates.py, etc.)
+**`backend/app/api/endpoints/`:**
+- Purpose: One FastAPI router per domain; each file exports a `router = APIRouter()`
+- Contains: Route handler functions using `Depends(get_db)` and `Depends(get_current_user)`
 - Key files:
-  - `projects.py`: GET/POST/PATCH projects; includes both v1 (framework-based) and v2 (template-based) creation
-  - `agents.py`: CRUD for Agent models (system prompts, personality, books filter)
-  - `chat.py`: Deprecating in favor of `ai_chat.py` (multi-agent orchestrated conversations)
-  - `books.py`: Upload, list, process, delete books
-  - `phase_data.py`: GET/PATCH phase data and list items for template-based workflow
-  - `ai_chat.py`: AI-powered chat with agents and RAG context
-  - `wizards.py`: Guided workflows for concept extraction, screenplay generation
-- Pattern: FastAPI router per file, imported and registered in main.py
+  - `projects.py` — Project CRUD + v2 template-based creation
+  - `phase_data.py` — PhaseData CRUD + readiness checks
+  - `list_items.py` — ListItem CRUD + reordering
+  - `books.py` — Book upload + processing + status
+  - `chat.py` — Agent chat sessions + streaming messages
+  - `ai_chat.py` — Template AI sessions + streaming + fill-blanks + give-notes
+  - `wizards.py` — Wizard run + apply results
+  - `agents.py` — Agent CRUD + book linking + seed defaults + tag listing
+  - `snippet_manager.py` — Snippet edit + delete (at `/api/snippets`)
+  - `snippets.py` — Book-scoped snippet listing (at `/api/books`)
+  - `templates.py` — Template listing + detail
+  - `sections.py` — Legacy section editing + checklist
+  - `review.py` — Legacy AI section review
+  - `auth.py` — Mock token + magic link auth
 
-**backend/app/services/:**
-- Purpose: Business logic, external integrations, data orchestration
-- Key services:
-  - `openai_service.py`: Screenplay review with framework-aware prompts, LRU caching
-  - `agent_service.py`: Multi-agent orchestration, system prompt templating, context formatting
-  - `rag_service.py`: Concept retrieval via embedding similarity, top-K filtering
-  - `book_processing_service.py`: Document ingestion, text extraction, chunking
-  - `knowledge_extraction_service.py`: LLM-based concept extraction, relationship mapping
-  - `embedding_service.py`: Vector generation and storage (OpenAI text-embedding-3-small, 1536 dim)
-  - `ai_provider.py`: Abstraction over OpenAI/Anthropic chat completion
-  - `auth_service.py`: JWT verification stub (mock for MVP)
-  - `template_ai_service.py`: Template-specific AI review (e.g., writing phase feedback)
-  - `document_service.py`: PDF/EPUB text extraction
-  - `agent_templates.py`: Predefined agent configurations
-- Pattern: Stateless functions or singleton instances, imported by endpoints
+**`backend/app/services/`:**
+- Purpose: All business logic, AI orchestration, and external service interaction
+- Contains: Service classes and standalone functions; no HTTP concerns
+- Key files:
+  - `ai_provider.py` — Unified OpenAI/Anthropic abstraction (use this for all LLM calls)
+  - `agent_service.py` — Multi-agent RAG chat + review orchestration
+  - `rag_service.py` — Concept-first and semantic retrieval
+  - `template_ai_service.py` — Wizard generation for all wizard types
+  - `book_processing_service.py` — Full book ingestion pipeline
+  - `knowledge_extraction_service.py` — GPT-4 concept extraction from chunks
+  - `embedding_service.py` — OpenAI embedding generation
+  - `document_service.py` — PDF/EPUB/TXT text extraction
+  - `openai_service.py` — Legacy section review (framework-based)
+  - `auth_service.py` — JWT + mock auth
+  - `agent_templates.py` — Default agent seed configurations
 
-**backend/app/models/:**
-- Purpose: Data layer definitions
-- `database.py`: SQLAlchemy ORM models (Project, Section, ChecklistItem, PhaseData, ListItem, Book, Concept, Agent, ChatSession, etc.) with enums for types
-- `schemas.py`: Pydantic v2 request/response schemas mirroring ORM models with validators
+**`backend/app/models/`:**
+- Purpose: All data models — both ORM and API schemas
+- `database.py` — 20+ SQLAlchemy model classes, all enums, the `SafeVector` type; this is the single source of truth for the data model
+- `schemas.py` — Pydantic v2 models for request validation and response serialization
 
-**backend/app/templates/:**
-- Purpose: JSON-based workflow configuration
-- `registry.py`: Loads/caches templates, resolves $ref pointers
-- `shared/`: Reusable phase definitions (e.g., write_phase.json)
-- `shared/prompts/`: Template-specific AI prompts (for future expansion)
-- Pattern: JSON files loaded at app startup, cached in memory
+**`backend/app/templates/`:**
+- Purpose: JSON template definitions that drive the entire template system UI
+- `micro_drama.json` — Template for micro-drama format
+- `short_movie.json` — Template for short movie format
+- `shared/write_phase.json` — Shared write-phase definition used by multiple templates
+- `registry.py` — `get_template()`, `list_templates()`, `get_template_subsections()` loading functions
 
-**frontend/src/components/**
+**`backend/migrations/`:**
+- Purpose: Raw SQL migration files applied manually to PostgreSQL
+- Files: `init_db.sql`, `002_knowledge_graph.sql`, `003_template_system.sql`, `003_templates_overhaul.sql`, `004_agent_type_and_quality.sql`, `005_book_progress.sql`, `006_snippet_management.sql`, `007_snippets_table.sql`
+- No Alembic — migrations run manually
 
-Sub-directory purposes:
+**`frontend/src/components/Workspace/`:**
+- Purpose: Template-system workspace orchestration
+- `ProjectWorkspace.tsx` — Top-level workspace: fetches project + template, manages phase/subsection selection, renders `PhaseNavigation` + `SubsectionSidebar` + `ContentArea` + `SidebarChat`
+- `ContentArea.tsx` — Switches on `ui_pattern` to render the correct Pattern view
+- `PhaseNavigation.tsx` — Phase tab bar
+- `SubsectionSidebar.tsx` — Left sidebar with subsection list
 
-- **Books/:** BookManager (list/upload/delete), AgentManager (create/configure agents)
-- **Editor/:** Legacy section-by-section editor (SectionEditor, Checklist, ReviewPanel, ChatSidebar) - used for v1 framework projects
-- **Workspace/:** New template-driven multi-phase workspace (ProjectWorkspace container, PhaseNavigation tabs, SubsectionSidebar, ContentArea routing)
-- **Patterns/:** Pattern-specific rendering (template configuration defines which pattern renders each subsection):
-  - `CardGridView`: Grid of concept cards (e.g., for Story phase)
-  - `WizardView`: Step-by-step guided workflow (e.g., for Idea phase)
-  - `ScreenplayEditorView`: Screenplay formatting with scene/action/character elements
-  - `StructuredFormView`: Form fields based on template definition
-  - `OrderedListView`: Ordered list of items with drag/drop
-  - `RepeatableCardsView`: Add multiple items (scenes, beats, etc.)
-  - `IndividualEditorView`: Single text editor (fallback)
-  - `PlaceholderView`: Not yet implemented subsection
-- **Projects/:** ProjectList (all projects), ProjectCard (individual card), CreateProjectModal (new project form)
-- **Shared/:** Reusable (AIActionBar for quick actions, SidebarChat for multi-turn conversations, MarkdownContent for rendering, FieldRenderer for dynamic fields)
-- **UI/:** Primitives (Button, ResizablePanel, Input, Modal, Card, etc.)
-- **Layout/:** Header, Layout wrapper
+**`frontend/src/components/Patterns/`:**
+- Purpose: One component per `ui_pattern` value from the template JSON
+- `StructuredFormView.tsx` — Renders `fields` / `field_groups` as form inputs
+- `CardGridView.tsx` — Grid of cards for `card_grid` pattern
+- `RepeatableCardsView.tsx` — Add/remove/edit cards for `repeatable_cards`
+- `WizardView.tsx` — Multi-step wizard with configuration + AI generation
+- `OrderedListView.tsx` — Sortable list of `ListItem` records
+- `IndividualEditorView.tsx` — Single-item detail editor (navigated via `itemId` URL param)
+- `ScreenplayEditorView.tsx` — Screenplay-formatted text editor
+- `PlaceholderView.tsx` — Fallback for unimplemented patterns (e.g., `analyzer`)
+
+**`frontend/src/components/Shared/`:**
+- Purpose: Cross-cutting components used across multiple domains
+- `SidebarChat.tsx` — Dual-mode chat sidebar (template AI + agent chat) with SSE streaming, markdown rendering, field-update proposals
+- `AIActionBar.tsx` — AI action buttons (fill blanks, give notes, analyze structure)
+- `FieldRenderer.tsx` — Generic field rendering based on `FieldDef` from template config
+- `MarkdownContent.tsx` — Markdown-to-HTML renderer for AI responses
+
+**`frontend/src/components/Editor/`:**
+- Purpose: Legacy framework-based project editor
+- `Editor.tsx` — Main editor page (used by `/projects/:projectId` route)
+- `SectionEditor.tsx` — Individual section text editor
+- `Checklist.tsx` — ChecklistItem management
+- `ReviewPanel.tsx` — AI review display
+- `ChatSidebar.tsx` — Agent chat sidebar for legacy editor
+
+**`frontend/src/components/Books/`:**
+- Purpose: Book and agent management
+- `BookManager.tsx` — Book upload, listing, processing status, agent management tabs
+- `AgentManager.tsx` — Agent CRUD, book linking, tag-based agent configuration
+
+**`frontend/src/components/Snippets/`:**
+- Purpose: Snippet browsing and management
+- `SnippetManager.tsx` — Book selector + snippet list page
+- `SnippetCard.tsx` — Individual snippet display with edit/delete
+- `SnippetSearchBar.tsx` — Search/filter bar for snippets
+
+**`frontend/src/lib/`:**
+- Purpose: Shared utilities, API client, configuration constants
+- `api.tsx` — Single `api` object with typed methods for every backend endpoint
+- `constants.ts` — All magic numbers, query keys, route paths, framework configs, feature flags, error messages, keyboard shortcuts
+- `section-config.ts` — Legacy section configuration
+- `utils.ts` — Utility helpers
+
+**`frontend/src/types/`:**
+- Purpose: TypeScript type definitions
+- `index.ts` — Core types: `Project`, `Section`, `ChecklistItem`, `Book`, `Concept`, `Agent`, `ChatSession`, `ChatMessage`, `Snippet`, etc.
+- `template.ts` — Template system types: `TemplateConfig`, `PhaseConfig`, `SubsectionConfig`, `FieldDef`, `UIPattern`, `PhaseDataResponse`, `ListItemResponse`, `AISessionResponse`, `WizardRunResponse`, `ProjectV2`
 
 ## Key File Locations
 
-**Backend Entry Points:**
-- `backend/app/main.py`: FastAPI app initialization, middleware stack, router registration, startup/shutdown hooks
+**Entry Points:**
+- `backend/app/main.py`: FastAPI application creation + startup
+- `frontend/src/main.tsx`: React DOM render
+- `frontend/src/App.tsx`: Router + QueryClient setup
 
-**Backend Configuration:**
-- `backend/app/config.py`: Pydantic Settings, environment validation, AI provider selection (openai/anthropic)
-- `backend/app/db.py`: SQLAlchemy engine, session factory
+**Configuration:**
+- `backend/app/config.py`: All backend settings (DB, AI, auth, CORS, file upload)
+- `frontend/src/lib/constants.ts`: All frontend constants + query keys + routes
+- `frontend/vite.config.ts`: Vite build + dev proxy to backend
+- `docker-compose.yml`: Multi-service orchestration (frontend, backend, postgres)
 
-**Backend Core Logic:**
-- `backend/app/api/dependencies.py`: Dependency injection (get_db, get_current_user)
-- `backend/app/services/openai_service.py`: Review logic with caching
-- `backend/app/services/rag_service.py`: Concept retrieval with embeddings
-- `backend/app/templates/registry.py`: Template loading and caching
+**Core Logic:**
+- `backend/app/services/ai_provider.py`: All LLM calls go through here
+- `backend/app/services/agent_service.py`: Agent orchestration + RAG chat
+- `backend/app/services/template_ai_service.py`: Wizard generation
+- `backend/app/templates/registry.py`: Template loading
+- `frontend/src/components/Workspace/ContentArea.tsx`: UI pattern routing
+- `frontend/src/components/Shared/SidebarChat.tsx`: AI chat interface
 
-**Backend Data:**
-- `backend/app/models/database.py`: SQLAlchemy models (Project, Section, PhaseData, Book, Concept, Agent, etc.)
-- `backend/app/models/schemas.py`: Pydantic request/response schemas
+**Data Model:**
+- `backend/app/models/database.py`: All SQLAlchemy models (single file)
+- `backend/app/models/schemas.py`: All Pydantic schemas (single file)
+- `frontend/src/types/index.ts`: Core TypeScript interfaces
+- `frontend/src/types/template.ts`: Template system TypeScript interfaces
 
-**Frontend Entry Points:**
-- `frontend/src/main.tsx`: React root render
-- `frontend/src/App.tsx`: Router configuration, QueryClient setup
-
-**Frontend HTTP Client:**
-- `frontend/src/lib/api.tsx`: Fetch wrapper with timeout, auth token handling, all API methods
-
-**Frontend Type Definitions:**
-- `frontend/src/types/index.ts`: Interfaces for Project, Section, Book, Agent, ChatMessage, etc.
-- `frontend/src/types/template.ts`: Template structure types (PhaseConfig, SubsectionConfig, FieldConfig, etc.)
-
-**Frontend Configuration:**
-- `frontend/src/lib/constants.ts`: API_BASE_URL, API_TIMEOUT, CHAT_TIMEOUT, framework configs, section labels, feature flags
-- `frontend/src/lib/section-config.ts`: Metadata for framework sections
+**Testing:**
+- `backend/app/tests/test_api.py`: API integration tests
+- `backend/app/tests/test_validators.py`: Validator unit tests
 
 ## Naming Conventions
 
 **Files:**
-
-- **Backend Python files:** snake_case (e.g., `book_processing_service.py`, `knowledge_extraction_service.py`)
-- **Frontend TypeScript/TSX files:** PascalCase for components (e.g., `ProjectWorkspace.tsx`, `SectionEditor.tsx`), camelCase for utilities (e.g., `api.tsx`, `constants.ts`)
-- **Test files:** `test_*.py` (pytest convention)
-- **Type files:** `index.ts` for main type exports, `*.ts` for feature-specific types
+- Backend endpoints: `snake_case.py` matching the domain (e.g., `phase_data.py`, `list_items.py`, `snippet_manager.py`)
+- Backend services: `snake_case_service.py` (e.g., `agent_service.py`, `rag_service.py`)
+- Frontend components: `PascalCase.tsx` matching the export name (e.g., `ProjectWorkspace.tsx`, `SidebarChat.tsx`)
+- Frontend lib: `camelCase.ts` or `kebab-case.ts` (e.g., `api.tsx`, `constants.ts`, `section-config.ts`)
+- Frontend types: `camelCase.ts` (e.g., `index.ts`, `template.ts`)
+- SQL migrations: `NNN_description.sql` (e.g., `002_knowledge_graph.sql`)
 
 **Directories:**
-
-- **Backend:** snake_case (e.g., `api`, `services`, `models`, `utils`, `tests`, `migrations`)
-- **Frontend:** PascalCase for feature directories (e.g., `Books`, `Editor`, `Patterns`, `Workspace`), snake_case for config directories (e.g., `lib`, `hooks`, `types`)
-
-**Classes/Types:**
-
-- **Backend models (SQLAlchemy):** PascalCase singular (e.g., Project, Book, Concept, Agent)
-- **Backend schemas (Pydantic):** PascalCase with suffixes (ProjectCreate, ProjectUpdate, ProjectResponse)
-- **Frontend types:** PascalCase interfaces (e.g., Project, Book, Agent, ChatSession)
-- **Frontend enums:** PascalCase with UPPERCASE values (e.g., Framework.THREE_ACT, PhaseType.IDEA)
-
-**Functions/Methods:**
-
-- **Backend:** snake_case (e.g., `get_current_user`, `review_section`, `process_book`)
-- **Frontend:** camelCase (e.g., `getAuthToken`, `fetchWithTimeout`, `handlePhaseChange`)
+- Backend: `snake_case` (e.g., `api/endpoints/`, `services/`, `templates/shared/`)
+- Frontend components: `PascalCase` by domain (e.g., `Books/`, `Patterns/`, `Workspace/`, `Shared/`, `UI/`)
+- Frontend non-components: `camelCase` (e.g., `lib/`, `hooks/`, `types/`)
 
 ## Where to Add New Code
 
-**New Feature (API Endpoint + Service):**
+**New API endpoint:**
+1. Create route handler in `backend/app/api/endpoints/{domain}.py`
+2. Add Pydantic schemas in `backend/app/models/schemas.py` if needed
+3. Register router in `backend/app/main.py` with `app.include_router(..., prefix="/api/{domain}", tags=["{domain}"])`
+4. Add corresponding API method to `frontend/src/lib/api.tsx`
+5. Add query key to `QUERY_KEYS` in `frontend/src/lib/constants.ts`
 
-1. **Backend service logic:**
-   - Create new class/functions in `backend/app/services/{feature}_service.py` (or add to existing service)
-   - Define data models in `backend/app/models/database.py` if needed
-   - Define Pydantic schemas in `backend/app/models/schemas.py`
+**New template UI pattern:**
+1. Create `frontend/src/components/Patterns/{PatternName}View.tsx`
+2. Add the pattern string to `UIPattern` type in `frontend/src/types/template.ts`
+3. Add a `case` to the switch in `frontend/src/components/Workspace/ContentArea.tsx`
+4. Use the pattern in a template JSON file (e.g., `backend/app/templates/micro_drama.json`)
 
-2. **Backend endpoint handler:**
-   - Create `backend/app/api/endpoints/{feature}.py` with FastAPI router
-   - Import service dependencies
-   - Register router in `backend/app/main.py`: `app.include_router(feature.router, prefix="/api/{feature}")`
+**New service (backend):**
+1. Create `backend/app/services/{name}_service.py`
+2. Use `from ..config import settings` for configuration
+3. Use `from .ai_provider import chat_completion` for LLM calls (do not call OpenAI/Anthropic directly)
+4. Import and use in endpoint files as needed
 
-3. **Frontend types:**
-   - Add TypeScript interfaces to `frontend/src/types/index.ts` mirroring backend schemas
+**New database model:**
+1. Add SQLAlchemy model class to `backend/app/models/database.py`
+2. Write SQL migration in `backend/migrations/NNN_description.sql`
+3. Add Pydantic schemas to `backend/app/models/schemas.py`
+4. Add TypeScript interface to `frontend/src/types/index.ts` or `frontend/src/types/template.ts`
 
-4. **Frontend API client:**
-   - Add methods to `api` object in `frontend/src/lib/api.tsx` for HTTP calls
+**New frontend page/feature:**
+1. Create component in the appropriate `frontend/src/components/{Domain}/` directory
+2. Add route in `frontend/src/App.tsx` if it's a new page
+3. Add route path to `ROUTES` in `frontend/src/lib/constants.ts`
+4. Add navigation link in `frontend/src/components/Layout/Header.tsx`
 
-5. **Frontend UI:**
-   - Create component(s) in `frontend/src/components/{Domain}/{Feature}.tsx`
-   - Use `useQuery` and `useMutation` from React Query to call API methods
+**New template type:**
+1. Create `backend/app/templates/{template_name}.json` following the structure of existing templates
+2. Add enum value to `TemplateType` in `backend/app/models/database.py`
+3. The registry auto-discovers JSON files, but verify it loads via `get_template()`
+4. Add type to `TemplateType` in `frontend/src/types/template.ts`
 
-**New UI Component:**
-
-1. If component is layout/container: `frontend/src/components/Workspace/` or `Layout/`
-2. If component is feature-specific: `frontend/src/components/{Domain}/{Feature}.tsx`
-3. If component is reusable primitive: `frontend/src/components/UI/{Component}.tsx` or `Shared/{Component}.tsx`
-4. Use Tailwind CSS with HSL variable colors defined in `frontend/tailwind.config.js`
-5. Export from component's directory (or use direct path)
-
-**New Template (Workflow Configuration):**
-
-1. Create JSON file in `backend/app/templates/{template_id}.json`
-2. Define phases array with phase config (id, name, subsections array)
-3. Each subsection includes: key, name, pattern (which component renders it), fields
-4. If reusing phase structure: use `"$ref": "shared/write_phase.json"` with $ref resolution in registry
-5. Test by creating project via `/api/projects/v2` with template_id
-
-**New Service Integration:**
-
-1. Add to `backend/app/services/` (new file or extend existing)
-2. If external API: add configuration to `backend/app/config.py` (API key, model name, etc.)
-3. Implement abstraction function (e.g., `ai_provider.py` abstraction for OpenAI/Anthropic swap)
-4. Call from service layer, not directly from endpoints
-
-**Test Coverage:**
-
-1. Backend: Add test to `backend/app/tests/test_api.py` or create `test_{feature}.py`
-2. Run: `pytest backend/app/tests/test_api.py`
-3. Frontend: No test framework configured - add if needed
+**Shared/reusable frontend component:**
+- Cross-domain: `frontend/src/components/Shared/`
+- Primitive UI: `frontend/src/components/UI/`
+- Hooks: `frontend/src/hooks/`
+- Utilities: `frontend/src/lib/utils.ts`
 
 ## Special Directories
 
-**backend/migrations/:**
-- Purpose: SQL schema version control
-- Generated: Yes (created manually before code changes)
-- Committed: Yes (version control for DB schema)
-- Files: `003_template_system.sql`, `004_agent_type_and_quality.sql`, `005_book_progress.sql`
-- Pattern: Manual numbered migrations (not auto-generated by Alembic)
+**`backend/uploads/`:**
+- Purpose: Stores uploaded book files, organized by owner UUID subdirectories
+- Generated: Yes (at runtime)
+- Committed: No (`.gitignore` should exclude, but directory structure may be committed)
 
-**backend/uploads/:**
-- Purpose: User-uploaded book files
-- Generated: Yes (created at runtime when books uploaded)
-- Committed: No (gitignored, local dev only)
-- Structure: `{book_id}/` subdirectories with original file + extracted text files
+**`backend/migrations/`:**
+- Purpose: Raw SQL schema migration files
+- Generated: No (hand-written)
+- Committed: Yes
 
-**frontend/dist/:**
-- Purpose: Built frontend output
-- Generated: Yes (`npm run build` or Docker build)
-- Committed: No (gitignored)
+**`backend/app/templates/`:**
+- Purpose: JSON template definitions that drive the entire template system
+- Generated: No (hand-authored)
+- Committed: Yes
+- Critical: Changes here affect both backend AI context and frontend UI rendering
 
-**frontend/node_modules/:**
-- Purpose: npm dependencies
-- Generated: Yes (`npm install`)
-- Committed: No (gitignored)
+**`frontend/dist/`:**
+- Purpose: Vite production build output
+- Generated: Yes (by `npm run build`)
+- Committed: No
 
-**.planning/codebase/:**
-- Purpose: GSD mapping documents
-- Generated: Yes (by `/gsd:map-codebase`)
-- Committed: Yes (part of codebase reference)
-
-## Module Organization Patterns
-
-**Barrel Exports:**
-
-- `backend/app/services/__init__.py`: Empty (services imported directly)
-- `backend/app/api/endpoints/__init__.py`: Empty (endpoints imported directly in main.py)
-- `frontend/src/components/{Domain}/`: No barrel - import directly from component files
-
-**Dependency Injection:**
-
-- Backend: FastAPI `Depends()` for DB session (`get_db`) and user extraction (`get_current_user`)
-- Frontend: React Query hooks (`useQuery`, `useMutation`) with dependency arrays
-
-**Configuration:**
-
-- Backend: Pydantic Settings singleton in `config.py`, imported as `settings`
-- Frontend: Constants object in `lib/constants.ts`, imported by name
+**`.planning/`:**
+- Purpose: GSD planning and analysis documents
+- Generated: Yes (by Claude Code mapping commands)
+- Committed: Yes
 
 ---
 
-*Structure analysis: 2026-03-05*
+*Structure analysis: 2026-03-06*

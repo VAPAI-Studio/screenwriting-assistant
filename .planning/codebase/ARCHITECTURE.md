@@ -1,255 +1,242 @@
 # Architecture
 
-**Analysis Date:** 2026-03-05
+**Analysis Date:** 2026-03-06
 
 ## Pattern Overview
 
-**Overall:** Layered service-oriented architecture with template-driven configuration
+**Overall:** Full-stack layered REST API with a React SPA frontend. Two distinct subsystems coexist:
+1. **Legacy framework system** — Project → Section → ChecklistItem hierarchy managed through `/api/projects` and `/api/sections`
+2. **Template system** — Project → PhaseData → ListItem hierarchy managed through `/api/phase-data`, `/api/list-items`, `/api/ai`, and `/api/wizards`
 
 **Key Characteristics:**
-- **Separation of concerns:** Database layer (SQLAlchemy) → Service layer (business logic) → API layer (endpoint handlers)
-- **Configuration-driven:** Template system loads JSON files that define project phases, subsections, and workflows
-- **Authentication-aware:** Dependency injection for database sessions and user extraction
-- **AI-integrated:** Service-level abstractions for OpenAI/Anthropic with in-memory caching and framework-aware prompts
-- **Knowledge graph:** Graph-based concept relationships extracted from uploaded books, connected to screenplay agents
+- Backend is FastAPI with synchronous SQLAlchemy sessions (sync ORM, async route handlers via thread-pool)
+- AI calls are fully async using a unified `ai_provider` abstraction supporting OpenAI and Anthropic
+- Frontend is purely client-side — no SSR. All data fetching via React Query hitting `/api/*`
+- The template system is data-driven: JSON files in `backend/app/templates/` define phase structure, subsection layout, and UI patterns which the frontend renders dynamically
+- Knowledge Graph (KG) + RAG pipeline is a separate subsystem for book ingestion and agent-powered chat
 
 ## Layers
 
-**Frontend Presentation Layer:**
-- Purpose: React components that render the UI and manage user interactions
-- Location: `frontend/src/components/`
-- Contains: Layout components, route containers, form editors, chat interfaces, pattern-specific views
-- Depends on: React Query for server state, API client (`lib/api.tsx`) for HTTP communication
-- Used by: `App.tsx` routing and layout hierarchy
+**HTTP Middleware Stack (backend):**
+- Purpose: Cross-cutting request/response concerns, applied in reverse registration order
+- Location: `backend/app/middleware.py`
+- Execution order (outermost first): CORSMiddleware → RateLimitMiddleware (600 req/min) → RequestSizeLimitMiddleware (10MB) → SecurityMiddleware → LoggingMiddleware
+- Depends on: Nothing — pure middleware
+- Used by: All incoming HTTP requests
 
-**Frontend State & Data Layer:**
-- Purpose: HTTP client, type definitions, query caching, utilities
-- Location: `frontend/src/lib/api.tsx`, `frontend/src/types/`, `frontend/src/lib/constants.ts`, `frontend/src/lib/utils.ts`
-- Contains: Fetch wrapper with timeout, auth token management, React Query client configuration
-- Depends on: Fetch API, localStorage for auth tokens
-- Used by: All React components via React Query hooks
+**Route Layer (backend):**
+- Purpose: HTTP request parsing, auth enforcement, response shaping
+- Location: `backend/app/api/endpoints/` — one file per domain: `projects.py`, `sections.py`, `review.py`, `auth.py`, `books.py`, `agents.py`, `chat.py`, `snippets.py`, `snippet_manager.py`, `templates.py`, `phase_data.py`, `list_items.py`, `wizards.py`, `ai_chat.py`
+- Contains: FastAPI `APIRouter` instances with path operation functions
+- Depends on: `backend/app/api/dependencies.py` (auth + DB session DI), service layer, schemas
+- Used by: `backend/app/main.py` router registration
 
-**Backend API Layer (Endpoints):**
-- Purpose: HTTP request routing and response formatting
-- Location: `backend/app/api/endpoints/`
-- Contains: Route handlers for projects, sections, chat, agents, books, templates, etc.
-- Pattern: FastAPI router per feature domain (e.g., `projects.py`, `agents.py`, `chat.py`)
-- Depends on: Service layer, dependency injection (DB session, authenticated user)
-- Used by: FastAPI router registration in `main.py`
+**Dependency Injection (backend):**
+- Purpose: Provide `db: Session` and `current_user: schemas.User` to every route handler
+- Location: `backend/app/api/dependencies.py`
+- Pattern: `get_db()` is a generator yielding a SQLAlchemy session; `get_current_user()` validates Bearer token against `mock-token` in dev or JWT in production
+- Mock auth: `settings.ENVIRONMENT == "development"` bypasses JWT and returns a fixed mock user
 
-**Backend Service Layer:**
-- Purpose: Business logic, external service integration, data orchestration
+**Service Layer (backend):**
+- Purpose: Business logic, AI orchestration, RAG retrieval — independent of HTTP concerns
 - Location: `backend/app/services/`
 - Key services:
-  - `openai_service.py`: Framework-aware screenplay section review with LRU caching
-  - `rag_service.py`: Retrieval-augmented generation using embeddings and concepts
-  - `agent_service.py`: Multi-agent orchestration for screenplay feedback
-  - `book_processing_service.py`: Document ingestion, chunking, and concept extraction
-  - `knowledge_extraction_service.py`: Concept relationship mapping from text
-  - `embedding_service.py`: Vector generation and similarity search
-  - `ai_provider.py`: Abstraction over OpenAI/Anthropic APIs
-- Depends on: Data models, external AI APIs
-- Used by: Endpoint handlers
+  - `agent_service.py` — `AgentService` singleton; handles multi-agent review and streaming chat; routes by `AgentType` (BOOK_BASED, TAG_BASED, ORCHESTRATOR)
+  - `rag_service.py` — `RAGService`; two retrieval modes: concept-first (structured review) and semantic (chat follow-up)
+  - `ai_provider.py` — Unified `chat_completion()` / `chat_completion_stream()` supporting OpenAI and Anthropic; selected by `settings.AI_PROVIDER`
+  - `template_ai_service.py` — Wizard generation (idea, episode, scene, beat, script)
+  - `book_processing_service.py` — Async book ingestion pipeline (extract → chunk → embed → KG)
+  - `embedding_service.py` — OpenAI embedding generation via `text-embedding-3-small`
+  - `knowledge_extraction_service.py` — GPT-4 concept + relationship extraction from book chunks
+  - `openai_service.py` — Legacy section review via framework-aware prompts (used by `/api/review`)
+  - `auth_service.py` — JWT creation/verification + mock auth
+  - `document_service.py` — Book document text extraction (PDF, EPUB, TXT)
+  - `agent_templates.py` — Default agent seed data
 
-**Backend Data Layer:**
-- Purpose: ORM models and schema definitions
-- Location: `backend/app/models/database.py` (SQLAlchemy models), `backend/app/models/schemas.py` (Pydantic schemas)
-- Contains:
-  - **Domain models:** Project → Section → ChecklistItem (legacy), PhaseData → ListItem (template-based)
-  - **Knowledge models:** Book → BookChunk → Concept → ConceptRelationship
-  - **Agent models:** Agent → ChatSession → ChatMessage (with agent system prompts)
-  - **Enum types:** Framework, PhaseType, AgentType, BookStatus, RelationshipType
-- Depends on: SQLAlchemy, Pydantic v2
-- Used by: Service and endpoint layers
+**Data Layer (backend):**
+- Purpose: SQLAlchemy ORM models and raw SQL migrations
+- Location: `backend/app/models/database.py`, `backend/app/db.py`, `backend/migrations/`
+- Contains: All ORM models (`Project`, `Section`, `ChecklistItem`, `PhaseData`, `ListItem`, `AISession`, `AIMessage`, `Book`, `BookChunk`, `Snippet`, `Concept`, `ConceptRelationship`, `Agent`, `AgentBook`, `ChatSession`, `ChatMessage`, `WizardRun`, `ScreenplayContent`)
+- DB sessions: `backend/app/db.py` creates `SessionLocal` factory; `get_db()` yields sessions as a FastAPI dependency
+- Schema migrations: Plain SQL files in `backend/migrations/` (`init_db.sql`, `002_knowledge_graph.sql`, `003_template_system.sql`, `003_templates_overhaul.sql`, `004_agent_type_and_quality.sql`, `005_book_progress.sql`, `006_snippet_management.sql`, `007_snippets_table.sql`); no Alembic — applied manually
 
-**Backend Middleware & Config Layer:**
-- Purpose: Cross-cutting concerns, environment configuration, middleware chain
-- Location: `backend/app/middleware.py`, `backend/app/config.py`, `backend/app/main.py`
-- Contains:
-  - Middleware chain (order-dependent): RateLimitMiddleware → RequestSizeLimitMiddleware → SecurityMiddleware → LoggingMiddleware
-  - Settings validation (Pydantic Settings with field validators)
-  - CORS configuration
-- Depends on: Starlette BaseHTTPMiddleware, environment variables
-- Used by: FastAPI app initialization
+**Template Registry (backend):**
+- Purpose: Load and serve JSON template definitions that drive both the frontend UI and AI context
+- Location: `backend/app/templates/registry.py`, `backend/app/templates/micro_drama.json`, `backend/app/templates/short_movie.json`, `backend/app/templates/shared/write_phase.json`
+- Pattern: `get_template(template_id)` loads and returns the full JSON dict; `list_templates()` returns metadata for all templates
+- Used by: `template_ai_service.py`, `agent_service.py`, `phase_data.py` endpoint, `wizards.py` endpoint
 
-**Template System (Configuration):**
-- Purpose: Define project phases and workflows without hardcoding
-- Location: `backend/app/templates/`
-- Pattern: JSON files with $ref resolution for phase composition
-- Key file: `shared/write_phase.json` (reusable phase definition)
-- Registry: `registry.py` loads and caches templates with deep copy to prevent mutation
-- Depends on: File system (JSON templates)
-- Used by: Project creation endpoints (`projects.py::create_project_v2`)
+**Configuration (backend):**
+- Purpose: Typed settings loaded from environment variables
+- Location: `backend/app/config.py`
+- Pattern: `pydantic_settings.BaseSettings` subclass; instantiated once as module-level `settings` singleton; all services import `settings` directly
+- Default AI provider is `"anthropic"` with model `claude-sonnet-4-6`; OpenAI fallback with `gpt-4o`
 
-**Database Layer:**
-- Purpose: Persistent data storage with cascade semantics
-- Location: PostgreSQL 15 (configured via DATABASE_URL in config)
-- Key relationships:
-  - Project has cascade-delete to Sections and PhaseData
-  - Section has cascade-delete to ChecklistItems
-  - Book has cascade-delete to BookChunks and Concepts
-  - PhaseData has cascade-delete to ListItems
-  - Agent has many-to-many with Books via AgentBook
-  - ChatSession has cascade-delete to ChatMessages
-- Used by: All service layers via SQLAlchemy ORM
+**Frontend App Shell:**
+- Purpose: SPA routing, React Query provider, global layout
+- Location: `frontend/src/main.tsx` → `frontend/src/App.tsx`
+- `QueryClient` configured with 5-minute stale time and 1 retry
+- Routes: `/` and `/projects` → `ProjectList`; `/projects/:projectId` → `Editor` (legacy); `/projects/:projectId/:phase[/:subsectionKey[/:itemId]]` → `ProjectWorkspace` (template system); `/books` → `BookManager`; `/snippets` → `SnippetManager`
+
+**Workspace Layer (frontend):**
+- Purpose: Template-driven project editing; renders the correct UI pattern per subsection
+- Location: `frontend/src/components/Workspace/`
+- Key components:
+  - `ProjectWorkspace.tsx` — Orchestrates phase navigation + subsection routing + content area + sidebar chat
+  - `ContentArea.tsx` — Switch on `subsection.ui_pattern` to render the correct Pattern view
+  - `PhaseNavigation.tsx` — Top bar with phase tabs
+  - `SubsectionSidebar.tsx` — Left sidebar listing subsections for the current phase
+
+**UI Pattern Views (frontend):**
+- Purpose: Pluggable content views selected by `subsection.ui_pattern`
+- Location: `frontend/src/components/Patterns/`
+- Pattern types: `structured_form` → `StructuredFormView`; `card_grid` → `CardGridView`; `repeatable_cards` → `RepeatableCardsView`; `wizard` / `wizard_with_chat` / `import_wizard` → `WizardView`; `ordered_list` → `OrderedListView`; `individual_editor` → `IndividualEditorView`; `screenplay_editor` → `ScreenplayEditorView`; `analyzer` → `PlaceholderView`
+
+**API Client (frontend):**
+- Purpose: Typed fetch wrapper for all backend endpoints
+- Location: `frontend/src/lib/api.tsx`
+- Pattern: Single `api` object with async methods; uses `fetchWithTimeout` (30s default, 120s for chat/AI); reads Bearer token from `localStorage` with fallback to `"mock-token"`
 
 ## Data Flow
 
-**Project Creation Flow (Template-Based):**
+**Template-driven project editing:**
 
-1. User creates project via `POST /api/projects/v2` (endpoint: `projects.py::create_project_v2`)
-2. Endpoint validates title, loads template config via `registry.get_template()`
-3. Service creates Project record with `template`, `current_phase=IDEA`, and `template_config` JSON
-4. Service creates PhaseData records for each phase/subsection combo from template
-5. Response returns ProjectV2 schema with all nested phase_data and list_items
+1. User navigates to `/projects/:projectId/idea/premise`
+2. `ProjectWorkspace` fetches project record (`GET /api/projects/:id`) and template config (`GET /api/templates/:templateId`)
+3. `ContentArea` reads `subsection.ui_pattern` and renders the matching Pattern view
+4. Pattern view fetches subsection content (`GET /api/phase-data/:projectId/:phase/:key`) via React Query
+5. User edits fields; Pattern view calls `PATCH /api/phase-data/:projectId/:phase/:key` on change
+6. React Query cache is invalidated; UI reflects saved state
 
-**Screenplay Review Flow:**
+**Agent-powered streaming chat:**
 
-1. User requests review on a section text via `POST /api/review` (endpoint: `review.py`)
-2. Endpoint injects Framework, SectionType, and content
-3. `OpenAIService.review_section()` called with cache check (MD5 of section_id + text + framework)
-4. If cache miss: calls `ai_provider.chat_completion()` with framework+section-specific system prompt
-5. AI response parsed as JSON with "issues" and "suggestions" arrays
-6. Response cached with 15-min TTL, returned to frontend
-7. Cached response moved to end of LRU OrderedDict on hit
+1. User sends message in `SidebarChat` (`frontend/src/components/Shared/SidebarChat.tsx`)
+2. Frontend calls `POST /api/chat/sessions/:sessionId/messages/stream` with `field_context` payload
+3. `AgentService.chat_stream_prepare()` runs semantic RAG search (via `rag_service.semantic_search()`) and builds system prompt with concept cards + book excerpts + project context
+4. User message saved to `ChatMessage` table; streaming params returned
+5. `chat.py` endpoint calls `ai_provider.chat_completion_stream()` and emits SSE `data:` lines
+6. Frontend `SidebarChat` reads the SSE stream, accumulates chunks, renders markdown via `MarkdownContent`
+7. On stream completion, `AgentService.chat_stream_finalize()` post-processes: extracts JSON blocks (`book_references`, `field_updates`, `list_item_creates`), saves `ChatMessage`, optionally creates `ListItem` records
+8. Frontend receives `field_updates` in the `done` SSE event and shows a confirmation card for the user to apply
 
-**Agent-Based Knowledge Review Flow:**
+**Template-system AI chat (SidebarChat in template mode):**
 
-1. User sends message in chat with agent context via `POST /api/ai/chat`
-2. Endpoint creates/retrieves AISession (project_id, phase, subsection, agent_id, context_item_id)
-3. System prompt from Agent.system_prompt_template (template with {variables})
-4. If agent type is BOOK_BASED: calls `rag_service.retrieve_relevant_concepts()` to fetch book chunks + concepts via embedding similarity
-5. Concepts used as context in system prompt via `agent_service.format_agent_context()`
-6. Chat completion called with multi-turn message history from AIMessage
-7. Response saved as AIMessage with message_type, consulted_agents list, book_references
-8. Chat history persisted to enable context awareness across turns
+1. User sends message in `SidebarChat` with `panelMode === 'template'`
+2. Frontend calls `api.sendAIMessageStream()` targeting `POST /api/ai/sessions/:sessionId/messages/stream`
+3. `ai_chat.py` endpoint uses `template_ai_service` to build context from all project `PhaseData`
+4. Streaming response follows same SSE pattern; `field_updates` may be returned in action mode
+5. Frontend shows `ProposedChangesCard` for user to accept or dismiss field-level edits
 
-**Book Processing Pipeline:**
+**Book processing pipeline:**
 
-1. User uploads book via `POST /api/books/upload` (endpoint: `books.py`)
-2. Book record created with status=PENDING, file saved to disk
-3. Background task (triggered by status change): `book_processing_service.process_book()`
-4. Steps:
-   - Extract text from PDF/EPUB (status: EXTRACTING)
-   - Chunk text into overlapping segments (750 tokens, 150 overlap) via `document_service`
-   - Generate embeddings for chunks via `embedding_service.embed_text()` (OpenAI text-embedding-3-small)
-   - Extract key concepts via LLM via `knowledge_extraction_service.extract_concepts()` (status: ANALYZING)
-   - Generate concept embeddings (status: EMBEDDING)
-   - Create ConceptRelationship records based on semantic relatedness
-   - Update Book.status to COMPLETED
-5. Concepts now queryable for RAG via semantic search
+1. User uploads file at `POST /api/books/upload`
+2. `books.py` saves file to `backend/uploads/:owner_id/`, creates `Book` record with `PENDING` status
+3. FastAPI `BackgroundTasks` triggers `book_processing_service.process_book()`
+4. Pipeline stages update `Book.status`: `EXTRACTING` → `ANALYZING` → `EMBEDDING` → `COMPLETED`
+5. `document_service` extracts text; text is chunked → `knowledge_extraction_service` extracts concepts via GPT-4 → `embedding_service` generates embeddings → stored as `BookChunk` + `Concept` + `ConceptRelationship` + `Snippet` rows with pgvector embeddings
 
-**Template-Driven UI Navigation:**
+**Wizard generation:**
 
-1. Frontend loads project via `GET /api/projects/{id}` - includes template config
-2. ProjectWorkspace component fetches template structure via `GET /api/templates/{template_id}`
-3. PhaseNavigation renders phase tabs from template.phases
-4. SubsectionSidebar renders subsection list from currentPhase.subsections
-5. ContentArea renders pattern-specific view based on currentSubsection.pattern (e.g., "card_grid", "screenplay_editor", "wizard")
-6. Pattern component fetches ListItems via `GET /api/phase-data/{project_id}/{phase}/{subsection_key}`
-7. User edits ListItem, saves via `PATCH /api/list-items/{item_id}`
+1. User configures wizard in `WizardView` (`frontend/src/components/Patterns/WizardView.tsx`)
+2. Frontend calls `POST /api/wizards/run` with wizard type and config
+3. `wizards.py` gathers full project context from all `PhaseData` records and calls `template_ai_service.wizard_generate()`
+4. AI generates structured content (beats, episodes, scenes); result stored in `WizardRun.result`
+5. User previews result; on confirm, `POST /api/wizards/:runId/apply` writes content into `PhaseData` / `ListItem` records
 
-## State Management
-
-**Frontend:**
-- **Query Cache:** React Query with 5-minute stale time for projects, templates, phase data
-- **UI State:** Local useState for selected phase, subsection, sidebar visibility
-- **Auth State:** localStorage token read on each request via `getAuthToken()`
-- **No Redux/Context:** All server state via React Query, all UI state local to components
-
-**Backend:**
-- **In-Memory Cache:** OpenAIService uses OrderedDict LRU (100 size limit, 15-min TTL manual expiry not implemented)
-- **Database Session:** SQLAlchemy Session per request via FastAPI Depends
-- **No Session Affinity:** Stateless - each request gets fresh session
+**State Management:**
+- All server state managed by React Query with query keys defined in `frontend/src/lib/constants.ts` (`QUERY_KEYS`)
+- No global client-side state store (no Redux, no Context); component-local `useState` for UI-only concerns (selected phase, open panels)
+- Cache invalidation is manual: each mutation calls `queryClient.invalidateQueries()` on affected query keys
+- Stale time: 5 minutes globally; retry: 1
 
 ## Key Abstractions
 
-**AI Provider Abstraction:**
-- Purpose: Swap between OpenAI and Anthropic without changing service logic
-- Location: `backend/app/services/ai_provider.py` (async function `chat_completion()`)
-- Interface: Takes `messages: List[Dict]`, `model: str`, `temperature: float` → returns text
-- Implementation: Routes to OpenAI or Anthropic based on `settings.AI_PROVIDER`
-- Used by: OpenAIService, AgentService, TemplateAIService, KnowledgeExtractionService
+**TemplateConfig (JSON schema):**
+- Purpose: Data-driven description of a screenplay format — its phases, subsections, and how each subsection should be rendered and edited
+- Examples: `backend/app/templates/micro_drama.json`, `backend/app/templates/short_movie.json`
+- Pattern: Loaded server-side by `backend/app/templates/registry.py`; served to frontend via `GET /api/templates/:id`; frontend types defined in `frontend/src/types/template.ts`
+- Key fields on `SubsectionConfig`: `ui_pattern` (selects the React view), `fields`, `field_groups`, `wizard_config`, `list_config`, `editor_config`, `ai_actions`, `sidebar_chat`, `chat_system_prompt`
 
-**Template Registry:**
-- Purpose: Load project workflow definitions from static JSON without database
-- Location: `backend/app/templates/registry.py`
-- Functions:
-  - `get_template(template_id)`: Returns cached deep copy of template config
-  - `_resolve_refs(config)`: Resolves $ref pointers to shared JSON files (e.g., `shared/write_phase.json`)
-  - `list_templates()`: Enumerate available templates
-- Pattern: File-based configuration with reference composition
+**AgentType routing:**
+- Purpose: The `Agent` model has a type enum (`BOOK_BASED`, `TAG_BASED`, `ORCHESTRATOR`) that controls how `AgentService` fetches RAG context and builds system prompts
+- Location: `backend/app/services/agent_service.py`
+- Pattern: `chat_stream_prepare()` switches on `agent.agent_type` before calling `rag_service`; `ORCHESTRATOR` type delegates to `_orchestrate_stream_prepare()` which fans out to specialist agents in parallel via `asyncio.gather()`
 
-**Service Layer Abstractions:**
-- **OpenAIService:** Encapsulates screenplay review logic with caching
-- **RAGService:** Hides complexity of concept retrieval via embeddings
-- **AgentService:** Orchestrates multi-agent workflows with system prompt templating
-- **BookProcessingService:** Coordinates extraction → chunking → embedding → analysis steps
-- Each service is instantiated once and dependency-injected or imported as singleton
+**PhaseData / ListItem as generic content store:**
+- Purpose: All template-system content stored as `PhaseData` (one row per project+phase+subsection_key) with a `content` JSON column; repeatable items stored as child `ListItem` rows
+- Location: `backend/app/models/database.py` — `PhaseData`, `ListItem`
+- Unique constraint: `(project_id, phase, subsection_key)` on `PhaseData` ensures upsert safety
 
-**Schema Validation:**
-- Backend: Pydantic v2 models (`schemas.py`) with field validators for sanitization
-- Frontend: TypeScript interfaces mirroring Pydantic models (manually kept in sync)
-- Validators: Min/max length, string trimming, enum validation
+**Unified AI Provider:**
+- Purpose: Abstracts over OpenAI and Anthropic so service code doesn't care which LLM is active
+- Location: `backend/app/services/ai_provider.py`
+- Pattern: `chat_completion(messages, ...)` and `chat_completion_stream(messages, ...)` read `settings.AI_PROVIDER` to route; provider can be overridden per-call via the `provider` argument
+- Handles Anthropic-specific quirks: system message extraction, message alternation rules, code fence stripping for JSON mode
+
+**Custom Exception Hierarchy:**
+- Purpose: Map business errors to HTTP status codes with structured error payloads
+- Location: `backend/app/exceptions.py`
+- Base class: `AppException(HTTPException)` with subclasses: `ValidationException` (400), `AuthenticationException` (401), `AuthorizationException` (403), `NotFoundException` (404), `ConflictException` (409), `RateLimitException` (429), `ExternalServiceException` / `OpenAIException` (503), `DatabaseException` (500), `ConfigurationException` (500)
+
+**SafeVector (pgvector adapter):**
+- Purpose: Custom SQLAlchemy type that safely handles both string and list representations of pgvector embeddings, avoiding the `list has no attribute split` error
+- Location: `backend/app/models/database.py` — `SafeVector` class
+- Used on: `BookChunk.embedding`, `Snippet.embedding`, `Concept.embedding` (all deferred-loaded, dimension 1536)
 
 ## Entry Points
 
-**Frontend:**
-- Location: `frontend/src/main.tsx` → `App.tsx`
-- Initialization: React 18 strict mode, QueryClientProvider, BrowserRouter
-- Routes: `/` (projects list), `/projects/:id` (legacy editor), `/projects/:id/:phase/:subsection/:itemId` (new workspace)
-- Key hooks: `useKeyboardShortcuts` (Cmd+S save, Cmd+Enter review), `useQuery` for data fetching
-
-**Backend:**
+**Backend HTTP server:**
 - Location: `backend/app/main.py`
-- Initialization: FastAPI app with middleware stack, CORS config, exception handlers
-- Startup hook: `init_db()` creates tables if not present
-- Routes: All mounted with `/api/{domain}` prefix (auth, projects, sections, books, agents, chat, templates, etc.)
-- Health endpoint: `GET /health`
+- Triggers: `uvicorn app.main:app --reload --port 8000` (standalone) or Docker Compose `backend` service
+- Responsibilities: Registers all middleware, mounts all routers under `/api/*`, registers startup/shutdown lifecycle events, initialises DB connection on startup via `init_db()`
+
+**Frontend SPA:**
+- Location: `frontend/src/main.tsx` → `frontend/src/App.tsx`
+- Triggers: `npm run dev` (Vite dev server on :5173) or Docker container serving built assets
+- Responsibilities: Provides `QueryClientProvider` + `BrowserRouter`; maps URL paths to top-level page components
+
+**Background Book Processor:**
+- Location: `backend/app/services/book_processing_service.py`
+- Triggers: FastAPI `BackgroundTasks` after `POST /api/books/upload`
+- Responsibilities: Orchestrates the extract → chunk → analyze → embed pipeline in-process (no separate worker queue or task broker)
+
+## API Route Map
+
+| Prefix | Router File | Domain |
+|---|---|---|
+| `/api/auth` | `backend/app/api/endpoints/auth.py` | Authentication (mock token, magic link) |
+| `/api/projects` | `backend/app/api/endpoints/projects.py` | Project CRUD + v2 template-based creation |
+| `/api/sections` | `backend/app/api/endpoints/sections.py` | Legacy section editing + checklist items |
+| `/api/review` | `backend/app/api/endpoints/review.py` | Legacy AI section review |
+| `/api/books` | `backend/app/api/endpoints/books.py` | Book upload, processing, CRUD |
+| `/api/books` | `backend/app/api/endpoints/snippets.py` | Book-scoped snippet listing |
+| `/api/snippets` | `backend/app/api/endpoints/snippet_manager.py` | Snippet CRUD (edit, delete) |
+| `/api/agents` | `backend/app/api/endpoints/agents.py` | Agent CRUD, book linking, seed defaults |
+| `/api/chat` | `backend/app/api/endpoints/chat.py` | Agent chat sessions + streaming messages |
+| `/api/templates` | `backend/app/api/endpoints/templates.py` | Template listing + detail |
+| `/api/phase-data` | `backend/app/api/endpoints/phase_data.py` | Phase data CRUD + readiness checks |
+| `/api/list-items` | `backend/app/api/endpoints/list_items.py` | ListItem CRUD + reordering |
+| `/api/wizards` | `backend/app/api/endpoints/wizards.py` | Wizard run + apply results |
+| `/api/ai` | `backend/app/api/endpoints/ai_chat.py` | Template AI sessions, streaming, fill-blanks, give-notes, analyze-structure |
+| `/health` | `backend/app/main.py` | Health check (inline) |
 
 ## Error Handling
 
-**Strategy:** HTTP status codes propagated with custom exception hierarchy
+**Strategy:** Custom exception hierarchy extending `HTTPException`; exceptions raised inside service/route code and automatically serialised by FastAPI's default exception handlers. Pydantic v2 validation errors caught with two explicit handlers in `backend/app/main.py` — one for `RequestValidationError` (422 with structured field errors) and one for `ValidationError`.
 
 **Patterns:**
-- **404 NotFoundException:** Raised when resource not found, maps to HTTP 404
-- **400 ValidationException:** Raised on invalid input (title, framework, etc.), maps to HTTP 400
-- **401 Unauthorized:** Raised on failed auth, maps to HTTP 401
-- **422 ValidationError:** Pydantic v2 field validation errors, custom formatter in `validation_exception_handler`
-- **500 Internal Server Error:** Unhandled exceptions logged and returned as 500
-
-**Frontend Error Handling:**
-- `api.tsx` checks response.ok and throws generic "Failed to [action]" messages
-- Components display error states with retry buttons (e.g., Editor, ProjectWorkspace)
-- Network errors caught and displayed in UI
-- Timeouts (API_TIMEOUT = 30s, CHAT_TIMEOUT = 120s, WIZARD_TIMEOUT = 300s) abort fetch and throw
+- `AppException` subclasses in `backend/app/exceptions.py` map directly to HTTP status codes (see Key Abstractions above)
+- Frontend: all `api.*` methods throw `Error` on non-OK responses with descriptive messages; React Query surfaces these as `error` state in component hooks; no global error boundary present
+- AI provider errors are caught within service methods and re-raised as `ExternalServiceException` / `OpenAIException`
 
 ## Cross-Cutting Concerns
 
-**Logging:**
-- Backend: Python logging module, configured in `config.py` (DEBUG in dev, INFO in prod)
-- Frontend: Browser console only, no persistent logs
-- Middleware: LoggingMiddleware logs all requests/responses with request ID (UUID)
-- Requests: Logged with method, path, client IP
-- Responses: Logged with status code and duration
+**Logging:** Python `logging` module configured at INFO level in `backend/app/main.py`; `LoggingMiddleware` in `backend/app/middleware.py` logs every request with UUID request ID and duration; each service/endpoint module instantiates `logger = logging.getLogger(__name__)`; debug-level logging enabled automatically when `ENVIRONMENT=development`
 
-**Validation:**
-- Backend: Pydantic v2 field validators in schemas (min/max length, whitespace trimming)
-- Utility functions: `utils/validators.py` has `validate_project_title()`, `validate_framework()`, etc.
-- Frontend: TypeScript interfaces provide compile-time type safety; no runtime validation
-- HTML sanitization: Not implemented - XSS risk if user content rendered unsanitized
+**Validation:** Pydantic v2 schemas in `backend/app/models/schemas.py` validate all inbound request bodies; `field_validator` decorators enforce constraints (non-empty strings, length limits); HTML sanitization utilities in `backend/app/utils/validators.py`
 
-**Authentication:**
-- Backend: HTTPBearer scheme with token in Authorization header
-- Mock auth: Mock token "mock-token" accepted in development (checked in dependencies.py)
-- Production auth: `auth_service.verify_token()` stub (not fully implemented in MVP)
-- Frontend: Token stored in localStorage under AUTH_TOKEN_KEY, sent in Authorization header of all requests
-
-**Rate Limiting:**
-- Backend: RateLimitMiddleware limits to 600 req/min per IP (generous for development)
-- Request size: Limited to 10MB max via RequestSizeLimitMiddleware
-- No frontend rate limiting
+**Authentication:** Bearer token auth via `HTTPBearer` FastAPI security dependency in `backend/app/api/dependencies.py`; dev shortcut: any request with token `"mock-token"` when `ENVIRONMENT=development` is authenticated as a hardcoded mock user (UUID fixed across all requests); frontend reads token from `localStorage` key `auth_token` with fallback to `"mock-token"`
 
 ---
 
-*Architecture analysis: 2026-03-05*
+*Architecture analysis: 2026-03-06*

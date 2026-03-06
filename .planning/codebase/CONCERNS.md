@@ -1,269 +1,210 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-03-05
+**Analysis Date:** 2026-03-06
 
 ## Tech Debt
 
-**Hardcoded Mock Authentication in Production Path:**
-- Issue: Development-only mock authentication is hardcoded into production code path. Setting `ENVIRONMENT=development` accepts any Bearer token of `"mock-token"`, but this logic exists in production-bound code, not isolated to dev-only modules.
-- Files: `backend/app/api/dependencies.py:24`, `backend/app/config.py:93`
-- Impact: If production is accidentally configured as `development`, all authentication can be bypassed. This is a critical security regression vector.
-- Fix approach: Move mock auth entirely to a separate mock auth module that is not imported in production builds. Use environment-based feature flags only for logging/debug output, not authentication logic.
+**Mock Authentication in Production Path:**
+- Issue: `get_current_user` in `backend/app/api/dependencies.py` returns a hardcoded mock user object even for valid JWT tokens (lines 38–42). The "production authentication flow" verifies the token but still returns `email="user@example.com"` and `created_at=datetime.utcnow()` rather than querying the real user from the database. The comment explicitly says "In production, you would query the user from database here — For MVP, return mock user".
+- Files: `backend/app/api/dependencies.py`
+- Impact: All authenticated requests share the same user identity data (email, created_at). Row-level security based on `owner_id` still works (UUID comes from the token), but user profile data is permanently fake.
+- Fix approach: Add a `users` table, query it in `get_current_user` after token verification.
 
-**Manual Migration Management Without Alembic:**
-- Issue: Database schema is managed via raw SQL migration files in `backend/migrations/` rather than using Alembic. Migration ordering relies on filename conventions and manual execution. Multiple conflicting migration files exist (`003_templates_overhaul.sql` vs `003_template_system.sql`).
-- Files: `backend/migrations/`, `backend/app/db.py:19-28`
-- Impact: Risk of schema inconsistency if migrations are applied in wrong order. No rollback mechanism. Difficult to track which migrations have been run. Team coordination overhead.
-- Fix approach: Adopt Alembic for deterministic, reversible migrations. Generate current schema from ORM models. Clear up conflicting migration files and establish naming convention.
+**No Database Migration Tool:**
+- Issue: Migrations are plain SQL files with no tracking mechanism (no Alembic, no version table). Two conflicting `003_*.sql` files exist (`003_template_system.sql` and `003_templates_overhaul.sql`). There is no way to determine which migrations have been applied to a given database.
+- Files: `backend/migrations/` (8 raw SQL files), `backend/app/db.py` (comment on line 25 acknowledges this)
+- Impact: Database drift between environments is undetectable. Deploying to a new environment requires manually running files in the correct order. The duplicate `003_` files will cause errors or no-ops depending on execution order.
+- Fix approach: Adopt Alembic with `alembic init`, convert existing SQL migrations to Alembic `upgrade`/`downgrade` pairs.
 
-**Rate Limit Stored in Memory:**
-- Issue: In-memory rate limiting middleware stores IP request timestamps in a dictionary that only exists for the lifetime of the server process.
-- Files: `backend/app/middleware.py:89-132`
-- Impact: Rate limits reset on each server restart. In distributed deployments with multiple servers, each instance has independent rate limit state—users can bypass limits by distributing requests across servers. No persistent enforcement.
-- Fix approach: Migrate to Redis-backed rate limiting (e.g., using `slowapi` or `redis-py`) for distributed, persistent rate limit tracking.
+**Background Task Receives Request-Scoped DB Session:**
+- Issue: `upload_book` in `backend/app/api/endpoints/books.py` passes the FastAPI-injected `db` session directly to a `BackgroundTask` (line 90). The request-scoped session is closed when the HTTP response is sent, but the background task continues to use it — this is a known pattern that causes "session closed" errors or silent data corruption.
+- Files: `backend/app/api/endpoints/books.py` (lines 86–91), `backend/app/services/book_processing_service.py`
+- Impact: `process_book` (the upload path) runs with a potentially closed/invalid session. The `resume_book` and `retry_book` paths correctly create their own sessions via `SessionLocal()` but `process_book` does not.
+- Fix approach: Remove `db` from the `background_tasks.add_task` call in `upload_book`. Have `process_book` create its own session internally using `SessionLocal()` like `resume_book` does.
 
-**Type Annotations Using `any` Throughout Frontend:**
-- Issue: Widespread use of `any` type in TypeScript code instead of proper type definitions. Examples: `Record<string, any>`, `error: any`, `phaseData: any`, `project: any`.
-- Files: `frontend/src/lib/api.tsx:350,363,428,435,510,520,548,558,631,643,690,705,722,739,760,785`, `frontend/src/types/template.ts:138-139,150-151,173,182-183`, `frontend/src/components/Patterns/WizardView.tsx:13`, `frontend/src/components/Projects/ProjectList.tsx:97-100`, `frontend/src/components/Patterns/RepeatableCardsView.tsx:31,39`
-- Impact: Loss of type safety. Runtime bugs that could be caught at compile time. Hard to refactor, unclear data contracts. ESLint allows this currently (no `@typescript-eslint/no-explicit-any` rule).
-- Fix approach: Enable `"@typescript-eslint/no-explicit-any": "error"` in ESLint config. Create proper types for all API responses and component props. Use `unknown` type with type guards where truly generic behavior is needed.
+**Deprecated FastAPI Lifecycle Hooks:**
+- Issue: `backend/app/main.py` uses `@app.on_event("startup")` and `@app.on_event("shutdown")` (lines 101, 109), which are deprecated in FastAPI >= 0.93 in favour of the `lifespan` context manager.
+- Files: `backend/app/main.py`
+- Impact: Will trigger deprecation warnings; these handlers may be removed in a future FastAPI version.
+- Fix approach: Replace with `@asynccontextmanager` lifespan pattern and pass to `FastAPI(lifespan=lifespan)`.
 
-**Default Secrets in Config:**
-- Issue: Default `SECRET_KEY = "your-secret-key-replace-in-production"` is hardcoded in config.
-- Files: `backend/app/config.py:27`
-- Impact: If env var is not set in production, the app uses a known default secret. JWT tokens could be forged. Database encryption (if added) would use weak default key.
-- Fix approach: Raise `ValueError` at startup if `SECRET_KEY` is default in any non-development environment. Require explicit secret generation for production deploys.
+**Duplicated System Prompt Construction:**
+- Issue: The system prompt for book-based chat is built identically in both `chat` (non-streaming) and `chat_stream_prepare` (streaming) methods in `backend/app/services/agent_service.py`. Approximately 50 lines of f-string prompt construction are copy-pasted between them (lines ~387–410 and ~528–551).
+- Files: `backend/app/services/agent_service.py`
+- Impact: Any change to chat prompt logic must be applied in two places. The `chat` method also lacks the `list_creates_prompt` injection that `chat_stream_prepare` has (lines 582–583), creating a behavioural divergence between streaming and non-streaming modes.
+- Fix approach: Extract prompt construction to a `_build_chat_system_prompt` helper method. Remove non-streaming `chat` if streaming is the canonical path.
 
-**Unstructured Error Handling in Services:**
-- Issue: Multiple services catch generic exceptions and either suppress them, return defaults, or log without propagating. Examples: `RateLimitError` caught and re-raised differently, `json.JSONDecodeError` caught with generic recovery in `template_ai_service.py:608`.
-- Files: `backend/app/services/agent_service.py:106`, `backend/app/services/template_ai_service.py:608`, `backend/app/services/embedding_service.py:59`
-- Impact: Errors are hidden from observability. Root causes become hard to diagnose. Callers don't know if a returned value is a real result or a fallback due to error.
-- Fix approach: Create a custom exception hierarchy (`AIServiceError`, `ValidationError`, `ExternalServiceError`). Propagate specific exceptions to API layer. Log with full traceback. Return explicit error responses rather than silent defaults.
+**Hard-coded Quality Threshold as Local Variable:**
+- Issue: `QUALITY_THRESHOLD = 0.5` is defined as a local variable inside `process_book` in `backend/app/services/book_processing_service.py` (line 145) rather than as a config setting.
+- Files: `backend/app/services/book_processing_service.py`
+- Impact: Changing the threshold requires a code deploy. The value is also referenced independently in `rag_service.py` (line 320).
+- Fix approach: Add `CONCEPT_QUALITY_THRESHOLD: float = 0.5` to `backend/app/config.py` and reference `settings.CONCEPT_QUALITY_THRESHOLD` in both locations.
 
 ---
 
 ## Security Considerations
 
-**File Upload Path Traversal Risk:**
-- Risk: File upload endpoint constructs file path from user-provided filename without sanitization.
-- Files: `backend/app/api/endpoints/books.py:67`
-- Current mitigation: File extension is validated (.pdf, .epub, .txt only). Filename could still contain path traversal sequences like `"../../etc/passwd.pdf"`.
-- Recommendations: Sanitize filename using `pathlib.Path(filename).name` or generate a UUID-based filename. Never trust user-provided filenames for path construction.
+**Unsanitized Filename in File Upload:**
+- Risk: `backend/app/api/endpoints/books.py` uses `file.filename` directly for the saved file path (line 67: `file_path = os.path.join(upload_dir, file.filename)`). A malicious client could supply a filename like `../../etc/cron.d/evil` to write files outside the upload directory (path traversal).
+- Files: `backend/app/api/endpoints/books.py`
+- Current mitigation: None. `os.path.join` does not prevent `..` traversal when the second argument starts with a relative path.
+- Recommendations: Use `werkzeug.utils.secure_filename` or validate with `pathlib.Path(upload_dir, file.filename).resolve()` and assert it is within the upload directory. Add UUID prefix to filenames to avoid collisions.
 
-**localStorage Token Storage (Frontend):**
-- Risk: Authentication token stored in `localStorage` is vulnerable to XSS attacks. Any injected JavaScript can access `localStorage`.
-- Files: `frontend/src/lib/api.tsx:13`, `frontend/src/components/Shared/SidebarChat.tsx:153,157`, `frontend/src/components/UI/ResizablePanel.tsx:22,66`
-- Current mitigation: CSP headers are set but include `'unsafe-inline'` and `'unsafe-eval'` in development (overly permissive).
-- Recommendations: Move tokens to HTTPOnly secure cookies (requires backend integration). If localStorage is retained, implement strict CSP for production. Add XSS input validation across all user-controllable content.
+**Development CSP Deployed to Production:**
+- Risk: `SecurityMiddleware` in `backend/app/middleware.py` applies `'unsafe-inline'` and `'unsafe-eval'` in its CSP header unconditionally (lines 65–66). The comment says "More permissive CSP for development" but there is no environment-conditional logic — the same permissive policy applies in production.
+- Files: `backend/app/middleware.py`
+- Current mitigation: None.
+- Recommendations: Branch on `settings.ENVIRONMENT`: use strict CSP (nonces, no unsafe directives) in production and the permissive policy only in development.
 
-**Permissive CORS Configuration:**
-- Risk: CORS allows `*` methods and headers, and includes `http://localhost` origins in production config.
-- Files: `backend/app/main.py:50-56`, `backend/app/middleware.py:62-67`
-- Current mitigation: Origins list is checked, but localhost origins would be present if `ENVIRONMENT=production` incorrectly.
-- Recommendations: Remove localhost from production origins. Use explicit header whitelists instead of `allow_headers=["*"]`. Set `allow_methods=["GET", "POST", "PATCH", "DELETE"]` explicitly.
+**Mock Token Endpoint Reachable in Any Environment:**
+- Risk: `POST /api/auth/token/mock` in `backend/app/api/endpoints/auth.py` is registered unconditionally. The endpoint itself adds no guard. If `ENVIRONMENT` is misconfigured, the mock token endpoint is publicly accessible in production.
+- Files: `backend/app/api/endpoints/auth.py`, `backend/app/api/dependencies.py`
+- Current mitigation: `get_current_user` refuses `mock-token` in non-development environments, but the endpoint itself still responds.
+- Recommendations: Add a startup guard that raises an error or removes the route when `ENVIRONMENT != "development"`.
 
-**SQL Injection Risk in RAG Service:**
-- Risk: `RAGService` uses `.filter(...in_(...))` safely with SQLAlchemy, but raw SQL queries via `sql_text()` are used. If any dynamic SQL is added, injection risk exists.
-- Files: `backend/app/services/rag_service.py:6`, `backend/app/db.py:28`
-- Current mitigation: Only static SQL queries are used in `db.py`.
-- Recommendations: Never use string concatenation for SQL. Always use parameterized queries. Document that `sql_text()` must only be used with hardcoded queries.
-
-**Weak Email Validation:**
-- Risk: Regex-based email validation in `validators.py` is overly permissive and doesn't match RFC 5322.
-- Files: `backend/app/utils/validators.py:10-13`
-- Impact: Invalid emails could be accepted. Real-world emails (e.g., with `+` addressing) might be rejected.
-- Recommendations: Use `email-validator` package for RFC-compliant validation. Or use built-in Pydantic `EmailStr` type.
+**Rate Limit Set to 600 req/min:**
+- Risk: `backend/app/main.py` sets `requests_per_minute=600` (line 44) with a comment "Rate limit generous for dev; tighten for production". This value has not been reduced. In-memory rate limiting does not survive restarts and is not shared across multiple workers.
+- Files: `backend/app/main.py`, `backend/app/middleware.py`
+- Current mitigation: None.
+- Recommendations: Set rate limit via `settings.RATE_LIMIT_RPM`. Replace in-memory dict with Redis-backed sliding window for multi-worker deployments.
 
 ---
 
 ## Performance Bottlenecks
 
-**In-Memory Rate Limit Dictionary Growth:**
-- Problem: `self.requests` dictionary in `RateLimitMiddleware` grows unbounded as new IPs make requests. Only cleaned when entries expire.
-- Files: `backend/app/middleware.py:95,105-109`
-- Cause: Cleanup only removes old entries during new requests from that IP. A single request from a new IP doesn't trigger full cleanup. Dictionary can grow to thousands of entries.
-- Improvement path: Add periodic cleanup task (e.g., every 60 seconds). Or use `collections.defaultdict` with TTL-based expiration. Better: use Redis.
+**N+1 Query in `get_concept_relationships`:**
+- Problem: For each `ConceptRelationship` returned, the function issues two individual `db.query(Concept).filter(...)` calls to resolve source and target concept names (lines 100–101 in `backend/app/services/rag_service.py`).
+- Files: `backend/app/services/rag_service.py`
+- Cause: No JOIN or batch load. For a section with 10 concepts and 5 relationships each, this issues 100 individual queries.
+- Improvement path: Use a JOIN in the `ConceptRelationship` query, or pre-load all relevant concepts in a single `WHERE id IN (...)` query before iterating.
 
-**Book Processing Without Batching:**
-- Problem: `book_processing_service.process_book()` embeds entire document in single batch via `embedding_service.embed_batch()`. If book is 10,000+ chunks, this could timeout or exhaust memory.
-- Files: `backend/app/services/book_processing_service.py:66-68`
-- Cause: No pagination or streaming. All embeddings requested at once.
-- Improvement path: Batch embeddings in chunks of 100-500. Implement resume logic to recover from mid-processing failures. Add progress updates per batch.
+**Full Table Scan on Concept Relevance Scoring:**
+- Problem: `get_relevant_concepts` in `backend/app/services/rag_service.py` loads ALL concepts for an agent's books into Python memory (line 52: `.all()`) and sorts in-application code.
+- Files: `backend/app/services/rag_service.py`
+- Cause: No database-level ordering by `section_relevance`; the JSONB field could be queried as `(section_relevance->>:section_key)::float`.
+- Improvement path: Push relevance scoring and ordering to SQL, apply `LIMIT` at the database level.
 
-**Vector Search Without Indexing:**
-- Problem: `RAGService.get_relevant_concepts()` loads all concepts from a book into memory, filters in Python. No database-level vector similarity search.
-- Files: `backend/app/services/rag_service.py:48-62`
-- Cause: pgvector is installed but not used for efficient `<->` similarity queries.
-- Improvement path: Add database indexes on embeddings. Use pgvector's cosine distance operator for server-side filtering. Pagination with `LIMIT`.
+**In-Memory Caches Do Not Survive Restarts:**
+- Problem: `OpenAIService` and `EmbeddingService` use in-memory `OrderedDict` LRU caches. Every restart causes a cold cache and re-costs API calls.
+- Files: `backend/app/services/openai_service.py` (lines 17–18), `backend/app/services/embedding_service.py` (lines 19–20)
+- Cause: MVP design choice; no external cache layer.
+- Improvement path: Add Redis or a persistent cache (e.g. `diskcache`) for embedding results; review caches are cheap to regenerate.
 
-**Unresolved API Query N+1 Problem:**
-- Problem: Many endpoints may trigger multiple database queries in loops. Example: iterating over relationships and querying source/target concepts separately.
-- Files: `backend/app/services/rag_service.py:99-100`
-- Cause: Lazy loading of relationships. SQLAlchemy does not auto-eager-load related data.
-- Improvement path: Use `joinedload()` to eager-load relationships. Profile with `sqlalchemy.event.listen()` to log SQL queries.
+**Sequential Chapter Processing During Book Upload:**
+- Problem: `process_book` in `backend/app/services/book_processing_service.py` processes chapters sequentially in a `for` loop (line 110), with multiple AI calls per chapter through `knowledge_extraction_service`.
+- Files: `backend/app/services/book_processing_service.py`
+- Cause: Sequential by design to support checkpoint-based pause/resume.
+- Improvement path: Consider small-batch parallelism (e.g. `asyncio.gather` over windows of 3–5 chapters) while preserving checkpoint granularity.
 
 ---
 
 ## Fragile Areas
 
-**Database Cascade Delete Chains:**
-- Files: `backend/app/models/database.py:92-93,106,139-140,173-174`
-- Why fragile: Multiple models use `cascade="all, delete-orphan"`. If a Project is deleted, it cascades to Sections → ChecklistItems → (eventually) AIMessages, ChatMessages, etc. A bug in one delete handler could orphan dependent records.
-- Safe modification: Always wrap bulk deletes in transaction with savepoint. Write explicit tests for cascade behavior. Consider soft-deletes (is_deleted flag) for non-ephemeral data.
-- Test coverage: No explicit cascade delete tests in `backend/app/tests/`. Only basic CRUD tests exist.
+**`_active_tasks` Module-Level Dict in Book Processing:**
+- Files: `backend/app/services/book_processing_service.py`
+- Why fragile: `_active_tasks: Dict[str, asyncio.Task]` is a module-level global (line 20). In a multi-worker deployment (e.g. Gunicorn with multiple workers), tasks are tracked per-process. Cancelling a task from worker B when it was started by worker A will silently fail — `_active_tasks.get(book_id)` returns `None` and `pause_book` returns `False`, leaving the book status unchanged.
+- Safe modification: Only modify inside `BookProcessingService` methods. Do not reference `_active_tasks` from other modules.
+- Test coverage: No test covers pause/resume across worker boundaries.
 
-**Template System JSON Fields:**
-- Files: `backend/app/models/database.py:88,102,132-133,152-153,198,213`, `backend/app/api/endpoints/ai_chat.py:28-35`
-- Why fragile: `content`, `ai_suggestions`, `config`, `result` are all JSON columns without schema validation. Code assumes certain keys exist (e.g., `pd.content['some_key']`) but doesn't enforce structure.
-- Safe modification: Add Pydantic models for JSON schema. Validate on insert/update. Document expected structure. Use `field_validator` on schemas.
-- Test coverage: Template system integration tests missing. Only shallow API tests exist.
+**Regex-Based JSON Extraction from AI Output:**
+- Files: `backend/app/services/agent_service.py` (`_extract_book_refs`, `_extract_field_updates`, `_extract_list_item_creates`)
+- Why fragile: All three methods use `re.search` with `re.DOTALL` to find embedded JSON blobs in free-text AI output. The patterns (`\{[^{}]*"key"\s*:.*?\}`) do not handle nested JSON or values containing `{}` or `[]`. A concept name containing braces will break the match silently.
+- Safe modification: Use `json.decoder.JSONDecoder.raw_decode` for position-aware parsing, or constrain AI output structure (always last line, delimited).
+- Test coverage: Minimal unit tests for these extraction functions.
 
-**AI Service Prompt Injection Risk:**
-- Files: `backend/app/services/agent_service.py:43-87,141-150`, `backend/app/services/template_ai_service.py`
-- Why fragile: User text (`user_notes`, section content) is embedded directly into system prompts without escaping. A malicious user could inject prompt-breaking sequences like `\n\nIgnore previous instructions:`.
-- Safe modification: Never interpolate user text directly. Use placeholders and structured formats. Separate user input from prompt structure.
-- Test coverage: No adversarial prompt injection tests.
+**`agent_service.py` at 1066 Lines (Single Class):**
+- Files: `backend/app/services/agent_service.py`
+- Why fragile: The file contains review mode, chat mode (streaming and non-streaming), orchestrator mode, agent scoring, and list item creation in a single 1066-line class. Changes in one path routinely affect others; the duplication between streaming/non-streaming makes it easy to create diverging behaviour without noticing.
+- Safe modification: Extract `_orchestrate` and `_orchestrate_stream_prepare` to a separate `OrchestratorService`. Extract prompt-building helpers to a `PromptBuilder` utility.
+- Test coverage: No dedicated unit tests for `AgentService`.
 
-**Chat Session / Project Ownership Not Enforced:**
-- Files: `backend/app/api/endpoints/chat.py`, `backend/app/api/endpoints/agents.py`
-- Why fragile: Some endpoints check `project.owner_id == current_user.id` but not all. If an endpoint is added without this check, a user could access another user's data.
-- Safe modification: Create a reusable dependency `async def verify_project_ownership()` that all endpoints use. Add tests that verify auth across all endpoints.
-- Test coverage: No cross-user access tests. Tests use mock user only.
+**Template Registry Cache Is Process-Local:**
+- Files: `backend/app/templates/registry.py`
+- Why fragile: `_cache: Dict[str, dict]` at module level loads JSON template files once per process (line 7). If template files are updated on disk during a rolling deployment, running workers will continue to serve the old cached config until restarted.
+- Safe modification: Add a cache-invalidation mechanism or simply remove the cache (templates are small JSON files — disk I/O cost is negligible).
+- Test coverage: Not directly tested.
 
 ---
 
 ## Known Bugs
 
-**Duplicate Migration Files:**
-- Symptoms: Two `003_*.sql` files exist, creating ambiguity about which is the current schema.
+**Book Upload DB Session Used After Request Completes:**
+- Symptoms: Sporadic `sqlalchemy.exc.InvalidRequestError: Session is closed` or `DetachedInstanceError` errors logged during book processing after upload.
+- Files: `backend/app/api/endpoints/books.py` (line 90), `backend/app/services/book_processing_service.py`
+- Trigger: Upload a book; the background task may attempt DB writes after the HTTP response has been sent and the session has been closed by the FastAPI dependency lifecycle.
+- Workaround: None currently. `resume_book` and `retry_book` avoid this bug by creating a fresh session internally.
+
+**Duplicate `003_` Migration Files:**
+- Symptoms: Running `003_templates_overhaul.sql` on a database that has `003_template_system.sql` applied will fail with `ERROR: type "template_type" already exists` (no `IF NOT EXISTS` guard in the overhaul file).
 - Files: `backend/migrations/003_template_system.sql`, `backend/migrations/003_templates_overhaul.sql`
-- Trigger: Both were created during template system development without renaming one to `004_*.sql`.
-- Workaround: Clear database and rerun all migrations in sequence. Developers must manually choose which `003_*.sql` to apply.
+- Trigger: Initialising a fresh database and running both files, or running the overhaul file on an already-migrated database.
+- Workaround: Run only `003_template_system.sql`; it has `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object` guards.
 
-**Mock Auth Bypass:**
-- Symptoms: In development mode, any request with `Authorization: Bearer mock-token` is accepted as valid.
-- Files: `backend/app/api/dependencies.py:24`
-- Trigger: Set `ENVIRONMENT=development` and send requests with mock token.
-- Workaround: Use a separate test client with mock user, not real API.
-
-**Missing Error Boundary in Frontend:**
-- Symptoms: React uncaught errors crash the entire app without user-visible recovery.
-- Files: `frontend/src/App.tsx`
-- Trigger: Any unhandled promise rejection in components.
-- Workaround: Manually reload page or restart dev server.
-
----
-
-## Scaling Limits
-
-**Single-Process Rate Limiting:**
-- Current capacity: ~60-600 requests per minute per server instance (configurable).
-- Limit: Across distributed deployments with N instances, limit is multiplied by N (each instance has independent state).
-- Scaling path: Migrate to Redis-backed rate limiting. All instances check against shared Redis store.
-
-**Book Embedding Pipeline Single-Threaded:**
-- Current capacity: ~100 chunks per book (typical). Embedding 1000+ chunks takes 5+ minutes sequentially.
-- Limit: If user uploads 10 large books simultaneously, system blocks on sequential embedding.
-- Scaling path: Implement async task queue (Celery + Redis). Process multiple books in parallel. Add priority queue for user-initiated vs. background tasks.
-
-**In-Memory Chunk Vectors:**
-- Current capacity: All concept embeddings fit in server memory (assume <100 books × 1000 chunks × 1536 dims ≈ 150MB).
-- Limit: Beyond 500+ books, RAM becomes constrained. Vector search becomes slow without proper indexing.
-- Scaling path: Use pgvector extensions for on-disk vector storage. Add vector index (ivfflat or hnsw).
-
-**API Rate Limit for AI Calls:**
-- Current capacity: 600 requests/min. Each AI review call 1 request. Each chat message 1 request.
-- Limit: Production API quotas from OpenAI/Anthropic are the real bottleneck (not app-level rate limit).
-- Scaling path: Implement token-bucket rate limiting per user (not global). Queue AI calls. Cache responses.
-
----
-
-## Dependencies at Risk
-
-**Pydantic v2 Compatibility:**
-- Risk: Some type hints use old Pydantic v1 patterns. `pydantic-settings` requires explicit `BaseSettings` setup. Code uses `@field_validator` (v2) but some older code might expect `@validator` (v1).
-- Impact: Subtle type coercion bugs. Validation might not trigger as expected.
-- Migration plan: Audit all model validators. Replace `@validator` with `@field_validator`. Test extensively before upgrading.
-
-**pgvector Without Version Pin:**
-- Risk: `pgvector==0.3.6` may have breaking changes in future versions. Custom `SafeVector` type may not work with 0.4.x.
-- Impact: Embeddings could become unloadable after dependency update.
-- Migration plan: Pin `pgvector>=0.3.6,<0.4.0` in `requirements.txt`. Track pgvector releases. Pre-test major version upgrades.
-
-**OpenAI SDK Deprecation:**
-- Risk: `openai==1.12.0` is relatively recent. Older features may deprecate. Async support in 1.x is incomplete in some methods.
-- Impact: Code using older patterns could break. Streaming might fail.
-- Migration plan: Monitor OpenAI SDK releases. Test CI pipeline with `openai>=1.15.0`. Document required version range.
-
-**tiktoken Tokenizer Mismatch:**
-- Risk: `tiktoken==0.7.0` encodes tokens. If model changes (e.g., GPT-4 Turbo uses different tokenizer), token counts become inaccurate.
-- Impact: Chunk size validation (`CHUNK_SIZE_TOKENS`) becomes wrong. Books truncated incorrectly.
-- Migration plan: Add integration tests that verify token counts match actual API. Use `encoding_for_model(model_name)` API from tiktoken, not hardcoded encoding.
+**Naive `datetime.utcnow()` in Auth Service:**
+- Symptoms: JWT token `exp` claims and `User.created_at` fields use timezone-naive datetimes (deprecated in Python 3.12+; raises `DeprecationWarning`).
+- Files: `backend/app/services/auth_service.py` (lines 34, 36, 58, 78, 94), `backend/app/api/dependencies.py` (line 41)
+- Trigger: Any request that creates or validates a token.
+- Workaround: None currently; will become an error in a future Python release.
+- Fix: Replace `datetime.utcnow()` with `datetime.now(timezone.utc)`.
 
 ---
 
 ## Test Coverage Gaps
 
-**No Database Cascade Tests:**
-- What's not tested: Deleting a project and verifying all related records (sections, checklist, phase_data, chat sessions, etc.) are deleted.
-- Files: `backend/app/tests/`, no test for cascade delete
-- Risk: Silent orphaned records, data corruption.
-- Priority: High - core data integrity
+**No Tests for Agent Service Core Logic:**
+- What's not tested: `AgentService.review_section`, `AgentService.chat`, `AgentService.chat_stream_prepare`, `_orchestrate`, agent scoring, `_extract_field_updates`, `_extract_book_refs`, `_extract_list_item_creates`.
+- Files: `backend/app/services/agent_service.py`, `backend/app/tests/`
+- Risk: Changes to prompt construction, orchestration logic, or JSON extraction silently break agent behaviour.
+- Priority: High
 
-**No Cross-User Access Tests:**
-- What's not tested: Attempting to view/edit another user's project/book/agent.
-- Files: `backend/app/tests/test_api.py`
-- Risk: Authorization bypass, data leakage.
-- Priority: High - security critical
+**No Tests for Template AI Service:**
+- What's not tested: All wizard generation methods (`_generate_idea`, `_generate_episodes`, `_generate_scenes`, `_generate_beats`, `_generate_scripts`), `fill_blanks`, `give_notes`, `analyze_structure`, `chat_action_extract_updates`.
+- Files: `backend/app/services/template_ai_service.py`, `backend/app/tests/`
+- Risk: Regression in AI-driven feature generation goes undetected until user-facing.
+- Priority: High
 
-**No Concurrent Request Tests:**
-- What's not tested: Two simultaneous requests updating the same resource.
-- Risk: Lost updates, inconsistent state.
-- Priority: Medium
+**No Tests for Book Processing Pipeline:**
+- What's not tested: `BookProcessingService.process_book`, pause/resume/retry flows, quality filtering, concept-chunk linking, `_active_tasks` management.
+- Files: `backend/app/services/book_processing_service.py`, `backend/app/tests/`
+- Risk: The longest-running server operation has no automated regression protection.
+- Priority: High
 
-**No Book Processing Failure Recovery:**
-- What's not tested: Simulating API timeout, file corruption, or partial processing and verifying resume logic.
-- Files: `backend/app/tests/`, no integration tests for background task
-- Risk: Stuck processing state, unretrievable books.
-- Priority: Medium
-
-**No Frontend Error Boundary Tests:**
-- What's not tested: React error recovery, network error handling.
-- Files: `frontend/src/` - no test files
-- Risk: Silent crashes, poor user experience.
-- Priority: Low (frontend is simple, but should have at least smoke tests)
-
-**No Rate Limit Tests:**
-- What's not tested: Rate limit behavior, cleanup, distributed rate limits.
-- Files: `backend/app/tests/`
-- Risk: Rate limit bypass, DoS vulnerability.
+**No Frontend Tests:**
+- What's not tested: All React components and hooks. Zero test files exist under `frontend/src/`.
+- Files: `frontend/src/`
+- Risk: UI behaviour changes and regressions are only caught manually.
 - Priority: Medium
 
 ---
 
-## Missing Critical Features
+## Scaling Limits
 
-**No Database Connection Pooling Configuration:**
-- Problem: Database engine is created with default pool settings. No control over max connections, pool recycle, overflow.
-- Blocks: Scaling to production loads (100+ concurrent requests).
-- Files: `backend/app/db.py:6`
-- Solution: Configure engine with `pool_size=20, max_overflow=40, pool_recycle=3600`.
+**In-Memory Rate Limiter:**
+- Current capacity: Single process; state lost on restart.
+- Limit: Does not work correctly with multiple Gunicorn workers — each worker has its own counter, so the effective limit is `workers x 600` req/min per IP.
+- Scaling path: Replace `RateLimitMiddleware` with Redis-backed sliding window (e.g. `slowapi` with Redis backend).
 
-**No API Versioning Strategy:**
-- Problem: All endpoints are `/api/v0` or unversioned. No versioning scheme for breaking changes.
-- Blocks: Rolling out backwards-incompatible changes without breaking clients.
-- Solution: Adopt URL versioning (`/api/v1/`, `/api/v2/`) or header versioning. Plan deprecation path.
-
-**No Monitoring/Logging Aggregation:**
-- Problem: Logs only go to stdout. No structured logging, no remote aggregation.
-- Blocks: Debugging production issues, performance analysis.
-- Solution: Integrate ELK stack, Datadog, or New Relic. Use Python `logging` JSON formatter.
-
-**No API Documentation Auto-Generation:**
-- Problem: FastAPI serves `/docs` but schema is incomplete for complex types.
-- Blocks: Frontend developers uncertain about actual API contracts.
-- Solution: Ensure all endpoints have proper response_model. Add docstrings with examples.
+**File Storage on Local Disk:**
+- Current capacity: Files saved to `backend/uploads/{user_id}/{filename}`.
+- Limit: Does not work in containerised multi-replica deployments; uploaded books are unavailable on replicas that did not handle the upload request.
+- Scaling path: Move uploads to object storage (S3, GCS) and store a URL or key reference in the `Book.filename` column.
 
 ---
 
-*Concerns audit: 2026-03-05*
+## Dependencies at Risk
+
+**`tiktoken` Hardcoded to GPT-4 Encoding:**
+- Risk: `backend/app/api/endpoints/snippet_manager.py` calls `tiktoken.encoding_for_model("gpt-4")` hardcoded (line 27). If the project switches to a model with a different tokenizer, token counts will be silently wrong.
+- Files: `backend/app/api/endpoints/snippet_manager.py`
+- Impact: Incorrect token counts displayed to the user; could affect RAG context window sizing.
+- Migration plan: Use a fixed tokenizer encoding like `cl100k_base` or derive from `settings.OPENAI_MODEL`.
+
+**`declarative_base()` Deprecated in SQLAlchemy 2.x:**
+- Risk: `backend/app/models/database.py` uses `from sqlalchemy.ext.declarative import declarative_base` (line 6), which is the SQLAlchemy 1.x import path. SQLAlchemy 2.x moves this to `sqlalchemy.orm.DeclarativeBase`.
+- Files: `backend/app/models/database.py`
+- Impact: Produces deprecation warnings; import path may be removed in future SQLAlchemy releases.
+- Migration plan: Replace with `from sqlalchemy.orm import DeclarativeBase` and update `Base = DeclarativeBase()`.
+
+---
+
+*Concerns audit: 2026-03-06*
