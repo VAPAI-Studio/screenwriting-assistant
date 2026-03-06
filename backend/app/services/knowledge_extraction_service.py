@@ -60,9 +60,10 @@ Your task is to identify the KEY CONCEPTS taught in this chapter. Focus on:
 - Structural patterns or story elements
 
 Do NOT include:
-- Trivial observations
+- Trivial observations ("show don't tell" without deeper explanation)
 - Biographical information about the author
 - Marketing or promotional content
+- Generic advice that applies to all writing
 
 Return a JSON object with:
 {
@@ -71,12 +72,19 @@ Return a JSON object with:
       "name": "Short concept name (e.g., 'The Gap', 'Story Values', 'Beat Sheet')",
       "definition": "Clear 2-4 sentence definition of this concept as taught by the author",
       "page_range": "Approximate page range if identifiable, otherwise null",
-      "tags": ["categorization tags like 'structure', 'character', 'conflict', 'dialogue', 'scene_design', 'pacing']"
+      "tags": ["categorization tags — use any relevant from: structure, character, conflict, dialogue, scene_design, pacing, theme, short_film, genre, motivation, emotional_arc, visual_storytelling, subtext, tone"],
+      "quality_score": 0.0
     }
   ]
 }
 
-Be thorough but selective — identify concepts that would be useful for analyzing and improving a screenplay."""
+For quality_score (0.0 to 1.0) — only include concepts scoring >= 0.5:
+- 0.0-0.49: Skip (padding, obvious truisms, filler content)
+- 0.5-0.69: Useful supporting concept (general advice with some specificity)
+- 0.7-0.89: Strong actionable concept (named technique or framework with clear application)
+- 0.9-1.0: Core insight (the author's most original, specific, and actionable teaching)
+
+Be selective — 3-8 high-quality concepts per chapter is better than 15 mediocre ones. Only return concepts with quality_score >= 0.5."""
 
         user_prompt = f"""Book: "{book_title}"
 Chapter: "{chapter_title}"
@@ -193,8 +201,62 @@ Concepts:
             logger.error(f"Relationship extraction failed for '{book_title}': {e}")
             return []
 
+    async def extract_snippets(
+        self,
+        chapter_text: str,
+        chapter_title: str,
+        book_title: str,
+        concepts: List[Dict],
+    ) -> List[Dict]:
+        """Stage 4: Identify 3-5 key passages that best illustrate the extracted concepts.
+
+        Returns [] if no concepts were found for this chapter.
+        """
+        if not concepts:
+            return []
+
+        concept_summary = "\n".join(
+            f"- {c['name']}: {c.get('definition', '')[:100]}" for c in concepts
+        )
+
+        system_prompt = """You are a knowledge curation specialist. Given a chapter from a screenwriting book and its extracted concepts, identify the 3-5 most illuminating passages that best illustrate these concepts.
+
+For each passage, extract the EXACT text from the chapter (do not paraphrase or summarize). Choose passages that:
+- Directly define, demonstrate, or exemplify a specific concept
+- Are self-contained and understandable without surrounding context
+- Are 50-300 words in length (long enough to be meaningful, short enough to be scannable)
+
+Return a JSON object with:
+{
+  "snippets": [
+    {
+      "content": "The exact passage text from the chapter",
+      "concept_name": "The concept this passage best illustrates (exact name from the list)",
+      "justification": "1-2 sentence explanation of why this passage was chosen"
+    }
+  ]
+}
+
+Return 3-5 snippets. Quality over quantity."""
+
+        user_prompt = f"""Book: "{book_title}"
+Chapter: "{chapter_title}"
+
+Extracted concepts from this chapter:
+{concept_summary}
+
+Chapter text:
+{chapter_text[:10000]}"""
+
+        try:
+            result = await self._call_ai(system_prompt, user_prompt)
+            return result.get("snippets", [])
+        except Exception as e:
+            logger.error(f"Snippet extraction failed for chapter '{chapter_title}': {e}")
+            return []
+
     async def process_chapter(self, chapter_text: str, chapter_title: str, book_title: str) -> Dict:
-        """Full pipeline for a single chapter: extract → analyze → relate."""
+        """Full pipeline for a single chapter: extract → analyze → relate → find snippets."""
         logger.info(f"Processing chapter: {chapter_title}")
 
         # Stage 1: Extract concepts
@@ -202,7 +264,7 @@ Concepts:
         logger.info(f"  Found {len(raw_concepts)} concepts in '{chapter_title}'")
 
         if not raw_concepts:
-            return {"concepts": [], "relationships": []}
+            return {"concepts": [], "relationships": [], "snippets": []}
 
         # Stage 2: Deep analysis for each concept (with delay to avoid rate limits)
         enriched_concepts = []
@@ -225,9 +287,19 @@ Concepts:
         relationships = await self.extract_relationships(enriched_concepts, book_title)
         logger.info(f"  Found {len(relationships)} relationships in '{chapter_title}'")
 
+        # Stage 4: Extract key snippets
+        snippets = await self.extract_snippets(
+            chapter_text=chapter_text,
+            chapter_title=chapter_title,
+            book_title=book_title,
+            concepts=enriched_concepts,
+        )
+        logger.info(f"  Found {len(snippets)} snippets in '{chapter_title}'")
+
         return {
             "concepts": enriched_concepts,
             "relationships": relationships,
+            "snippets": snippets,
         }
 
 

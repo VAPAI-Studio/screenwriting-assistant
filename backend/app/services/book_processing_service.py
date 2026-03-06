@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..db import SessionLocal
-from ..models.database import Book, BookChunk, BookStatus, Concept, ConceptRelationship, RelationshipType
+from ..models.database import Book, BookChunk, BookStatus, Concept, ConceptRelationship, RelationshipType, Snippet
 from .document_service import document_service
 from .embedding_service import embedding_service
 from .knowledge_extraction_service import knowledge_extraction_service
@@ -104,19 +104,26 @@ class BookProcessingService:
 
             all_concepts = []
             all_relationships = []
+            all_raw_snippets = []
 
             try:
                 for idx, chapter in enumerate(chapters):
                     if idx < start_chapter:
                         continue  # Skip already-processed chapters
 
+                    chapter_title = chapter.get("title", "Untitled")
                     chapter_result = await knowledge_extraction_service.process_chapter(
                         chapter_text=chapter["text"],
-                        chapter_title=chapter.get("title", "Untitled"),
+                        chapter_title=chapter_title,
                         book_title=book.title,
                     )
                     all_concepts.extend(chapter_result.get("concepts", []))
                     all_relationships.extend(chapter_result.get("relationships", []))
+
+                    # Inject chapter_title into each snippet (AI doesn't know which chapter it's in)
+                    for s in chapter_result.get("snippets", []):
+                        s["chapter_title"] = chapter_title
+                    all_raw_snippets.extend(chapter_result.get("snippets", []))
 
                     # Update per-chapter progress
                     book.chapters_processed = idx + 1
@@ -195,7 +202,34 @@ class BookProcessingService:
                     )
                     db.add(db_rel)
 
-            # ── Step 6: Link chunks to concepts ──
+            # ── Step 6: Persist AI-curated snippets with embeddings ──
+            if all_raw_snippets:
+                snippet_texts = [s["content"] for s in all_raw_snippets]
+                snippet_embeddings = await embedding_service.embed_batch(snippet_texts)
+
+                for raw_snippet, emb in zip(all_raw_snippets, snippet_embeddings):
+                    concept_name = raw_snippet.get("concept_name")
+                    concept_db = concept_name_to_db.get(concept_name) if concept_name else None
+                    concept_ids = [str(concept_db.id)] if concept_db else []
+                    concept_names = [concept_db.name] if concept_db else []
+
+                    token_count = len(raw_snippet["content"].split())
+                    db_snippet = Snippet(
+                        book_id=book_id,
+                        chapter_title=raw_snippet.get("chapter_title"),
+                        content=raw_snippet["content"],
+                        justification=raw_snippet.get("justification"),
+                        concept_ids=concept_ids,
+                        concept_names=concept_names,
+                        token_count=token_count,
+                        embedding=emb,
+                    )
+                    db.add(db_snippet)
+
+                db.commit()
+                logger.info(f"Persisted {len(all_raw_snippets)} snippets for book {book_id}")
+
+            # ── Step 7: Link chunks to concepts ──
             for db_chunk in db_chunks:
                 linked_ids = []
                 chunk_lower = db_chunk.content.lower()
@@ -294,6 +328,10 @@ class BookProcessingService:
                 BookChunk.is_user_created == False,
             ).delete(synchronize_session=False)
             db.query(Concept).filter(Concept.book_id == book.id).delete()
+            # Delete all AI-generated snippets — they will be recreated by reprocessing
+            db.query(Snippet).filter(
+                Snippet.book_id == str(book.id)
+            ).delete(synchronize_session=False)
 
             # Reset counters
             book.status = BookStatus.PENDING
