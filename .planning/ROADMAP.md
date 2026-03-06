@@ -13,7 +13,7 @@ This milestone gives writers full visibility and control over the book knowledge
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Backend Foundation and Data Safety** - Database migration, BookChunk model extensions, snippet CRUD API with transactional re-embedding, and retry_book() safety fix (completed 2026-03-05)
-- [ ] **Phase 2: Frontend Snippets Page** - Top-level Snippets page with book selector, paginated chunk browsing, inline editing, custom snippet creation, search, and processing-state handling
+- [ ] **Phase 2: Frontend Snippets Page** - Top-level Snippets page with book selector, AI-curated snippet browsing, inline editing, search, and processing-state handling
 - [ ] **Phase 3: RAG Integration and Enrichment** - Annotations, priority weights, RAG query modifications, and agent context injection
 
 ## Phase Details
@@ -32,24 +32,26 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01-PLAN.md — Test scaffold: conftest SafeVector patch + embed mock fixture + 7 failing test stubs
-- [ ] 01-02-PLAN.md — DB foundation: migration 006, BookChunk model extension, RAG soft-delete filters, retry_book safety fix
-- [ ] 01-03-PLAN.md — Snippets router: 4 endpoints (list/edit/delete/create), Pydantic schemas, main.py wiring
+- [x] 01-02-PLAN.md — DB foundation: migration 006, BookChunk model extension, RAG soft-delete filters, retry_book safety fix
+- [x] 01-03-PLAN.md — Snippets router: 4 endpoints (list/edit/delete/create), Pydantic schemas, main.py wiring
 
 ### Phase 2: Frontend Snippets Page
-**Goal**: Writers can browse, search, edit, delete, and add custom snippets for any book through a dedicated Snippets page
+**Goal**: Writers can browse, search, edit, and delete AI-curated snippets for any book through a dedicated Snippets page
 **Depends on**: Phase 1
 **Requirements**: NAV-01, NAV-02, BROW-02, BROW-03, BROW-04, BROW-05, BROW-06, EDIT-03, EXTR-01, EXTR-02, EXTR-03
 **Success Criteria** (what must be TRUE):
-  1. User can navigate to a top-level "Snippets" page from the main navigation and select any uploaded book to view its chunks
-  2. User sees chunk content previews with metadata (chapter title, page number, token count) and can distinguish auto-generated chunks from user-created snippets via a visual badge
-  3. User can search/filter chunks by text within the current book, and sees total token count for the selected book
+  1. User can navigate to a top-level "Snippets" page from the main navigation and select any uploaded book to view its AI-curated snippets
+  2. User sees snippet content with metadata (chapter title, page number, token count) and concept name badges per snippet
+  3. User can search/filter snippets by text within the current book (client-side, no API call), and sees total token count for the selected book
   4. User sees a loading indicator during re-embedding operations and a clear error message if re-embedding fails (no silent data corruption)
   5. User sees a clear banner when a book is still processing, with editing disabled until processing completes
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
+- [ ] 02-01-PLAN.md — Wave 0 test stubs: RED stubs for test_snippet_manager.py (BROW-02, BROW-03, EDIT-03, EXTR-03) and test_snippet_extraction.py (EXTR-01, EXTR-02)
+- [ ] 02-02-PLAN.md — Backend foundation: migration 007, Snippet ORM model, extract_snippets() Stage 4, BookProcessingService persistence, retry_book() fix
+- [ ] 02-03-PLAN.md — Snippet Manager API: GET/PATCH/DELETE /api/snippets router, Pydantic schemas, main.py wiring, GREEN tests
+- [ ] 02-04-PLAN.md — Frontend SnippetManager: TypeScript types, api.tsx, constants, SnippetManager/SnippetCard/SnippetSearchBar components, Header/App wiring
 
 ### Phase 3: RAG Integration and Enrichment
 **Goal**: Annotations and priority weights are fully wired into the RAG pipeline so they actually influence what agents retrieve and how they use it
@@ -69,5 +71,5 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Backend Foundation and Data Safety | 3/3 | Complete   | 2026-03-05 |
-| 2. Frontend Snippets Page | 0/TBD | Not started | - |
+| 2. Frontend Snippets Page | 0/4 | Not started | - |
 | 3. RAG Integration and Enrichment | 0/TBD | Not started | - |
