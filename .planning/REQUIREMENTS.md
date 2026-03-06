@@ -7,17 +7,17 @@
 
 ### Navigation
 
-- [ ] **NAV-01**: User can access a top-level "Snippets" page from the main navigation
-- [ ] **NAV-02**: User can select a book from a dropdown on the Snippets page to view its chunks
+- [x] **NAV-01**: User can access a top-level "Snippets" page from the main navigation
+- [x] **NAV-02**: User can select a book from a dropdown on the Snippets page to view its chunks
 
 ### Snippet Browsing
 
 - [ ] **BROW-01**: User can view all snippets for a selected book, paginated (50 per page)
 - [x] **BROW-02**: User can see snippet content preview with chapter title, page number, and token count per snippet
 - [x] **BROW-03**: User can see which concept(s) each snippet illustrates (via concept name label)
-- [ ] **BROW-04**: User can search/filter snippets by text within the current book (frontend filter, no API call)
-- [ ] **BROW-05**: User sees a clear message when a book is still processing (editing disabled until complete)
-- [ ] **BROW-06**: User can see the total token count across all snippets for the selected book
+- [x] **BROW-04**: User can search/filter snippets by text within the current book (frontend filter, no API call)
+- [x] **BROW-05**: User sees a clear message when a book is still processing (editing disabled until complete)
+- [x] **BROW-06**: User can see the total token count across all snippets for the selected book
 
 ### Snippet Editing
 
@@ -74,14 +74,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| NAV-01 | Phase 2 | Pending |
-| NAV-02 | Phase 2 | Pending |
+| NAV-01 | Phase 2 | Complete |
+| NAV-02 | Phase 2 | Complete |
 | BROW-01 | Phase 1 | Pending |
 | BROW-02 | Phase 2 | Complete |
 | BROW-03 | Phase 2 | Complete |
-| BROW-04 | Phase 2 | Pending |
-| BROW-05 | Phase 2 | Pending |
-| BROW-06 | Phase 2 | Pending |
+| BROW-04 | Phase 2 | Complete |
+| BROW-05 | Phase 2 | Complete |
+| BROW-06 | Phase 2 | Complete |
 | EDIT-01 | Phase 1 | Pending |
 | EDIT-02 | Phase 1 | Complete |
 | EDIT-03 | Phase 2 | Complete |
