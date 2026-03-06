@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
-from .api.endpoints import projects, sections, review, auth, books, agents, chat, snippets
+from .api.endpoints import projects, sections, review, auth, books, agents, chat, snippets, snippet_manager
 from .api.endpoints import templates as templates_ep, phase_data as phase_data_ep, list_items as list_items_ep
 from .api.endpoints import wizards as wizards_ep, ai_chat as ai_chat_ep
 from .config import settings
@@ -83,6 +83,7 @@ app.include_router(sections.router, prefix="/api/sections", tags=["sections"])
 app.include_router(review.router, prefix="/api/review", tags=["review"])
 app.include_router(books.router, prefix="/api/books", tags=["books"])
 app.include_router(snippets.router, prefix="/api/books", tags=["snippets"])
+app.include_router(snippet_manager.router, prefix="/api/snippets", tags=["snippet-manager"])
 app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
 app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
 
