@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 02-01-PLAN.md (Wave 0 RED Test Stubs)
-last_updated: "2026-03-06T03:18:30.660Z"
+stopped_at: Completed 02-02-PLAN.md (Snippet Backend Foundation)
+last_updated: "2026-03-06T03:23:27.962Z"
 last_activity: 2026-03-05 — Completed 01-01 (Snippet Test Scaffold)
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 7
-  completed_plans: 4
+  completed_plans: 5
   percent: 67
 ---
 
@@ -53,6 +53,7 @@ Progress: [███████░░░] 67%
 | Phase 01-backend-foundation-and-data-safety P02 | 5 | 3 tasks | 4 files |
 | Phase 01-backend-foundation-and-data-safety P03 | 6 min | 2 tasks | 5 files |
 | Phase 02-frontend-snippets-page P01 | 1 min | 2 tasks | 2 files |
+| Phase 02-frontend-snippets-page P02 | 2 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,9 @@ Recent decisions affecting current work:
 - [Phase 01-backend-foundation-and-data-safety]: VectorAsText TypeDecorator in conftest for SQLite list serialization of embeddings
 - [Phase 01-backend-foundation-and-data-safety]: raise_server_exceptions=False for atomic rollback test client
 - [Phase 02-frontend-snippets-page]: pytest.fail() not pytest.skip() for Wave 0 stubs — all 6 stubs must be RED to satisfy Nyquist verification requirement
+- [Phase 02-frontend-snippets-page]: Snippet.book_id uses str(book.id) for SQLite compatibility — consistent with prior STATE.md decisions
+- [Phase 02-frontend-snippets-page]: All snippets deleted in retry_book() because all snippets are AI-generated (no user-created snippets)
+- [Phase 02-frontend-snippets-page]: embed_batch() called once after full chapter loop for snippet embeddings — not per-snippet for efficiency
 
 ### Pending Todos
 
@@ -85,6 +89,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-06T03:18:30.658Z
-Stopped at: Completed 02-01-PLAN.md (Wave 0 RED Test Stubs)
+Last session: 2026-03-06T03:23:27.960Z
+Stopped at: Completed 02-02-PLAN.md (Snippet Backend Foundation)
 Resume file: None
