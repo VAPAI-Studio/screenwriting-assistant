@@ -213,10 +213,12 @@ class AgentCreate(BaseModel):
 class AgentUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=255)
     description: Optional[str] = None
+    system_prompt_template: Optional[str] = Field(None, min_length=50)
     personality: Optional[str] = None
     color: Optional[str] = Field(None, pattern=r'^#[0-9a-fA-F]{6}$')
     icon: Optional[str] = Field(None, max_length=50)
     is_active: Optional[bool] = None
+    agent_type: Optional[AgentType] = None
     tags_filter: Optional[List[str]] = None
 
 

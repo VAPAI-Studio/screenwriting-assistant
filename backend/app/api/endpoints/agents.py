@@ -1,14 +1,40 @@
+import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from ...db import SessionLocal
 from ...models import schemas
-from ...models.database import Agent, Book, AgentBook
+from ...models.database import Agent, AgentPipelineMap, Book, AgentBook
+from ...models.schemas import PipelineMapEntry, PipelineMapResponse
 from ...services.agent_templates import AGENT_TEMPLATES
+from ...services.pipeline_composer import pipeline_composer
+from ...services.rag_service import rag_service
 from ..dependencies import get_db, get_current_user
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+
+async def _recompose_pipeline_background(owner_id_str: str):
+    """Recompose pipeline mappings in a background task.
+
+    Creates its own database session (BackgroundTasks run after the response
+    is sent, so the request session is already closed).
+    """
+    db = SessionLocal()
+    try:
+        await pipeline_composer.compose_pipeline(owner_id_str, db)
+    except Exception as e:
+        logger.error(
+            "Background pipeline recomposition failed for owner %s: %s",
+            owner_id_str,
+            e,
+        )
+    finally:
+        db.close()
 
 
 @router.get("/")
@@ -35,6 +61,8 @@ async def list_agents(
             "icon": a.icon,
             "is_active": a.is_active,
             "is_default": a.is_default,
+            "agent_type": a.agent_type.value if a.agent_type else "book_based",
+            "tags_filter": a.tags_filter or [],
             "created_at": a.created_at.isoformat() if a.created_at else None,
             "book_count": len(a.books),
         }
@@ -57,6 +85,8 @@ async def create_agent(
         personality=agent_data.personality,
         color=agent_data.color,
         icon=agent_data.icon,
+        agent_type=agent_data.agent_type,
+        tags_filter=agent_data.tags_filter or [],
     )
     db.add(agent)
     db.commit()
@@ -69,7 +99,38 @@ async def create_agent(
         "icon": agent.icon,
         "is_active": agent.is_active,
         "is_default": agent.is_default,
+        "agent_type": agent.agent_type.value if agent.agent_type else "book_based",
+        "tags_filter": agent.tags_filter or [],
     }
+
+
+@router.get("/tags")
+async def get_all_concept_tags(
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return all unique concept tags from the user's processed books."""
+    tags = rag_service.get_all_tags(owner_id=current_user.id, db=db)
+    return {"tags": tags}
+
+
+@router.get("/pipeline-map")
+async def get_pipeline_map(
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return the current agent-to-pipeline-step mappings for this user."""
+    maps = (
+        db.query(AgentPipelineMap)
+        .filter(AgentPipelineMap.owner_id == str(current_user.id))
+        .all()
+    )
+    entries = [PipelineMapEntry.model_validate(m) for m in maps]
+    return PipelineMapResponse(
+        owner_id=current_user.id,
+        entries=entries,
+        total_mappings=len(entries),
+    )
 
 
 @router.patch("/{agent_id}")
