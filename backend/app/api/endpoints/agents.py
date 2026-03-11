@@ -73,6 +73,7 @@ async def list_agents(
 @router.post("/")
 async def create_agent(
     agent_data: schemas.AgentCreate,
+    background_tasks: BackgroundTasks,
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -91,6 +92,7 @@ async def create_agent(
     db.add(agent)
     db.commit()
     db.refresh(agent)
+    background_tasks.add_task(_recompose_pipeline_background, str(current_user.id))
     return {
         "id": str(agent.id),
         "name": agent.name,
@@ -137,6 +139,7 @@ async def get_pipeline_map(
 async def update_agent(
     agent_id: UUID,
     agent_data: schemas.AgentUpdate,
+    background_tasks: BackgroundTasks,
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -155,12 +158,15 @@ async def update_agent(
 
     db.commit()
     db.refresh(agent)
+    if pipeline_composer.is_semantic_change(update_data):
+        background_tasks.add_task(_recompose_pipeline_background, str(current_user.id))
     return agent
 
 
 @router.delete("/{agent_id}")
 async def delete_agent(
     agent_id: UUID,
+    background_tasks: BackgroundTasks,
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -175,6 +181,7 @@ async def delete_agent(
 
     db.delete(agent)
     db.commit()
+    background_tasks.add_task(_recompose_pipeline_background, str(current_user.id))
     return {"message": "Agent deleted"}
 
 
