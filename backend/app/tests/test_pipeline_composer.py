@@ -1,7 +1,8 @@
 """
-COMP-01 unit tests for PipelineComposer service.
+COMP-01 and COMP-03 unit tests for PipelineComposer service.
 
 Tests composition of agent-to-pipeline-step mappings via mocked AI calls.
+COMP-03 tests cover cache determinism and semantic change detection.
 """
 
 import json
@@ -14,7 +15,7 @@ from app.models.database import Agent, AgentPipelineMap, AgentType
 
 
 # Import will fail until pipeline_composer.py is created (RED state)
-from app.services.pipeline_composer import PipelineComposer
+from app.services.pipeline_composer import PipelineComposer, SEMANTIC_FIELDS
 
 
 @pytest.fixture
@@ -203,3 +204,120 @@ async def test_batch_splitting(db_session, owner_id, make_agent):
     result_agent_ids = {str(m.agent_id) for m in result}
     expected_agent_ids = {str(a.id) for a in agents}
     assert result_agent_ids == expected_agent_ids
+
+
+# ---------------------------------------------------------------------------
+# COMP-03: Cache determinism and semantic change detection
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_cache_hit_deterministic(db_session, owner_id, make_agent):
+    """Two calls to compose_pipeline with identical agents hit cache on second
+    call -- chat_completion called exactly once, both calls return same mappings."""
+    agent1 = make_agent(
+        name="Cache Test Agent 1",
+        system_prompt_template="You are an expert in plot structure.",
+        description="Plot structure specialist",
+    )
+    agent2 = make_agent(
+        name="Cache Test Agent 2",
+        system_prompt_template="You are an expert in character arcs.",
+        description="Character arc specialist",
+    )
+
+    mock_response = json.dumps({"mappings": [
+        {
+            "agent_id": str(agent1.id),
+            "phase": "idea",
+            "subsection_key": "idea_wizard",
+            "confidence": 0.9,
+            "rationale": "Strong plot structure knowledge",
+        },
+        {
+            "agent_id": str(agent2.id),
+            "phase": "scenes",
+            "subsection_key": "scene_wizard",
+            "confidence": 0.85,
+            "rationale": "Character arc expertise for scene building",
+        },
+    ]})
+
+    with patch(
+        "app.services.pipeline_composer.chat_completion",
+        new_callable=AsyncMock,
+        return_value=mock_response,
+    ) as mock_chat:
+        composer = PipelineComposer()
+
+        # First call -- should call AI
+        result1 = await composer.compose_pipeline(owner_id, db_session)
+
+        # Capture result1 identifying data immediately (before second call's
+        # full-replace write expires these ORM instances via db.commit())
+        result1_keys = {
+            (str(m.agent_id), m.phase, m.subsection_key) for m in result1
+        }
+
+        # Second call with same agents -- should hit cache
+        result2 = await composer.compose_pipeline(owner_id, db_session)
+
+    # AI should have been called exactly once (cache hit on second call)
+    assert mock_chat.call_count == 1
+
+    # Both calls should produce mappings with the same agent_ids and structure
+    result2_keys = {
+        (str(m.agent_id), m.phase, m.subsection_key) for m in result2
+    }
+    assert result1_keys == result2_keys
+    assert len(result2) == 2
+
+
+def test_cosmetic_change_no_recompose():
+    """is_semantic_change returns False for cosmetic-only field updates
+    (name, color, icon). These should NOT trigger pipeline re-composition."""
+    composer = PipelineComposer()
+
+    # Individual cosmetic fields
+    assert composer.is_semantic_change({"name": "New Name"}) is False
+    assert composer.is_semantic_change({"color": "#ff0000"}) is False
+    assert composer.is_semantic_change({"icon": "star"}) is False
+
+    # Combined cosmetic fields
+    assert composer.is_semantic_change({"name": "X", "color": "#Y", "icon": "Z"}) is False
+
+    # Empty update should also be False
+    assert composer.is_semantic_change({}) is False
+
+
+def test_semantic_change_invalidates_cache(db_session, owner_id, make_agent):
+    """is_semantic_change returns True for semantic field updates. Cache key
+    differs when semantic fields change on an agent."""
+    composer = PipelineComposer()
+
+    # Individual semantic fields
+    assert composer.is_semantic_change({"description": "new desc"}) is True
+    assert composer.is_semantic_change({"system_prompt_template": "new prompt"}) is True
+    assert composer.is_semantic_change({"agent_type": "orchestrator"}) is True
+
+    # Mixed cosmetic + semantic = semantic (True)
+    assert composer.is_semantic_change({"name": "X", "description": "Y"}) is True
+
+    # Verify cache key changes when semantic fields change
+    agent = make_agent(
+        name="Key Test Agent",
+        system_prompt_template="Original prompt",
+        description="Original description",
+    )
+    key_before = composer._compute_cache_key([agent])
+
+    # Mutate a semantic field in-place
+    agent.system_prompt_template = "Changed prompt"
+    key_after = composer._compute_cache_key([agent])
+
+    assert key_before != key_after, (
+        "Cache key must differ when system_prompt_template changes"
+    )
+
+    # Also verify SEMANTIC_FIELDS constant is correct
+    assert SEMANTIC_FIELDS == {"system_prompt_template", "description", "agent_type"}
