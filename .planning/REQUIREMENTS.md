@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **COMP-01**: AI analyzes all agents and maps each to relevant pipeline steps when an agent is created, edited, or deleted
 - [x] **COMP-02**: Pipeline mappings stored in dedicated `agent_pipeline_maps` DB table with efficient lookup by phase/step
-- [ ] **COMP-03**: Re-composition only triggers when semantic fields change (system prompt, type), not cosmetic fields (name, icon, color)
+- [x] **COMP-03**: Re-composition only triggers when semantic fields change (system prompt, type), not cosmetic fields (name, icon, color)
 - [ ] **COMP-04**: GET endpoint exposes current pipeline mapping for frontend consumption
 
 ### Generation Review Loop
@@ -74,7 +74,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | COMP-01 | Phase 2 + Phase 3 | Complete |
 | COMP-02 | Phase 1 | Complete |
-| COMP-03 | Phase 2 + Phase 3 | Pending |
+| COMP-03 | Phase 2 + Phase 3 | Complete |
 | COMP-04 | Phase 3 | Pending |
 | REVW-01 | Phase 5 + Phase 6 | Pending |
 | REVW-02 | Phase 5 | Pending |
