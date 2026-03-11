@@ -72,12 +72,10 @@ Plans:
   1. Running `run_multi_agent_review` with 3+ agents concurrently via `asyncio.gather` produces no `DetachedInstanceError` or `MissingGreenlet` exceptions
   2. The function signature accepts a `session_factory` callable instead of a shared `Session`, and each parallel task creates and closes its own session
   3. Existing callers of `run_multi_agent_review` in `agent_service.py` pass the session factory correctly and all existing tests continue to pass
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 04-01: Audit all `run_multi_agent_review` call sites and document current session passing pattern
-- [ ] 04-02: Refactor `run_multi_agent_review` to accept `session_factory` callable; update all call sites
-- [ ] 04-03: Write integration test confirming no session errors under concurrent 3-agent review
+- [ ] 04-01-PLAN.md — TDD refactor of all 3 asyncio.gather sites to session-per-task pattern with session_factory callable
 
 ### Phase 5: Agent Review Middleware
 **Goal**: A middleware layer can intercept any generation step output, run mapped agents in parallel, merge their feedback into a refined result, and pass through unchanged when no agents are mapped
@@ -162,7 +160,7 @@ Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel 
 | 1. DB Foundation | 0/3 | Not started | - |
 | 2. Pipeline Composer Service | 0/2 | Not started | - |
 | 3. Pipeline Map API and CRUD Wiring | 0/2 | Not started | - |
-| 4. Async Safety and Session Isolation | 0/3 | Not started | - |
+| 4. Async Safety and Session Isolation | 0/1 | Not started | - |
 | 5. Agent Review Middleware | 0/5 | Not started | - |
 | 6. Wizard Injection | 0/4 | Not started | - |
 | 7. Frontend Pipeline Tree | 0/5 | Not started | - |
