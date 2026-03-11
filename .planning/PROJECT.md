@@ -1,63 +1,75 @@
-# Screenwriting Assistant — Snippet Manager
+# Agent Orchestration Pipeline
 
 ## What This Is
 
-A screenwriting assistant that uses uploaded books as knowledge sources for AI agents. Books are chunked and embedded at upload time; agents retrieve relevant chunks via RAG to inform their feedback. This milestone adds a dedicated **Snippets** page where writers can see, edit, annotate, reorder, and curate the exact text fragments being fed to their agents — making the knowledge context transparent and controllable.
+A system that turns user-created AI agents from passive chat companions into active participants in screenplay generation. When a user creates an agent (e.g., a character development expert or a structure coach), an AI orchestrator automatically maps that agent to relevant pipeline steps. During generation — both manual and YOLO — mapped agents review and refine output at each step, making every agent's knowledge actively shape the screenplay.
 
 ## Core Value
 
-Writers have full visibility and control over what book knowledge their AI agents use, so they can trust and tune the context instead of treating it as a black box.
+Agents you create actually influence the screenplay you generate — they don't just sit idle waiting for you to chat with them.
 
 ## Requirements
 
 ### Validated
 
-- ✓ Book upload and processing pipeline (chunking at 750 tokens/150 overlap, embedding via text-embedding-3-small) — existing
-- ✓ RAG retrieval: agents pull relevant BookChunks + Concepts via embedding similarity — existing
-- ✓ Agent-book association (AgentBook many-to-many) — existing
-- ✓ BookManager UI for uploading and managing books — existing
-- ✓ Book processing status tracking (PENDING → EXTRACTING → ANALYZING → EMBEDDING → COMPLETED) — existing
+- Existing multi-agent system with user-created agents (custom prompts, types, book associations)
+- Template-based project system with phases and subsections
+- Step-by-step generation pipeline (phase by phase) via `template_ai_service.py`
+- AI provider abstraction supporting OpenAI and Anthropic
+- RAG-based knowledge retrieval for agent context
+- SidebarChat for manual agent interaction
+- Book processing with concept extraction and embeddings
 
 ### Active
 
-- [ ] Top-level "Snippets" navigation entry in the frontend
-- [ ] Per-book snippet list: view all BookChunks for a selected book
-- [ ] Edit snippet text inline and persist changes permanently (re-embed on save)
-- [ ] Add custom snippets to a book (not derived from chunking — user-authored)
-- [ ] Remove snippets from a book (soft or hard delete)
-- [ ] Reorder snippets and assign weight/priority for RAG retrieval
-- [ ] Annotate snippets with a note (displayed alongside the chunk in agent context)
+- [ ] AI orchestrator that analyzes all agents and maps them to pipeline steps on agent create/edit
+- [ ] Pipeline mapping uses agent type as a hint but AI infers best fit from agent description/prompt
+- [ ] Collapsible tree view UI showing which agents activate at which pipeline steps
+- [ ] During generation, mapped agents review step output in parallel
+- [ ] AI merges parallel agent feedback into refined output before pipeline continues
+- [ ] Agent review loop works in both manual Generate Screenplay and YOLO auto-generation flows
+- [ ] Pipeline re-composes automatically when agents are created, edited, or deleted
 
 ### Out of Scope
 
-- Real-time collaboration on snippets — single-user MVP
-- Snippet versioning/history — edits overwrite in place
-- Bulk import of custom snippets — one at a time for now
-- Cross-book snippet merging — per-book management only
+- Agent-to-agent communication (agents review independently, don't talk to each other)
+- User approval gates for agent reviews (mapping is informational, reviews are automatic)
+- Custom pipeline step ordering by users (AI decides optimal placement)
+- Per-flow agent toggle (agents activate in both manual and YOLO equally)
 
 ## Context
 
-**Existing data model:** `BookChunk` (id, book_id, content, chunk_index, token_count, embedding vector) stored in PostgreSQL with pgvector. Chunks created by `book_processing_service.py`.
+The existing codebase is a screenwriting assistant with a template-based workflow system. Projects use templates (e.g., `short_movie.json`) that define phases (Character, Structure, Scene Creation, etc.) with subsections. Each phase has AI generation capabilities via `template_ai_service.py`.
 
-**RAG flow:** `rag_service.retrieve_relevant_concepts()` does cosine similarity search against chunk embeddings, returning top-k chunks as agent context. Any edits to chunk content must re-generate the embedding to maintain retrieval accuracy.
+Users can create AI agents with custom system prompts, types (character, structure, dialogue, etc.), and associate them with books for RAG context. Currently these agents only respond when directly chatted with via `SidebarChat`.
 
-**Current gap:** There is no UI surface for the `BookChunk` table — chunks are created automatically and consumed silently. Writers cannot see, verify, or improve what context their agents receive.
+The generation pipeline already works step-by-step through phases. The key change is injecting agent review passes into this existing pipeline — agents become quality gates that refine output before it's finalized.
 
-**Custom snippets:** Need a way to mark chunks as `user_created=True` so they're preserved if the book is ever reprocessed.
+Key existing files:
+- `backend/app/services/agent_service.py` — agent orchestration, knowledge graph
+- `backend/app/services/template_ai_service.py` — phase-based content generation
+- `backend/app/services/ai_provider.py` — provider abstraction (OpenAI/Anthropic)
+- `backend/app/models/database.py` — Agent model with system_prompt_template, type, books
+- `backend/app/api/endpoints/agents.py` — agent CRUD endpoints
+- `backend/app/api/endpoints/wizards.py` — wizard-driven generation
+- `frontend/src/components/Books/AgentManager.tsx` — agent creation UI
 
 ## Constraints
 
-- **Tech Stack:** React 18 + TypeScript frontend, FastAPI + SQLAlchemy backend, PostgreSQL 15 + pgvector — no new infrastructure
-- **Embedding:** Edited or new snippet content must be re-embedded via OpenAI `text-embedding-3-small` to keep RAG retrieval accurate
-- **Auth:** Mock auth for MVP (`mock-token`) — no multi-user ownership concerns yet
+- **AI Provider**: Must work with both OpenAI and Anthropic via existing `ai_provider.py`
+- **Performance**: Parallel agent reviews add latency — must be reasonable for UX
+- **Token Budget**: Each agent review is an additional API call; cost scales with agent count
+- **Existing Templates**: Must integrate with existing template phase system without breaking current workflows
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Permanent edits (overwrite in place) | Simplicity — no version history needed for MVP | — Pending |
-| Re-embed on save | Edited text with stale embedding breaks RAG — must stay in sync | — Pending |
-| Top-level nav (not nested under Books) | Snippets are a primary workflow surface, not a sub-feature of book management | — Pending |
+| Agent reviews run in parallel, not sequential | Reduces latency when multiple agents map to same step | -- Pending |
+| AI merges feedback rather than chaining | Avoids compounding bias from sequential review | -- Pending |
+| Pipeline re-composes on agent CRUD, not at generation time | Pre-computed mapping avoids generation-time overhead | -- Pending |
+| Agent type used as hint, not binding constraint | Gives AI flexibility to place agents optimally based on full prompt analysis | -- Pending |
+| Tree view is informational only | Reduces friction — users see the mapping but don't need to approve it | -- Pending |
 
 ---
-*Last updated: 2026-03-05 after initialization*
+*Last updated: 2026-03-11 after initialization*
