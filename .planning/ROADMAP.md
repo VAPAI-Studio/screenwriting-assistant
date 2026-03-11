@@ -26,12 +26,12 @@ This milestone wires two already-built subsystems — the template-based generat
   2. The composite index on `(owner_id, phase, subsection_key)` exists and can be confirmed via `\d agent_pipeline_maps` in psql
   3. The `AgentPipelineMap` SQLAlchemy model is importable and its relationship to the `Agent` model includes `ON DELETE CASCADE`
   4. `PipelineMapEntry` and `PipelineMapResponse` Pydantic schemas validate correctly and can round-trip from the ORM model
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Write and run DB migration for `agent_pipeline_maps` table
-- [ ] 01-02: Add `AgentPipelineMap` SQLAlchemy model with cascade relationship
-- [ ] 01-03: Define `PipelineMapEntry` and `PipelineMapResponse` Pydantic schemas
+- [ ] 01-01-PLAN.md — SQL migration for `agent_pipeline_maps` table and indexes
+- [ ] 01-02-PLAN.md — `AgentPipelineMap` SQLAlchemy model with cascade relationship to Agent
+- [ ] 01-03-PLAN.md — `PipelineMapEntry` / `PipelineMapResponse` Pydantic schemas + COMP-02 test suite
 
 ### Phase 2: Pipeline Composer Service
 **Goal**: An AI orchestrator can analyze all user agents and produce a stable, deterministic mapping to pipeline steps
