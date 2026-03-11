@@ -1,203 +1,180 @@
 # Project Research Summary
 
-**Project:** Screenwriting Assistant — Snippet Manager
-**Domain:** RAG knowledge base management UI (chunk-level visibility and curation)
-**Researched:** 2026-03-05
-**Confidence:** HIGH
+**Project:** Agent Orchestration Pipeline — Screenwriting Assistant
+**Domain:** Multi-agent review pipeline injected into template-based AI content generation
+**Researched:** 2026-03-11
+**Confidence:** HIGH (codebase-grounded) / MEDIUM (external ecosystem patterns)
 
 ## Executive Summary
 
-The Snippet Manager is a chunk-level curation interface layered on top of an existing RAG pipeline. Its core promise is letting users see, edit, annotate, and prioritize the text fragments that feed agent context — a feature category well-established in RAG platforms like Dify, Coze, and Pinecone Console. The right implementation strategy here is additive extension of the existing `BookChunk` model, not a new parallel data structure. Every dependency the feature needs already exists in the codebase: embedding service, RAG service, React Query, FastAPI patterns, and the `BookManager.tsx` component patterns. No new libraries or infrastructure are required.
+This milestone bridges two already-built subsystems that currently have no connection: a template-based generation pipeline (`template_ai_service.py`) and a multi-agent review system (`agent_service.py`). The goal is to make agents active participants in generation — not just chat assistants. When a user runs a wizard to generate screenplay scenes, mapped agents review the output in parallel and a merge AI call synthesizes their feedback into a refined result. The core orchestration pattern (fan-out parallel reviews + fan-in merge) already exists in `run_multi_agent_review()` and needs to be adapted and wired into the generation path.
 
-The central technical risk is data integrity during editing. Every chunk edit requires three coordinated writes: content update, embedding regeneration, and token count recalculation — all in a single DB transaction. If any of these diverge (content updated but embedding stale, for example), RAG retrieval silently degrades with no error signal. A second critical risk is book reprocessing: the current `retry_book()` implementation deletes all chunks for a book unconditionally, which would silently destroy any user curation work. Both risks must be addressed in Phase 1 before any editing UI ships.
+The recommended approach is to build custom, using only existing dependencies. Do not adopt LangGraph, CrewAI, or AutoGen — the use case is a narrow, non-cyclical fan-out/fan-in pattern that does not justify the dependency weight, abstraction mismatch, or migration cost of any of those frameworks. The entire implementation requires: one new DB table (`agent_pipeline_maps`), two new backend services (`pipeline_composer.py` and `agent_review_middleware.py`), one new API endpoint, and one new frontend tree component. No new Python packages or npm packages are needed.
 
-The recommended build order is backend foundation first (migration, model extensions, CRUD endpoints with transactional safety), then frontend (SnippetsPage following BookManager patterns), then RAG integration (weight scoring, annotation injection into agent context). The weight UI and RAG retrieval change must ship together — a weight column that the retrieval query ignores is worse than no weight feature at all, because it creates a false sense of control.
+The critical risks are all addressable at design time. The merge AI call must be engineered with explicit conflict-resolution rules or it will produce blander output than raw generation — this would undermine the feature's core value proposition. Pipeline re-composition must be gated on semantic field changes only (not cosmetic edits) to avoid thundering-herd LLM costs on every color picker interaction. The token budget for YOLO auto-generation with multiple agents must be capped before YOLO integration or a single run can consume 56+ LLM calls. All other pitfalls are mechanical and solvable with established patterns.
+
+---
 
 ## Key Findings
 
 ### Recommended Stack
 
-Zero new dependencies. The existing stack covers every requirement for this feature. Re-embedding on save should be synchronous (single `embed_text()` call, ~200ms) rather than background-queued — background processing introduces a stale-embedding window and silent failure risk that is not worth the marginal latency improvement for a single-chunk operation.
+The existing stack covers 100% of what is needed. The orchestration pattern is a simple fan-out/fan-in: `asyncio.gather` fires N parallel agent reviews per generation step, then one `chat_completion(json_mode=True)` call merges the results. Both primitives are already in production use in `agent_service.py`. Pipeline re-composition on agent CRUD uses FastAPI `BackgroundTasks` (already available) to avoid blocking the HTTP response. Mapping data is stored in a new `agent_pipeline_maps` PostgreSQL table using the existing SQLAlchemy ORM pattern. The frontend tree view is a recursive Tailwind component using Lucide icons already installed.
 
 **Core technologies:**
-- `embedding_service.embed_text()`: Re-embedding edited/created snippets — already exists, used synchronously in same DB transaction
-- `tiktoken`: Token count recalculation on save — already in `requirements.txt`, cheap (~1ms per call)
-- `<textarea>` (plain HTML): Inline editing — rich text editors add bundle size with zero benefit for plain-text embedding inputs
-- `@dnd-kit/core`: Already in frontend dependencies but NOT recommended — use a numeric weight input instead (simpler, same RAG outcome)
-- React Query `useQuery`/`useMutation`: Frontend data layer — follow `BookManager.tsx` patterns exactly
-- FastAPI + SQLAlchemy: Backend API — follow `books.py` endpoint patterns exactly
+- `asyncio.gather` (Python stdlib): parallel agent review fan-out — already proven in `run_multi_agent_review()`, extend not replace
+- `asyncio.wait_for` (Python stdlib): per-agent timeout guard — already in `run_multi_agent_review()` at `settings.AGENT_REVIEW_TIMEOUT`
+- `ai_provider.chat_completion(json_mode=True)`: orchestrator mapping call + merge synthesis call — already used extensively in `template_ai_service.py`
+- FastAPI `BackgroundTasks`: trigger pipeline re-composition after agent CRUD without blocking — built into FastAPI 0.110.0 already installed
+- PostgreSQL 15 + SQLAlchemy 2.0.27: `agent_pipeline_maps` table with JSONB and indexed lookup — follows exact existing model patterns
+- React Query v5.20 + Tailwind 3.4: frontend pipeline tree — all dependencies already installed
 
-**API pattern:** Nest snippets under the existing books resource (`/api/books/{book_id}/snippets`) matching the existing `/api/books/{book_id}/concepts` pattern. Server-side pagination (`?page=1&per_page=50`) is mandatory from day one.
+**What NOT to use:** LangGraph (no graph cycles in this use case), CrewAI (agent-to-agent comms are explicitly out of scope), AutoGen (multi-turn conversation model is architectural overkill), Celery/Redis (one short background task per CRUD does not justify a broker infrastructure).
 
 ### Expected Features
 
 **Must have (table stakes):**
-- List all chunks per book with pagination — books produce 400+ chunks; missing pagination freezes the browser
-- Book selector / navigation — users have multiple books and must pick which to browse
-- Chunk content preview with expandable full text — fundamental "see what your agent knows" promise
-- Chunk metadata display (chapter title, page number, token count, chunk index) — all fields already on `BookChunk`
-- Edit chunk text inline with re-embed on save — the core "control" feature; without it, the page is a debug view
-- Delete a chunk — remove irrelevant or noisy content
-- Add custom snippet (survives book reprocessing via `is_user_created` flag) — inject user-authored knowledge
-- Search within snippets (frontend `Array.filter()`, no backend change) — nearly free given 50-200+ items per book
-- Loading, error, and empty states — embedding ops take noticeable time; visual feedback is required
+- Pipeline step mapping (agent-to-step): users expect agents they create to actively shape generation, not just assist in chat
+- Automatic mapping on agent CRUD: manual mapping is a burden; AI-inferred placement from agent description + prompt is the correct UX
+- Parallel agent review during generation: serial reviews would multiply latency; parallel is the only viable UX
+- AI merge of parallel feedback: without merge, N reviews produce N unresolved suggestions — the pipeline feels incomplete
+- Tree view UI showing agent-to-step mappings: without visibility users cannot know the pipeline exists or why their agents are or aren't having an effect
+- Graceful degradation when no agents mapped: pipeline must continue normally with zero-overhead pass-through if no agents are assigned
 
 **Should have (differentiators):**
-- Chunk annotations / notes — user context note passed alongside chunk to agent context
-- Priority weighting — numeric weight influencing RAG retrieval score (must ship with RAG query change)
-- Auto vs. custom visual badges — `is_user_created` flag drives a low-cost differentiator badge
-- Token budget display — sum `token_count` across book's chunks; helps users understand context limits
-- Chunk source highlighting — visual breadcrumb showing chapter/page; data already exists
+- Mapping confidence score per step: lets users understand fit quality and tune agent descriptions purposefully
+- Mapping staleness detection: badge in tree view when agent description changed after last mapping computation
+- Per-step agent review visibility: `agents_consulted` metadata in generation response showing which agents ran and what they contributed
+- Selective agent exclusion per run: checkbox toggle to temporarily skip an agent for a single run without deleting mapping
 
-**Defer to v2+:**
-- Bulk delete (medium complexity, low MVP urgency)
-- Semantic similarity preview ("what would the agent retrieve for this query?")
-- Concept linkage display (requires JOIN on concept_ids lookup)
-- Drag-and-drop reordering (complex for 100+ items; numeric weight achieves the same outcome)
-- Chunk versioning / edit history
-- Cross-book snippet merging
+**Defer (v2+):**
+- Mapping recomposition preview (diff before saving): adds a provisional API round-trip; defer until users report confusion
+- Step-level feedback attribution (per-agent audit trail): adds DB schema complexity; defer until MVP usage confirms demand
+- Agent-to-agent communication: explicitly out of scope per PROJECT.md; would create compounding bias and unpredictable recursion
 
 ### Architecture Approach
 
-Extend `BookChunk` in-place with five new columns (`is_user_created`, `is_deleted`, `weight`, `display_order`, `updated_at`) rather than creating a parallel snippets table. This preserves all four existing RAG query paths and all concept linkage relationships. Annotations go in a new `snippet_annotations` table (not a JSON column on `BookChunk`) because they have independent lifecycle and `include_in_context` must be SQL-queryable for efficient RAG filtering.
+Three new components are added to the existing service layer with minimal changes to existing files. The architecture is intentionally surgical: `template_ai_service.py` stays agent-unaware (generation only), `agent_service.py` is reused as-is (its `run_multi_agent_review()` is called by the new middleware). The injection point is `wizards.py` between `wizard_generate()` and `apply_wizard_result_to_db()` — a single function call that is a no-op when no agents are mapped.
 
 **Major components:**
-1. `BookChunk` (extended) — stores chunk text, embedding, weight, custom flag, soft-delete, display order; foundation of RAG pipeline
-2. `SnippetAnnotation` (new table) — user notes attached to specific chunks, injected into agent context when `include_in_context=True`
-3. `SnippetService` (new) — CRUD ops, re-embedding orchestration, reorder logic; keeps endpoint handlers thin
-4. `RAGService` (modified) — must be updated at 4 touchpoints to respect `is_deleted` filter, `weight` multiplier, and annotation injection
-5. Frontend Snippets page (new) — follows `BookManager.tsx` card layout and React Query patterns exactly
+1. `pipeline_composer.py` (new) — AI-driven mapping of all agents to all pipeline steps in one batch call; runs as a background task after agent CRUD; upserts `agent_pipeline_maps` rows
+2. `agent_review_middleware.py` (new) — intercepts generation output, looks up mapped agents for the current phase/subsection_key, runs parallel reviews via `asyncio.gather`, fires one merge AI call, returns refined content with `agent_reviews` metadata
+3. `AgentPipelineTree.tsx` (new) — read-only collapsible React tree showing phase → subsection → agent badge mappings; powered by `GET /api/agents/pipeline-map`; embedded in `AgentManager.tsx`
 
-**Strict build order dependency chain:** Migration runs first, SQLAlchemy models updated second, Pydantic schemas third, SnippetService fourth, `retry_book()` fix fifth, API endpoints sixth, frontend seventh, RAG integration eighth.
+**New data model:** `agent_pipeline_maps` table with `(owner_id, agent_id, phase, subsection_key, confidence, rationale)`. Indexed on `(owner_id, phase, subsection_key)` for O(1) lookup at generation time. `ON DELETE CASCADE` from `agents.id` keeps it clean.
+
+**Build order (dependency-driven):**
+1. DB migration + SQLAlchemy model + Pydantic schemas
+2. `pipeline_composer.py` + agent CRUD endpoint wiring + `GET /api/agents/pipeline-map`
+3. `agent_review_middleware.py` + `wizards.py` injection
+4. Frontend tree component
 
 ### Critical Pitfalls
 
-1. **Stale embeddings after edit** — PATCH endpoint updates `content` without regenerating `embedding`, causing silent RAG degradation. Prevention: atomic transaction wrapping content update + `embed_text()` call + `token_count` recalculation. Must be solved before any editing UI ships.
+1. **Merge call produces blander output than raw generation** — The merge LLM averages contradictory agent opinions instead of resolving them, stripping the strongest contributions and producing generic hedged output. Prevention: explicit conflict-resolution rules in the merge prompt ("choose the most specific and actionable suggestion, not a blend"), cap merge output to original token length, A/B validate merged vs. raw output before shipping.
 
-2. **Book reprocessing destroys user work** — `retry_book()` deletes all `BookChunk` rows unconditionally. Any custom snippets or edited chunks are silently lost. Prevention: add `is_user_created` and check `updated_at` before deletion; preserve user-modified chunks across reprocessing. Must be in Phase 1 migration.
+2. **Thundering herd on cosmetic agent edits** — Every `PATCH /agents/{id}` call (including color and icon changes) triggers a re-composition LLM call if not gated. Prevention: `pipeline_dirty` flag set only on semantic field changes (`system_prompt_template`, `description`, `tags_filter`); debounce concurrent saves; serve cached mapping to frontend without recomputing on GET.
 
-3. **Weight column with no retrieval effect** — `weight` field in the DB does nothing unless `rag_service.semantic_search()` is updated to use `effective_score = similarity * weight`. Shipping weight UI without the RAG query change creates false user confidence. Prevention: weight UI and RAG retrieval change must ship in the same phase.
+3. **Token budget explosion during YOLO auto-generation** — 5 agents + 8 pipeline steps = 56 total LLM calls per YOLO run at potentially 224,000 output tokens. Prevention: `MAX_AGENTS_PER_PIPELINE_STEP` config (default 3); relevance scoring gates — only fire reviews where agent relevance exceeds threshold; trim agent context for pipeline reviews (no book chunks); cost estimate surface before YOLO runs.
 
-4. **Embedding API failure leaves content/embedding out of sync** — network error or OpenAI rate limit during save causes content to be updated but embedding to remain stale. Prevention: transactional rollback — if `embed_text()` fails, roll back the content change and return a clear error to the frontend. Non-negotiable for Phase 1.
+4. **Non-deterministic pipeline mapping across re-compositions** — LLM at temperature > 0 produces different mappings for identical agent descriptions across re-compositions. Prevention: `temperature=0` for mapping call, JSON-mode structured output with fixed schema, hash-based cache keyed on semantic fields to skip re-inference when description hasn't changed.
 
-5. **UI freeze on large books** — 400-600 chunks without server-side pagination returns a payload that freezes the browser. Prevention: `?page=1&per_page=50` on the list endpoint, built in from day one. Never return all chunks in a single response.
+5. **Shared SQLAlchemy session across async parallel review tasks** — `asyncio.gather` over a shared `db: Session` produces intermittent `DetachedInstanceError` and stale reads. Prevention: each parallel task receives its own session from the session factory; change `run_multi_agent_review()` signature to accept `session_factory` callable instead of a single `Session`.
+
+6. **Agent `system_prompt_template` format string mismatch in pipeline context** — The existing `_build_system_prompt` expects `section_type: SectionType` (legacy three-act model), not `phase/subsection_key` from the new template system. Prevention: add separate `_build_pipeline_system_prompt()` method accepting `phase: str, subsection_key: str`; map legacy `{section_type}` placeholder to `subsection_key` as fallback.
+
+---
 
 ## Implications for Roadmap
 
-Based on research, the dependency graph points to a strict three-phase ordering. Backend safety must come before frontend exposure, and RAG pipeline changes must come after the data exists to drive them.
+Based on research, the architecture has clear sequential dependencies that dictate phase ordering. The DB table must exist before any service writes to it; the mapping must be computed before the review middleware can look anything up; the review middleware must work before YOLO integration adds volume.
 
-### Phase 1: Backend Foundation and Safety
+### Phase 1: Data Foundation and Mapping Infrastructure
+**Rationale:** Every downstream component depends on the `agent_pipeline_maps` table and the AI mapping call. No other phase can proceed without this. Also the right time to address Pitfalls 2, 4, and 10 (thundering herd, non-determinism, user-scoping of default agents) — all are schema-level decisions that are costly to reverse later.
+**Delivers:** DB migration, `AgentPipelineMap` SQLAlchemy model, `PipelineMapEntry` / `PipelineMapResponse` Pydantic schemas, `pipeline_composer.py` with `temperature=0` + hash-based cache + `pipeline_dirty` flag logic, agent CRUD endpoints wired to `BackgroundTasks`, `GET /api/agents/pipeline-map` endpoint
+**Addresses:** Pipeline step mapping (table stakes), automatic mapping on agent CRUD (table stakes)
+**Avoids:** Pitfall 2 (thundering herd), Pitfall 4 (non-deterministic mapping), Pitfall 10 (default agent user-scoping)
 
-**Rationale:** Frontend cannot be built without working endpoints; the critical data-integrity pitfalls (stale embeddings, reprocessing data loss) must be solved before any editing UI is exposed to users. This phase has no external dependencies — it's all within the existing codebase.
+### Phase 2: Parallel Review and Merge Infrastructure
+**Rationale:** This is the highest-risk phase — it modifies the generation path and introduces the merge call. Must be built and validated in isolation before wiring into YOLO. The merge prompt engineering (Pitfall 1) and session isolation fix (Pitfall 3) must be addressed here, not deferred. Build and A/B test the merge strategy before wiring to production generation.
+**Delivers:** `agent_review_middleware.py` with per-task session factory, merge AI call with conflict-resolution rules, `agents_consulted` metadata in wizard run response, `wizards.py` injection point between `wizard_generate()` and `apply_wizard_result_to_db()`, `_build_pipeline_system_prompt()` separate from legacy `_build_system_prompt()`
+**Addresses:** Parallel agent review during generation (table stakes), AI merge of parallel feedback (table stakes), per-step agent review visibility (should-have)
+**Avoids:** Pitfall 1 (bland merge output), Pitfall 3 (shared DB session), Pitfall 6 (conflicting field updates), Pitfall 8 (system_prompt format mismatch), Pitfall 12 (streaming interleave)
 
-**Delivers:** A fully safe, tested API for snippet CRUD that frontend can build against.
+### Phase 3: Frontend Pipeline Tree
+**Rationale:** Can be built in parallel with Phase 2 once Phase 1's API endpoint is live. Read-only component with low risk. Ships the visibility surface that makes agents feel real to users. React Query invalidation (Pitfall 7) and empty-state handling (Pitfall 11) must be included — they're trivial to add at build time but painful to retrofit.
+**Delivers:** `AgentPipelineTree.tsx` collapsible tree component, `getPipelineMap()` API function, `QUERY_KEYS.PIPELINE_MAP` constant, React Query invalidation on agent mutations, empty state ("Create agents to see how they map to your pipeline"), embedded in `AgentManager.tsx`
+**Addresses:** Tree view UI showing agent-to-step mappings (table stakes)
+**Avoids:** Pitfall 7 (stale tree view after agent CRUD), Pitfall 11 (empty tree with no agents)
 
-**Addresses features:** List chunks (paginated), create custom snippet, edit chunk text (with atomic re-embed), delete chunk, book selector API support.
-
-**Avoids pitfalls:** Stale embeddings (#1), reprocessing destroys user work (#2), concept_ids staleness (#3), embedding API failure leaving data inconsistent (#7), token count mismatch (#8), chunk_index collision (#6), pagination freeze (#5).
-
-**Key tasks:**
-- Write migration `006_snippet_management.sql` (5 new columns on `book_chunks`, `snippet_annotations` table, indexes)
-- Update `BookChunk` SQLAlchemy model + add `SnippetAnnotation` model
-- Update Pydantic schemas (`SnippetResponse`, `CreateSnippetRequest`, `UpdateSnippetRequest`)
-- Create `SnippetService` (CRUD + transactional re-embedding)
-- Fix `retry_book()` to preserve `is_user_created` and user-edited chunks
-- Create snippet API endpoints (extend `books.py` or new `snippets.py`)
-- Register routes in `main.py`
-- Write backend tests
-- Research flag: STANDARD — follows established FastAPI + SQLAlchemy patterns, no research phase needed
-
-### Phase 2: Frontend Snippets Page
-
-**Rationale:** Once the API is stable and tested, the frontend can be built against it. Frontend patterns are fully established in `BookManager.tsx` and `CardGridView.tsx` — this is assembly work, not design work.
-
-**Delivers:** A usable Snippets page where users can browse, search, edit, delete, and add custom snippets for any book.
-
-**Addresses features:** All table-stakes features listed above plus frontend-only search filter, loading/error/empty states, book processing status banner, debounced save to prevent race conditions.
-
-**Avoids pitfalls:** Race conditions on rapid edits (#12), showing editable UI during book processing (#13).
-
-**Key tasks:**
-- Add `/snippets` route to `App.tsx` and navigation
-- Create `SnippetsPage` component (book selector)
-- Create `SnippetList` component (paginated, with search filter)
-- Create `SnippetCard` component (preview + expand + metadata badges)
-- Create `SnippetEditor` component (inline textarea with debounced save/cancel)
-- React Query hooks for all snippet CRUD mutations
-- Empty state, loading state, processing-state banner
-- Research flag: STANDARD — `BookManager.tsx` is the established pattern, no research phase needed
-
-### Phase 3: RAG Integration and Enrichment
-
-**Rationale:** RAG modifications touch existing, working code paths and must come after the data (weight, annotations) exists to drive them. Weight UI and RAG query change must ship together — they are atomic from a user-trust perspective.
-
-**Delivers:** Snippet weight actually influences agent retrieval; annotations appear in agent context; auto vs. custom badges visible; token budget display.
-
-**Addresses features:** Priority weighting (with effective retrieval), chunk annotations injected into agent context, auto vs. custom badges, token budget display.
-
-**Avoids pitfalls:** Weight with no retrieval effect (#4), annotation text not passed to agent context (#10), weight = 0 making chunks permanently unretrievable (#11).
-
-**Key tasks:**
-- Modify `rag_service.semantic_search()` — add `is_deleted=false` filter, weight-adjusted score
-- Modify `retrieve_relevant_concepts()` — add `is_deleted=false` filter
-- Modify `agent_service.format_agent_context()` — inject annotations where `include_in_context=True`
-- Add annotation UI within `SnippetCard`
-- Add numeric weight input with validation (min 0.1, max 10.0)
-- Add auto vs. custom visual badges
-- Add token budget summary stat
-- End-to-end test: edit snippet → verify agent uses updated content
-- Research flag: NEEDS REVIEW — modifies the live RAG pipeline; recommend careful integration testing before shipping
+### Phase 4: YOLO Auto-Generation Integration and Token Budget Controls
+**Rationale:** The review middleware from Phase 2 works for manual generation. YOLO chains all phases in sequence, multiplying the token cost. Per-step agent budgeting (Pitfall 5) and minimum relevance gating (Pitfall 13) must be implemented before YOLO integration or a single run can consume 56+ LLM calls. Do not integrate YOLO until Phase 2 has been validated with real usage data.
+**Delivers:** `MAX_AGENTS_PER_PIPELINE_STEP` config, `MAX_STEPS_WITH_AGENT_REVIEW` config, relevance score gating in pipeline dispatcher, context trimming for pipeline reviews (no book chunks), cost estimate surface before YOLO run, YOLO flow wired to review middleware
+**Addresses:** Agent review in YOLO flow (table stakes), graceful degradation (table stakes)
+**Avoids:** Pitfall 5 (token budget explosion), Pitfall 9 (asyncio timeout orphaning HTTP connections), Pitfall 13 (agents with no relevant context still firing)
 
 ### Phase Ordering Rationale
 
-- Backend must precede frontend because the frontend has no endpoints to call before Phase 1 completes
-- `retry_book()` safety fix must happen before any user-created snippet data exists — if it ships after Phase 2, users can lose work
-- Weight and annotation features cannot precede the DB migration that adds those columns
-- RAG pipeline modifications should be last because they touch the most critical existing code (agent retrieval quality) and require the Phase 1 + Phase 2 data model to be stable
-- The `is_deleted` filter in Phase 3 is also needed in Phase 1 to be correct from day one — add it to the migration but wire it into RAG queries in Phase 3 as a batch change
+- **Phase 1 before everything**: The `agent_pipeline_maps` table is a hard dependency for Phase 2 and 3. Schema decisions (composite key, confidence column, user-scoping) cannot be changed cheaply after data is written.
+- **Phase 2 before Phase 4**: YOLO integration amplifies the cost and risk of any defect in the review middleware. Validate the review+merge pattern with manual generation first.
+- **Phase 3 can overlap Phase 2**: The tree view only reads from the Phase 1 API endpoint. Frontend work can proceed once Phase 1's `GET /api/agents/pipeline-map` is live.
+- **Phase 4 last**: Token budgeting and YOLO are the highest-volume code path. Instrument it carefully after the core pipeline is proven.
 
 ### Research Flags
 
-Phases needing deeper research during planning:
-- **Phase 3 (RAG Integration):** Modifying `rag_service.semantic_search()` with weight scoring changes retrieval behavior for all books, not just snippets-enabled books. Recommend reviewing all 4 touchpoints in `rag_service.py` before writing the implementation plan to confirm no edge cases (e.g., books with no weight column data before migration backfill).
+Phases likely needing deeper research or design review during planning:
+- **Phase 2:** The merge prompt engineering is the highest-uncertainty area in the entire system. No research file can fully de-risk it — the right prompt strategy emerges from A/B testing with real screenplay content. Plan explicit validation time before declaring Phase 2 complete.
+- **Phase 2:** The `_build_pipeline_system_prompt()` implementation requires careful mapping of existing agent template variables to the new phase/subsection_key system. Audit all existing agent templates before designing the new method signature.
+- **Phase 4:** Token cost per YOLO run is highly sensitive to the number of agents, template structure, and project context length. Establish a cost model (estimated tokens per step × agents × steps) before committing to config defaults.
 
-Phases with standard patterns (skip research phase):
-- **Phase 1 (Backend):** Direct extension of existing `books.py` and `embedding_service.py` patterns. Well-understood FastAPI + SQLAlchemy + PostgreSQL work.
-- **Phase 2 (Frontend):** Direct extension of `BookManager.tsx` and `CardGridView.tsx` patterns. React Query mutations and Tailwind styling are established throughout the codebase.
+Phases with standard, well-documented patterns (can skip research-phase):
+- **Phase 1:** DB migration, SQLAlchemy model, Pydantic schema, BackgroundTasks wiring — all follow established patterns already present in the codebase. No new patterns needed.
+- **Phase 3:** React Query + collapsible tree component — standard frontend patterns with no novel elements. Existing codebase already has `AgentManager.tsx` as the parent context.
+
+---
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Grounded in direct codebase analysis; all dependencies confirmed present in `requirements.txt` and `package.json` |
-| Features | MEDIUM | Based on Dify, Coze, Pinecone Console, Flowise, LangFlow pattern analysis — no user research data |
-| Architecture | HIGH | Grounded in direct codebase analysis of `rag_service.py`, `book_processing_service.py`, `BookChunk` model, and existing endpoint patterns |
-| Pitfalls | HIGH | Grounded in direct codebase analysis of `retry_book()`, RAG query paths, and existing embedding service usage |
+| Stack | HIGH | All findings derived from direct codebase analysis; no new dependencies required — confidence is near-certain |
+| Features | HIGH | Table stakes derived from codebase analysis + PROJECT.md validated requirements; differentiators are MEDIUM (ecosystem patterns without external source verification) |
+| Architecture | HIGH | Component boundaries, data flow, and integration points are all grounded in actual code paths and SQLAlchemy model analysis; pattern recommendations are MEDIUM |
+| Pitfalls | HIGH | All critical pitfalls are derived from direct codebase analysis of existing code paths (not theoretical risks); minor pitfalls have lighter grounding |
 
-**Overall confidence:** HIGH
+**Overall confidence:** HIGH for the core implementation approach; MEDIUM for merge prompt strategy and token cost projections.
 
 ### Gaps to Address
 
-- **Feature prioritization within Phase 2:** The MEDIUM confidence on features means the ordering of Phase 2 sub-features (e.g., annotations vs. weight vs. badges) should be validated against user priorities during requirements definition. The research gives a technically-grounded order but not a user-validated one.
-- **Weight scoring formula:** `effective_score = similarity * weight` is the recommended formula, but this is an inference from the pattern. The exact formula (multiplicative vs. additive) should be validated against the existing cosine similarity score range in `rag_service.py` before implementation.
-- **Annotation context format:** The format `[SNIPPET]\n{content}\n[NOTE: {annotation}]` is a recommendation based on common RAG context patterns. The actual format should be tested with GPT-4 prompting to confirm annotation text is correctly interpreted by the agent.
+- **Merge prompt strategy**: The research identifies the risk (bland output) and prevention principles, but the exact prompt design for conflict resolution must be validated empirically with real screenplay content before Phase 2 is declared done. Build in evaluation time.
+- **Template vocabulary completeness**: The mapping call prompt must embed all phase/subsection_key values from the template system. Confirm this list is stable before pinning it in the composition prompt — if new templates are added, the prompt must update.
+- **Default agent ownership model**: The research flags that default agents (`is_default=True`) are shared across users, and per-user mappings must scope by `owner_id`. Validate this assumption against the actual Agent model's `is_default` + `owner_id` logic before writing the migration.
+- **`asyncio.wait_for` HTTP socket cleanup**: Pitfall 9 notes that asyncio cancellation does not close underlying HTTP connections. Verify the current `ai_provider.py` HTTP client library's cancellation behavior before assuming the existing timeout pattern is safe under load.
+- **`BackgroundTasks` lifetime with async DB sessions**: FastAPI `BackgroundTasks` runs after the response is sent but within the request lifecycle. Confirm that the `db: Session` from `get_db` is still valid inside a background task, or switch to a new `session_factory()` call within the background function.
+
+---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Direct codebase analysis — `backend/app/services/rag_service.py`, `book_processing_service.py`, `embedding_service.py`, `models/database.py`
-- Direct codebase analysis — `frontend/src/components/Books/BookManager.tsx`, `CardGridView.tsx`, `api.tsx`
-- Existing migration files — `migrations/003_template_system.sql`, `004_agent_type_and_quality.sql`, `005_book_progress.sql` (established migration patterns)
+- `backend/app/services/agent_service.py` — parallel review patterns, `asyncio.gather`, `run_multi_agent_review()`, `_build_system_prompt()`, `_select_relevant_agents()`, timeout handling
+- `backend/app/services/template_ai_service.py` — generation pipeline structure, wizard types, phase/subsection vocabulary, streaming architecture
+- `backend/app/api/endpoints/wizards.py` — `run_wizard()`, `apply_wizard_result_to_db()` integration point, WizardRun lifecycle
+- `backend/app/api/endpoints/agents.py` — CRUD trigger structure, semantic vs. cosmetic field distinction (current absence of)
+- `backend/app/models/database.py` — Agent model, `is_default` flag, `AgentType` enum, `PhaseData`, `WizardRun`
+- `backend/app/config.py` — `MAX_AGENTS_PER_REVIEW: 5`, `AGENT_REVIEW_TIMEOUT: 90`, `MAX_TOKENS: 4000`
+- `backend/app/templates/short_movie.json` — pipeline step structure (phase IDs, subsection keys)
+- `.planning/PROJECT.md` — validated requirements, out-of-scope decisions, key constraints
 
 ### Secondary (MEDIUM confidence)
-- Dify RAG management UI patterns — chunk listing, annotation, weight controls
-- Pinecone Console — chunk-level visibility and metadata display conventions
-- Coze knowledge base UI — book selector and chunk management patterns
-- Flowise / LangFlow — RAG pipeline management reference patterns
+- FastAPI BackgroundTasks documentation (training data; pattern is stable and well-documented)
+- SQLAlchemy async session safety patterns (training data; session-per-task is established best practice)
+- LLM merge prompt design (training data; conflict-resolution prompt engineering is empirically validated domain)
 
 ### Tertiary (LOW confidence)
-- Weight scoring formula (`similarity * weight`) — inferred from common RAG literature; needs validation against actual cosine similarity score range in production data
+- LangGraph, CrewAI, AutoGen design rationale — training data only; current API surfaces could not be verified; confidence in unsuitability conclusions remains HIGH despite LOW source confidence
+- Token cost projections for YOLO runs — calculated from `MAX_TOKENS` config and agent count assumptions; real-world numbers will vary based on project context size
 
 ---
-*Research completed: 2026-03-05*
+*Research completed: 2026-03-11*
 *Ready for roadmap: yes*
