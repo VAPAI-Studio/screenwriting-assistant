@@ -488,6 +488,11 @@ class FillBlanksRequest(BaseModel):
     phase: str
     subsection_key: str
     item_id: Optional[UUID] = None
+    field_key: Optional[str] = None
+
+
+class YoloFillRequest(BaseModel):
+    project_id: UUID
 
 
 class GiveNotesRequest(BaseModel):
@@ -595,3 +600,34 @@ class SnippetManagerListResponse(BaseModel):
     per_page: int
     pages: int
     book_status: str
+
+
+# ============================================================
+# Pipeline Map schemas (Phase 1 — DB Foundation)
+# Used by Phase 3 GET /api/agents/pipeline-map endpoint.
+# ============================================================
+
+class PipelineMapEntry(BaseModel):
+    """Single agent-to-step mapping row. Enables ORM round-trips and list serialization."""
+    id: UUID
+    owner_id: UUID
+    agent_id: UUID
+    phase: str
+    subsection_key: str
+    confidence: float = 0.0
+    rationale: Optional[str] = None
+    pipeline_dirty: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PipelineMapResponse(BaseModel):
+    """Response shape for GET /api/agents/pipeline-map (Phase 3 endpoint).
+    Flat list of entries; frontend or Phase 3 logic groups by phase/subsection_key."""
+    owner_id: UUID
+    entries: List[PipelineMapEntry] = Field(default_factory=list)
+    total_mappings: int = 0
+
+    model_config = ConfigDict(from_attributes=True)
