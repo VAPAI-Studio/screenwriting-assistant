@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-01-PLAN.md
-last_updated: "2026-03-11T21:50:37.707Z"
-last_activity: 2026-03-11 — Completed 03-01-PLAN.md (Pipeline map API and CRUD wiring)
+stopped_at: Completed 03-02-PLAN.md
+last_updated: "2026-03-11T21:57:06Z"
+last_activity: 2026-03-11 — Completed 03-02-PLAN.md (Pipeline map integration tests)
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-11)
 
 ## Current Position
 
-Phase: 3 of 8 (Pipeline Map API and CRUD Wiring)
-Plan: 1 of 2 in current phase (03-01 complete)
-Status: In Progress
-Last activity: 2026-03-11 — Completed 03-01-PLAN.md (Pipeline map API and CRUD wiring)
+Phase: 3 of 8 (Pipeline Map API and CRUD Wiring) -- COMPLETE
+Plan: 2 of 2 in current phase (03-02 complete)
+Status: Phase Complete
+Last activity: 2026-03-11 — Completed 03-02-PLAN.md (Pipeline map integration tests)
 
-Progress: [█████████░] 86%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████████░] 86%
 | Phase 02 P01 | 7min | 2 tasks | 3 files |
 | Phase 02 P02 | 2min | 1 tasks | 1 files |
 | Phase 03 P01 | 2min | 2 tasks | 2 files |
+| Phase 03 P02 | 5min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,8 @@ Recent decisions affecting current work:
 - [Phase 03]: GET /pipeline-map placed after /tags and before /{agent_id} to avoid UUID parameter capture
 - [Phase 03]: Background helper creates own SessionLocal and accepts string owner_id for session safety post-response
 - [Phase 03]: update_agent gates recomposition on is_semantic_change() -- cosmetic fields skip recomposition
+- [Phase 03]: _agent_type_value() helper for safe enum/string extraction in SQLite test environment
+- [Phase 03]: str() casting on UUID path params for cross-DB filter compatibility (PostgreSQL auto-casts, SQLite needs string comparison)
 
 ### Pending Todos
 
@@ -93,6 +96,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11T21:50:37.704Z
-Stopped at: Completed 03-01-PLAN.md
+Last session: 2026-03-11T21:57:06Z
+Stopped at: Completed 03-02-PLAN.md
 Resume file: None
