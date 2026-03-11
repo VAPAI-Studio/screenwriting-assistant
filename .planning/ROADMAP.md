@@ -58,13 +58,11 @@ Plans:
   2. Creating an agent triggers background re-composition; the mapping updates within seconds without blocking the POST response
   3. Editing an agent's `system_prompt_template` triggers re-composition; editing only the agent's name does not
   4. Deleting an agent removes its `agent_pipeline_maps` rows via cascade and triggers a fresh composition of remaining agents
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Add `GET /api/agents/pipeline-map` endpoint in `agents.py`
-- [ ] 03-02: Wire `BackgroundTasks` re-composition trigger into agent create endpoint
-- [ ] 03-03: Wire `BackgroundTasks` re-composition trigger into agent update endpoint with semantic-field gate
-- [ ] 03-04: Verify cascade delete removes stale mappings on agent delete
+- [ ] 03-01-PLAN.md — Schema expansion, GET /pipeline-map endpoint, BackgroundTasks wiring into create/update/delete
+- [ ] 03-02-PLAN.md — Integration test suite (6 tests) for COMP-01/COMP-03/COMP-04
 
 ### Phase 4: Async Safety and Session Isolation
 **Goal**: Parallel async agent review tasks each operate on their own DB session, eliminating intermittent `DetachedInstanceError` failures
@@ -163,7 +161,7 @@ Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel 
 |-------|----------------|--------|-----------|
 | 1. DB Foundation | 0/3 | Not started | - |
 | 2. Pipeline Composer Service | 0/2 | Not started | - |
-| 3. Pipeline Map API and CRUD Wiring | 0/4 | Not started | - |
+| 3. Pipeline Map API and CRUD Wiring | 0/2 | Not started | - |
 | 4. Async Safety and Session Isolation | 0/3 | Not started | - |
 | 5. Agent Review Middleware | 0/5 | Not started | - |
 | 6. Wizard Injection | 0/4 | Not started | - |
