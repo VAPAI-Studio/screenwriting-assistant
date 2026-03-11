@@ -66,7 +66,6 @@ class Framework(str, enum.Enum):
 
 
 class TemplateType(str, enum.Enum):
-    MICRO_DRAMA = "micro_drama"
     SHORT_MOVIE = "short_movie"
 
 
@@ -382,6 +381,11 @@ class Agent(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     books = sa_relationship("Book", secondary="agent_books", back_populates="agents")
+    pipeline_maps = sa_relationship(
+        "AgentPipelineMap",
+        back_populates="agent",
+        cascade="all, delete-orphan",
+    )
 
 
 class AgentBook(Base):
@@ -421,3 +425,31 @@ class ChatMessage(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     session = sa_relationship("ChatSession", back_populates="messages")
+
+
+# ============================================================
+# Pipeline Orchestration models (Phase 1 — DB Foundation)
+# ============================================================
+
+class AgentPipelineMap(Base):
+    __tablename__ = "agent_pipeline_maps"
+
+    id             = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    owner_id       = Column(UUID(as_uuid=True), nullable=False, index=True)
+    agent_id       = Column(UUID(as_uuid=True), ForeignKey("agents.id"), nullable=False, index=True)
+    phase          = Column(String(50), nullable=False)
+    subsection_key = Column(String(100), nullable=False)
+    confidence     = Column(Float, nullable=False, default=0.0)
+    rationale      = Column(Text)
+    pipeline_dirty = Column(Boolean, nullable=False, default=False)
+    created_at     = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at     = Column(DateTime(timezone=True), onupdate=func.now())
+
+    agent = sa_relationship("Agent", back_populates="pipeline_maps")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "owner_id", "agent_id", "phase", "subsection_key",
+            name="uq_pipeline_map_lookup",
+        ),
+    )
