@@ -72,26 +72,26 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMP-01 | — | Pending |
-| COMP-02 | — | Pending |
-| COMP-03 | — | Pending |
-| COMP-04 | — | Pending |
-| REVW-01 | — | Pending |
-| REVW-02 | — | Pending |
-| REVW-03 | — | Pending |
-| REVW-04 | — | Pending |
-| REVW-05 | — | Pending |
-| TREE-01 | — | Pending |
-| TREE-02 | — | Pending |
-| TREE-03 | — | Pending |
-| YOLO-01 | — | Pending |
-| YOLO-02 | — | Pending |
+| COMP-01 | Phase 2 + Phase 3 | Pending |
+| COMP-02 | Phase 1 | Pending |
+| COMP-03 | Phase 2 + Phase 3 | Pending |
+| COMP-04 | Phase 3 | Pending |
+| REVW-01 | Phase 5 + Phase 6 | Pending |
+| REVW-02 | Phase 5 | Pending |
+| REVW-03 | Phase 5 | Pending |
+| REVW-04 | Phase 5 | Pending |
+| REVW-05 | Phase 4 | Pending |
+| TREE-01 | Phase 7 | Pending |
+| TREE-02 | Phase 7 | Pending |
+| TREE-03 | Phase 7 | Pending |
+| YOLO-01 | Phase 8 | Pending |
+| YOLO-02 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 14 total
-- Mapped to phases: 0
-- Unmapped: 14
+- Mapped to phases: 14
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 after initial definition*
+*Last updated: 2026-03-11 after roadmap creation — all 14 requirements mapped*

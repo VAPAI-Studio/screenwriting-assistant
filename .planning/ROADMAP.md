@@ -1,75 +1,172 @@
-# Roadmap: Screenwriting Assistant — Snippet Manager
+# Roadmap: Agent Orchestration Pipeline
 
 ## Overview
 
-This milestone gives writers full visibility and control over the book knowledge chunks that feed their AI agents. The build progresses from a safe, transactional backend API (Phase 1), through a complete frontend Snippets page for browsing, editing, and creating snippets (Phase 2), to RAG pipeline integration where annotations and priority weights actually influence agent retrieval behavior (Phase 3). Each phase delivers a coherent, verifiable capability that unblocks the next.
+This milestone wires two already-built subsystems — the template-based generation pipeline and the multi-agent review system — into a unified orchestration pipeline. The work progresses in four natural layers: data foundation, backend review infrastructure, frontend visibility, and YOLO integration. Each phase delivers a coherent, independently verifiable capability. Phases follow hard sequential dependencies: the DB table must exist before mapping logic can write to it; mapping must be computed before the review middleware can look anything up; the review middleware must be proven stable with manual generation before YOLO amplifies its volume.
 
 ## Phases
 
-**Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
-
-Decimal phases appear between their surrounding integers in numeric order.
-
-- [x] **Phase 1: Backend Foundation and Data Safety** - Database migration, BookChunk model extensions, snippet CRUD API with transactional re-embedding, and retry_book() safety fix (completed 2026-03-05)
-- [ ] **Phase 2: Frontend Snippets Page** - Top-level Snippets page with book selector, AI-curated snippet browsing, inline editing, search, and processing-state handling
-- [ ] **Phase 3: RAG Integration and Enrichment** - Annotations, priority weights, RAG query modifications, and agent context injection
+- [ ] **Phase 1: DB Foundation** - Create `agent_pipeline_maps` table, SQLAlchemy model, and Pydantic schemas
+- [ ] **Phase 2: Pipeline Composer Service** - Build `pipeline_composer.py` with AI mapping, hash-based cache, and dirty-flag gating
+- [ ] **Phase 3: Pipeline Map API and CRUD Wiring** - Expose GET endpoint and wire agent CRUD to trigger re-composition via BackgroundTasks
+- [ ] **Phase 4: Async Safety and Session Isolation** - Fix shared DB session bug in `run_multi_agent_review` for safe concurrent use
+- [ ] **Phase 5: Agent Review Middleware** - Build `agent_review_middleware.py` with parallel fan-out, merge AI call, and pass-through bypass
+- [ ] **Phase 6: Wizard Injection** - Inject review middleware into `wizards.py` generation path and surface `agents_consulted` metadata
+- [ ] **Phase 7: Frontend Pipeline Tree** - Build `AgentPipelineTree.tsx` collapsible tree component embedded in `AgentManager.tsx`
+- [ ] **Phase 8: YOLO Integration and Token Budget** - Wire YOLO auto-generation through review middleware with configurable agent budgets
 
 ## Phase Details
 
-### Phase 1: Backend Foundation and Data Safety
-**Goal**: A safe, tested API exists for all snippet operations — editing re-embeds atomically, custom snippets survive book reprocessing, and no data corruption is possible
+### Phase 1: DB Foundation
+**Goal**: The `agent_pipeline_maps` table and its ORM layer exist and are ready for writes
 **Depends on**: Nothing (first phase)
-**Requirements**: BROW-01, EDIT-01, EDIT-02, EDIT-04, CUST-01, CUST-02, CUST-03
+**Requirements**: COMP-02
 **Success Criteria** (what must be TRUE):
-  1. API returns paginated chunks for a book (GET /api/books/{id}/snippets?page=1&per_page=50 returns correct data with pagination metadata)
-  2. Editing a chunk via API updates content, regenerates embedding, and recalculates token count in a single transaction — if embedding fails, content is rolled back and an error is returned
-  3. Deleting a chunk via API excludes it from all subsequent retrieval (soft delete with is_deleted flag)
-  4. Creating a custom snippet via API embeds it automatically and marks it with is_user_created=True
-  5. Reprocessing a book (retry_book) preserves all user-created and user-edited chunks
-**Plans**: 3 plans
+  1. Running the migration creates `agent_pipeline_maps` table with `owner_id`, `agent_id`, `phase`, `subsection_key`, `confidence`, `rationale`, and `pipeline_dirty` columns
+  2. The composite index on `(owner_id, phase, subsection_key)` exists and can be confirmed via `\d agent_pipeline_maps` in psql
+  3. The `AgentPipelineMap` SQLAlchemy model is importable and its relationship to the `Agent` model includes `ON DELETE CASCADE`
+  4. `PipelineMapEntry` and `PipelineMapResponse` Pydantic schemas validate correctly and can round-trip from the ORM model
+**Plans**: TBD
 
 Plans:
-- [x] 01-01-PLAN.md — Test scaffold: conftest SafeVector patch + embed mock fixture + 7 failing test stubs
-- [x] 01-02-PLAN.md — DB foundation: migration 006, BookChunk model extension, RAG soft-delete filters, retry_book safety fix
-- [x] 01-03-PLAN.md — Snippets router: 4 endpoints (list/edit/delete/create), Pydantic schemas, main.py wiring
+- [ ] 01-01: Write and run DB migration for `agent_pipeline_maps` table
+- [ ] 01-02: Add `AgentPipelineMap` SQLAlchemy model with cascade relationship
+- [ ] 01-03: Define `PipelineMapEntry` and `PipelineMapResponse` Pydantic schemas
 
-### Phase 2: Frontend Snippets Page
-**Goal**: Writers can browse, search, edit, and delete AI-curated snippets for any book through a dedicated Snippets page
+### Phase 2: Pipeline Composer Service
+**Goal**: An AI orchestrator can analyze all user agents and produce a stable, deterministic mapping to pipeline steps
 **Depends on**: Phase 1
-**Requirements**: NAV-01, NAV-02, BROW-02, BROW-03, BROW-04, BROW-05, BROW-06, EDIT-03, EXTR-01, EXTR-02, EXTR-03
+**Requirements**: COMP-01, COMP-03
 **Success Criteria** (what must be TRUE):
-  1. User can navigate to a top-level "Snippets" page from the main navigation and select any uploaded book to view its AI-curated snippets
-  2. User sees snippet content with metadata (chapter title, page number, token count) and concept name badges per snippet
-  3. User can search/filter snippets by text within the current book (client-side, no API call), and sees total token count for the selected book
-  4. User sees a loading indicator during re-embedding operations and a clear error message if re-embedding fails (no silent data corruption)
-  5. User sees a clear banner when a book is still processing, with editing disabled until processing completes
-**Plans**: 4 plans
+  1. Calling `compose_pipeline(owner_id, db)` produces `agent_pipeline_maps` rows for each agent-to-step pairing with confidence scores
+  2. Running `compose_pipeline` twice with identical agent descriptions produces identical output (temperature=0 + hash-based cache)
+  3. A cosmetic agent edit (name, color, icon) does NOT trigger re-composition; a semantic edit (system_prompt_template, description) DOES set `pipeline_dirty=True`
+  4. The composer handles the case where a user has zero agents without error (returns empty mapping)
+  5. The composition prompt embeds all phase/subsection_key values from the active template system
+**Plans**: TBD
 
 Plans:
-- [ ] 02-01-PLAN.md — Wave 0 test stubs: RED stubs for test_snippet_manager.py (BROW-02, BROW-03, EDIT-03, EXTR-03) and test_snippet_extraction.py (EXTR-01, EXTR-02)
-- [ ] 02-02-PLAN.md — Backend foundation: migration 007, Snippet ORM model, extract_snippets() Stage 4, BookProcessingService persistence, retry_book() fix
-- [ ] 02-03-PLAN.md — Snippet Manager API: GET/PATCH/DELETE /api/snippets router, Pydantic schemas, main.py wiring, GREEN tests
-- [ ] 02-04-PLAN.md — Frontend SnippetManager: TypeScript types, api.tsx, constants, SnippetManager/SnippetCard/SnippetSearchBar components, Header/App wiring
+- [ ] 02-01: Build `pipeline_composer.py` with AI batch mapping call at temperature=0
+- [ ] 02-02: Implement hash-based cache keyed on semantic agent fields to skip redundant re-inference
+- [ ] 02-03: Add `pipeline_dirty` flag logic — set on semantic field changes, cleared after composition
 
-### Phase 3: RAG Integration and Enrichment
-**Goal**: Annotations and priority weights are fully wired into the RAG pipeline so they actually influence what agents retrieve and how they use it
+### Phase 3: Pipeline Map API and CRUD Wiring
+**Goal**: The frontend and generation layer can retrieve current pipeline mappings, and agent CRUD automatically triggers re-composition in the background
 **Depends on**: Phase 2
-**Requirements**: ANNO-01, ANNO-02, ANNO-03, WGHT-01, WGHT-02, WGHT-03
+**Requirements**: COMP-01 (trigger side), COMP-03 (CRUD gate), COMP-04
 **Success Criteria** (what must be TRUE):
-  1. User can add, edit, and delete annotations on any chunk, and annotations marked "include in context" appear alongside chunk content in agent responses
-  2. User can assign a numeric weight (0.1-10.0) to any chunk, and the weight visibly influences RAG retrieval ranking (effective_score = cosine_similarity * weight)
-  3. Chunks with weight below 0.5 display a visual "rarely retrieved" warning in the Snippets UI
-  4. Soft-deleted chunks (is_deleted=True) are excluded from all RAG retrieval queries across every retrieval path in the codebase
+  1. `GET /api/agents/pipeline-map` returns the current mapping for the authenticated user in the `PipelineMapResponse` schema
+  2. Creating an agent triggers background re-composition; the mapping updates within seconds without blocking the POST response
+  3. Editing an agent's `system_prompt_template` triggers re-composition; editing only the agent's name does not
+  4. Deleting an agent removes its `agent_pipeline_maps` rows via cascade and triggers a fresh composition of remaining agents
+**Plans**: TBD
+
+Plans:
+- [ ] 03-01: Add `GET /api/agents/pipeline-map` endpoint in `agents.py`
+- [ ] 03-02: Wire `BackgroundTasks` re-composition trigger into agent create endpoint
+- [ ] 03-03: Wire `BackgroundTasks` re-composition trigger into agent update endpoint with semantic-field gate
+- [ ] 03-04: Verify cascade delete removes stale mappings on agent delete
+
+### Phase 4: Async Safety and Session Isolation
+**Goal**: Parallel async agent review tasks each operate on their own DB session, eliminating intermittent `DetachedInstanceError` failures
+**Depends on**: Phase 3
+**Requirements**: REVW-05
+**Success Criteria** (what must be TRUE):
+  1. Running `run_multi_agent_review` with 3+ agents concurrently via `asyncio.gather` produces no `DetachedInstanceError` or `MissingGreenlet` exceptions
+  2. The function signature accepts a `session_factory` callable instead of a shared `Session`, and each parallel task creates and closes its own session
+  3. Existing callers of `run_multi_agent_review` in `agent_service.py` pass the session factory correctly and all existing tests continue to pass
+**Plans**: TBD
+
+Plans:
+- [ ] 04-01: Audit all `run_multi_agent_review` call sites and document current session passing pattern
+- [ ] 04-02: Refactor `run_multi_agent_review` to accept `session_factory` callable; update all call sites
+- [ ] 04-03: Write integration test confirming no session errors under concurrent 3-agent review
+
+### Phase 5: Agent Review Middleware
+**Goal**: A middleware layer can intercept any generation step output, run mapped agents in parallel, merge their feedback into a refined result, and pass through unchanged when no agents are mapped
+**Depends on**: Phase 4
+**Requirements**: REVW-01, REVW-02, REVW-03, REVW-04
+**Success Criteria** (what must be TRUE):
+  1. Calling `review_step_output(phase, subsection_key, raw_output, owner_id, session_factory)` returns refined output when agents are mapped to that step
+  2. When multiple agents are mapped to the same step, their reviews execute concurrently (confirmed via timing: N agents take ~1x not N×x time)
+  3. The merge AI call returns output matching the expected wizard result JSON schema with explicit conflict-resolution rules applied (most specific and actionable suggestion wins, not a blend)
+  4. When zero agents are mapped to a step, the function returns `raw_output` unchanged and makes zero additional LLM calls
+  5. The response includes `agents_consulted` metadata listing which agents ran and their contribution summary
+**Plans**: TBD
+
+Plans:
+- [ ] 05-01: Build `agent_review_middleware.py` with `review_step_output()` entry point and agent lookup by `(owner_id, phase, subsection_key)`
+- [ ] 05-02: Implement parallel fan-out via `asyncio.gather` with per-task session factory
+- [ ] 05-03: Build `_build_pipeline_system_prompt()` mapping phase/subsection_key to agent template variables
+- [ ] 05-04: Implement merge AI call with conflict-resolution prompt engineering and token-length cap
+- [ ] 05-05: Implement zero-agent pass-through bypass and `agents_consulted` metadata attachment
+
+### Phase 6: Wizard Injection
+**Goal**: Manual screenplay generation through the wizard automatically routes through agent review at each step, with review metadata surfaced in the response
+**Depends on**: Phase 5
+**Requirements**: REVW-01 (injection point)
+**Success Criteria** (what must be TRUE):
+  1. Running a wizard generation step for a phase that has mapped agents returns refined output visibly different from (or equal to, with justification) the raw generation
+  2. The wizard run response includes `agents_consulted` showing which agents reviewed the step
+  3. Running a wizard step for a phase with no mapped agents completes without error and returns raw output identical to pre-injection behavior
+  4. Existing wizard generation tests pass without modification after injection
+**Plans**: TBD
+
+Plans:
+- [ ] 06-01: Identify the exact injection point in `wizards.py` between `wizard_generate()` and `apply_wizard_result_to_db()`
+- [ ] 06-02: Wire `review_step_output()` call into wizard pipeline at injection point
+- [ ] 06-03: Propagate `agents_consulted` metadata through to wizard run response schema
+- [ ] 06-04: Validate end-to-end: create agent, run wizard, confirm agent review fires and output is refined
+
+### Phase 7: Frontend Pipeline Tree
+**Goal**: Users can see exactly which agents are mapped to which pipeline steps, and can toggle individual agents in or out of the pipeline
+**Depends on**: Phase 3
+**Requirements**: TREE-01, TREE-02, TREE-03
+**Success Criteria** (what must be TRUE):
+  1. The pipeline tree renders inside `AgentManager.tsx` showing a collapsible hierarchy of phases, subsections, and agent badges
+  2. Creating, editing, or deleting an agent causes the tree to refresh automatically without a page reload (React Query invalidation)
+  3. An empty state message ("Create agents to see how they map to your pipeline") renders when the user has no agents
+  4. Clicking the toggle on an individual agent badge excludes that agent from pipeline reviews; the toggle state persists and the tree reflects the exclusion visually
+**Plans**: TBD
+
+Plans:
+- [ ] 07-01: Add `getPipelineMap()` API function and `QUERY_KEYS.PIPELINE_MAP` constant
+- [ ] 07-02: Build `AgentPipelineTree.tsx` collapsible tree with phase → subsection → agent badge hierarchy
+- [ ] 07-03: Add React Query invalidation for `PIPELINE_MAP` on all agent mutation hooks
+- [ ] 07-04: Add empty state rendering and loading skeleton for the tree component
+- [ ] 07-05: Build per-agent toggle UI and wire to backend exclude/include state
+
+### Phase 8: YOLO Integration and Token Budget
+**Goal**: YOLO auto-generation fires agent reviews at each step within configurable token and agent-count budgets, preventing cost explosion while preserving review quality
+**Depends on**: Phase 6
+**Requirements**: YOLO-01, YOLO-02
+**Success Criteria** (what must be TRUE):
+  1. Running a full YOLO auto-generation with 3 agents mapped fires agent reviews at each matching pipeline step without error
+  2. Setting `MAX_AGENTS_PER_PIPELINE_STEP=2` limits reviews to the 2 highest-relevance agents even when 5 are mapped to a step
+  3. Agents below the `AGENT_RELEVANCE_THRESHOLD` do not fire for steps where their relevance score is below the threshold
+  4. A YOLO run with zero mapped agents completes at the same speed as pre-orchestration (no overhead introduced)
+**Plans**: TBD
+
+Plans:
+- [ ] 08-01: Add `MAX_AGENTS_PER_PIPELINE_STEP` and `AGENT_RELEVANCE_THRESHOLD` config values to `config.py`
+- [ ] 08-02: Implement relevance-score gating in the review middleware pipeline dispatcher
+- [ ] 08-03: Confirm YOLO auto-generation flow routes through the same review middleware path as manual generation
+- [ ] 08-04: Performance test a full YOLO run with 3 agents and verify total LLM call count matches expectations
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+
+Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel with Phases 4-6 once Phase 3 is complete.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Backend Foundation and Data Safety | 3/3 | Complete   | 2026-03-05 |
-| 2. Frontend Snippets Page | 2/4 | In Progress|  |
-| 3. RAG Integration and Enrichment | 0/TBD | Not started | - |
+| 1. DB Foundation | 0/3 | Not started | - |
+| 2. Pipeline Composer Service | 0/3 | Not started | - |
+| 3. Pipeline Map API and CRUD Wiring | 0/4 | Not started | - |
+| 4. Async Safety and Session Isolation | 0/3 | Not started | - |
+| 5. Agent Review Middleware | 0/5 | Not started | - |
+| 6. Wizard Injection | 0/4 | Not started | - |
+| 7. Frontend Pipeline Tree | 0/5 | Not started | - |
+| 8. YOLO Integration and Token Budget | 0/4 | Not started | - |
