@@ -19,7 +19,12 @@ from app.services.pipeline_composer import PipelineComposer
 
 @pytest.fixture
 def owner_id():
-    return uuid.uuid4()
+    """Return a string UUID for the owner.
+
+    SQLite test engine patches UUID columns to String(36), so we must use
+    string UUIDs for queries to match stored values.
+    """
+    return str(uuid.uuid4())
 
 
 @pytest.fixture
@@ -32,7 +37,7 @@ def make_agent(db_session, owner_id):
         agent_type=AgentType.BOOK_BASED,
     ):
         agent = Agent(
-            id=uuid.uuid4(),
+            id=str(uuid.uuid4()),
             owner_id=owner_id,
             name=name,
             system_prompt_template=system_prompt_template,
@@ -91,9 +96,9 @@ async def test_compose_zero_agents(db_session, owner_id):
     and makes zero AI calls. Any existing mappings for that owner are deleted."""
     # Pre-insert a stale mapping to confirm deletion
     stale_map = AgentPipelineMap(
-        id=uuid.uuid4(),
+        id=str(uuid.uuid4()),
         owner_id=owner_id,
-        agent_id=uuid.uuid4(),
+        agent_id=str(uuid.uuid4()),
         phase="idea",
         subsection_key="idea_wizard",
         confidence=0.5,

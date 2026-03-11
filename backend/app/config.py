@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:5174", "http://localhost:3000"]
     
     # Rate limiting
-    MAX_TOKENS: int = 1500
+    MAX_TOKENS: int = 4000
     MAX_SECTION_LENGTH: int = 1500
     
     # Caching
@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     # Agent settings
     MAX_AGENTS_PER_REVIEW: int = 5
     AGENT_REVIEW_TIMEOUT: int = 90
+
+    # Pipeline composition
+    PIPELINE_BATCH_SIZE: int = 5
+    PIPELINE_COMPOSITION_MAX_TOKENS: int = 2000
 
     # File storage
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
