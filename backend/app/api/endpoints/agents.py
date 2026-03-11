@@ -18,6 +18,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _agent_type_value(agent_type) -> str:
+    """Safely extract agent_type string value.
+
+    SQLite test fixtures patch Enum columns to String, so agent_type may
+    already be a plain string instead of an AgentType enum instance.
+    """
+    if agent_type is None:
+        return "book_based"
+    return agent_type.value if hasattr(agent_type, "value") else str(agent_type)
+
+
 async def _recompose_pipeline_background(owner_id_str: str):
     """Recompose pipeline mappings in a background task.
 
@@ -61,7 +72,7 @@ async def list_agents(
             "icon": a.icon,
             "is_active": a.is_active,
             "is_default": a.is_default,
-            "agent_type": a.agent_type.value if a.agent_type else "book_based",
+            "agent_type": _agent_type_value(a.agent_type),
             "tags_filter": a.tags_filter or [],
             "created_at": a.created_at.isoformat() if a.created_at else None,
             "book_count": len(a.books),
@@ -101,7 +112,7 @@ async def create_agent(
         "icon": agent.icon,
         "is_active": agent.is_active,
         "is_default": agent.is_default,
-        "agent_type": agent.agent_type.value if agent.agent_type else "book_based",
+        "agent_type": _agent_type_value(agent.agent_type),
         "tags_filter": agent.tags_filter or [],
     }
 
@@ -146,7 +157,7 @@ async def update_agent(
     """Update an agent's properties."""
     agent = (
         db.query(Agent)
-        .filter(Agent.id == agent_id, Agent.owner_id == current_user.id)
+        .filter(Agent.id == str(agent_id), Agent.owner_id == str(current_user.id))
         .first()
     )
     if not agent:
@@ -173,7 +184,7 @@ async def delete_agent(
     """Delete an agent."""
     agent = (
         db.query(Agent)
-        .filter(Agent.id == agent_id, Agent.owner_id == current_user.id)
+        .filter(Agent.id == str(agent_id), Agent.owner_id == str(current_user.id))
         .first()
     )
     if not agent:
