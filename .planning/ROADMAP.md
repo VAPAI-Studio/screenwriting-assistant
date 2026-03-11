@@ -43,12 +43,11 @@ Plans:
   3. A cosmetic agent edit (name, color, icon) does NOT trigger re-composition; a semantic edit (system_prompt_template, description) DOES set `pipeline_dirty=True`
   4. The composer handles the case where a user has zero agents without error (returns empty mapping)
   5. The composition prompt embeds all phase/subsection_key values from the active template system
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: Build `pipeline_composer.py` with AI batch mapping call at temperature=0
-- [ ] 02-02: Implement hash-based cache keyed on semantic agent fields to skip redundant re-inference
-- [ ] 02-03: Add `pipeline_dirty` flag logic — set on semantic field changes, cleared after composition
+- [ ] 02-01-PLAN.md — Core pipeline_composer.py service with AI mapping, template discovery, batch splitting, and COMP-01 TDD tests
+- [ ] 02-02-PLAN.md — Hash-based cache and semantic change detection with COMP-03 TDD tests
 
 ### Phase 3: Pipeline Map API and CRUD Wiring
 **Goal**: The frontend and generation layer can retrieve current pipeline mappings, and agent CRUD automatically triggers re-composition in the background
@@ -163,7 +162,7 @@ Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. DB Foundation | 0/3 | Not started | - |
-| 2. Pipeline Composer Service | 0/3 | Not started | - |
+| 2. Pipeline Composer Service | 0/2 | Not started | - |
 | 3. Pipeline Map API and CRUD Wiring | 0/4 | Not started | - |
 | 4. Async Safety and Session Isolation | 0/3 | Not started | - |
 | 5. Agent Review Middleware | 0/5 | Not started | - |
