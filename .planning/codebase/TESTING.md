@@ -1,56 +1,56 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-03-06
+**Analysis Date:** 2026-03-11
 
 ## Test Framework
 
 **Runner:**
-- pytest (Python backend only)
-- Config: no `pytest.ini` or `pyproject.toml` test config detected — uses pytest defaults
+- pytest v8.0.2
+- Config: `backend/pytest.ini`
+- Key settings: `testpaths = app/tests`, `pythonpath = .`, `asyncio_mode = auto`
 
 **Assertion Library:**
-- Built-in `assert` statements (pytest rewrites)
-- `pytest.raises` for exception testing
+- pytest built-in assertions (e.g., `assert response.status_code == 200`)
 
 **Run Commands:**
 ```bash
-cd backend
-source venv/bin/activate
-pytest app/tests/test_api.py                    # API endpoint tests
-pytest app/tests/test_validators.py             # Validator unit tests
-pytest app/tests/test_snippets_api.py           # Snippet Phase 1 tests
-pytest app/tests/test_snippet_manager.py        # Snippet Phase 2 tests
-pytest app/tests/test_snippet_extraction.py     # Extraction pipeline tests
-pytest app/tests/test_api.py -v                 # Verbose output
+pytest app/tests/                                     # Run all tests
+pytest app/tests/test_api.py -v                       # Run specific test file with verbose output
 pytest app/tests/test_api.py::TestProjectsAPI::test_create_project_valid  # Single test
 ```
+
+**Additional Testing Libraries:**
+- `pytest-asyncio==0.23.5` — async/await test support
+- `pytest-cov==4.1.0` — code coverage
+- `httpx>=0.25.0,<0.28.0` — FastAPI TestClient backend
+- `unittest.mock` — mocking (AsyncMock, patch)
 
 ## Test File Organization
 
 **Location:**
-- All tests co-located in `backend/app/tests/`
-- No frontend tests exist
+- Backend: `backend/app/tests/` (co-located with source)
+- Test files are sibling to source code, not in separate `tests/` directory
+- Frontend: No test files detected in codebase
 
 **Naming:**
-- Test files: `test_{module}.py` — `test_api.py`, `test_validators.py`, `test_snippets_api.py`, `test_snippet_manager.py`, `test_snippet_extraction.py`
-- Test classes: `Test{Feature}` — `TestProjectsAPI`, `TestSectionsAPI`, `TestSnippetsAPI`, `TestSnippetExtraction`
-- Test methods: `test_{what_is_tested}` — `test_create_project_valid`, `test_edit_snippet_persists`
+- Pattern: `test_*.py` prefix (e.g., `test_api.py`, `test_validators.py`, `test_snippet_manager.py`)
+- Descriptive names indicating test scope
 
-**Structure:**
+**Structure (Backend):**
 ```
 backend/app/tests/
 ├── __init__.py
-├── conftest.py                    # Fixtures: engine, db_session, client, auth headers, mock_embed
-├── test_api.py                    # Core API: projects, sections, review, auth, middleware
-├── test_validators.py             # Unit tests for backend/app/utils/validators.py
-├── test_snippets_api.py           # Phase 1: /api/books/{id}/snippets (BookChunk-based)
-├── test_snippet_manager.py        # Phase 2: /api/snippets (Snippet entity)
-└── test_snippet_extraction.py     # Phase 2: AI extraction pipeline
+├── conftest.py              # Shared fixtures
+├── test_api.py              # API endpoint tests
+├── test_validators.py       # Validator function tests
+├── test_snippets_api.py     # Snippet API tests (Phase 1)
+├── test_snippet_manager.py  # Snippet manager tests (Phase 2)
+└── test_snippet_extraction.py # Document processing tests
 ```
 
 ## Test Structure
 
-**Suite Organization:**
+**Suite Organization (from `backend/app/tests/test_api.py`):**
 ```python
 class TestProjectsAPI:
     """Test projects API endpoints"""
@@ -65,85 +65,26 @@ class TestProjectsAPI:
         assert response.status_code == 200
         data = response.json()
         assert data["title"] == "Test Project"
-        assert data["framework"] == "three_act"
 
-    def test_create_project_invalid_title(self, client, mock_auth_headers):
-        """Test creating a project with invalid title"""
-        response = client.post(
-            "/api/projects/",
-            json={"title": "", "framework": "three_act"},
-            headers=mock_auth_headers
-        )
-        assert response.status_code == 422
-        errors = response.json()["errors"]
-        assert any("title" in error["field"] for error in errors)
+class TestSectionsAPI:
+    """Test sections API endpoints"""
+
+    def test_update_section_content_validation(self, client, mock_auth_headers):
+        """Test updating section content with validation"""
+        ...
 ```
 
 **Patterns:**
-- Each test class groups tests for one feature area or API resource
-- Test methods receive fixtures via pytest injection — `self, client, db_session, mock_auth_headers`
-- Docstrings reference requirement IDs — `"""BROW-01: GET /api/books/{id}/snippets returns paginated list."""`
-- Happy path tested first, then validation failures, then edge cases
+- Test classes group related tests (one class per API resource or feature)
+- Test methods start with `test_` and are descriptive: `test_{action}_{scenario}`
+- Docstrings explain what is being tested
+- Fixtures passed as method parameters
 
-## Fixtures (conftest.py)
+## Mocking
 
-**All fixtures defined in `backend/app/tests/conftest.py`:**
+**Framework:** `unittest.mock` (from Python standard library)
 
-**`test_engine` (session-scoped):**
-```python
-@pytest.fixture(scope="session")
-def test_engine():
-    """Create a test database engine (SQLite in-memory)."""
-    _patch_uuid_columns_for_sqlite()
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    Base.metadata.create_all(bind=engine)
-    yield engine
-    Base.metadata.drop_all(bind=engine)
-```
-
-**`db_session` (function-scoped):**
-```python
-@pytest.fixture(scope="function")
-def db_session(test_engine):
-    """Create a fresh database session for each test."""
-    TestSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
-    session = TestSessionLocal()
-    try:
-        yield session
-    finally:
-        session.rollback()
-        session.close()
-```
-
-**`client` (function-scoped):**
-```python
-@pytest.fixture(scope="function")
-def client(db_session):
-    """Create a test client with overridden DB dependency."""
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            pass
-    app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as c:
-        yield c
-    app.dependency_overrides.clear()
-```
-
-**`mock_auth_headers`:**
-```python
-@pytest.fixture
-def mock_auth_headers():
-    """Return headers with mock authentication token."""
-    return {"Authorization": "Bearer mock-token"}
-```
-
-**`mock_embed`:**
+**Patterns from `backend/app/tests/conftest.py`:**
 ```python
 @pytest.fixture
 def mock_embed():
@@ -157,161 +98,146 @@ def mock_embed():
         yield mock
 ```
 
-## Database Strategy
-
-**SQLite in-memory with PostgreSQL compatibility patches:**
-- Production uses PostgreSQL; tests use SQLite via `StaticPool`
-- `_patch_uuid_columns_for_sqlite()` in `backend/app/tests/conftest.py` patches at session start:
-  - PostgreSQL `UUID` columns → `String(36)`
-  - PostgreSQL `Enum` columns → `String(50)`
-  - Custom `SafeVector` columns → `VectorAsText()` (JSON serialization for vector data)
-- `sqlite3.register_adapter(uuid.UUID, lambda u: str(u))` adapts Python UUIDs
-- Custom `VectorAsText` TypeDecorator serializes lists as JSON strings for SQLite round-tripping
-
-**Session lifecycle:**
-- Engine created once per test session (all tables created once)
-- Each test gets a fresh `db_session` that rolls back on teardown
-- FastAPI `get_db` dependency overridden per test via `app.dependency_overrides`
-
-## Mocking
-
-**Framework:** `unittest.mock` — `patch`, `AsyncMock`
-
-**External Service Mocking:**
-```python
-# Mock the embedding service to avoid real OpenAI calls
-with patch(
-    "app.services.embedding_service.embedding_service.embed_text",
-    new_callable=AsyncMock,
-    return_value=[0.1] * 1536,
-) as mock:
-    yield mock
-```
-
-```python
-# Mock AI extraction to return fixed response
-with patch.object(
-    service,
-    "_call_ai",
-    new_callable=AsyncMock,
-    return_value=FIXED_AI_RESPONSE,
-):
-    raw_snippets = asyncio.get_event_loop().run_until_complete(
-        service.extract_snippets(...)
-    )
-```
-
-**Failure Simulation for Atomic Rollback Tests:**
-```python
-with patch(
-    "app.services.embedding_service.embedding_service.embed_text",
-    new_callable=AsyncMock,
-    side_effect=RuntimeError("Embedding service unavailable"),
-):
-    with TestClient(app, raise_server_exceptions=False) as rollback_client:
-        resp = rollback_client.patch(...)
-    assert resp.status_code >= 500
-
-# Verify DB unchanged
-db_session.expire(chunk)
-db_session.refresh(chunk)
-assert chunk.content == original_content
-```
-
 **What to Mock:**
-- OpenAI embedding service (`embedding_service.embed_text`)
-- AI extraction service (`_call_ai`)
-- Any external API call
+- External API calls (OpenAI, Anthropic) — use `AsyncMock` for async functions
+- File I/O operations
+- Time-dependent functions
+- Database calls — overridden via dependency injection instead
 
 **What NOT to Mock:**
-- Database operations — use real SQLite in-memory DB
-- FastAPI routing, middleware, validation — tested through the full stack via `TestClient`
-- Pydantic schema validation
+- Database queries — use in-memory SQLite fixture (`test_engine`)
+- Validation functions — test them directly
+- Framework code (FastAPI, SQLAlchemy ORM)
+
+**Mocking Pattern in Tests (from `test_snippets_api.py`):**
+```python
+def test_edit_snippet_atomic_rollback(self, db_session, mock_auth_headers):
+    """If embed fails, DB content must be unchanged."""
+    # Use mock_embed fixture to prevent actual API calls
+    # Verify that exception is raised and DB rolled back
+```
 
 ## Fixtures and Factories
 
-**Test Data Helpers (defined as methods on test classes):**
-```python
-class TestSnippetsAPI:
-    def _make_book(self, db_session):
-        """Helper: create a completed book owned by the mock user."""
-        book = Book(
-            id=uuid.uuid4(),
-            owner_id=MOCK_USER_ID,
-            title="Test Book",
-            filename="test.pdf",
-            file_type="pdf",
-            status=BookStatus.COMPLETED,
-        )
-        db_session.add(book)
-        db_session.commit()
-        return book
+**Test Data (from `backend/app/tests/conftest.py`):**
 
-    def _make_chunk(self, db_session, book, index=0, is_user_created=False):
-        """Helper: create a BookChunk fixture."""
-        chunk = BookChunk(
-            id=uuid.uuid4(),
-            book_id=book.id,
-            chunk_index=index,
-            content=f"Chunk content {index}",
-            token_count=10,
-            is_user_created=is_user_created,
-            is_deleted=False,
-        )
-        db_session.add(chunk)
-        db_session.commit()
-        return chunk
+**Database fixtures:**
+```python
+@pytest.fixture(scope="session")
+def test_engine():
+    """Create a test database engine (SQLite in-memory)."""
+    _patch_uuid_columns_for_sqlite()
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+    yield engine
+    Base.metadata.drop_all(bind=engine)
+
+@pytest.fixture(scope="function")
+def db_session(test_engine):
+    """Create a fresh database session for each test."""
+    TestSessionLocal = sessionmaker(...)
+    session = TestSessionLocal()
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
 ```
 
-**Mock User ID constant:**
+**API client fixture:**
 ```python
-MOCK_USER_ID = uuid.UUID("12345678-1234-5678-1234-567812345678")
+@pytest.fixture(scope="function")
+def client(db_session):
+    """Create a test client with overridden DB dependency."""
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            pass
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as c:
+        yield c
+    app.dependency_overrides.clear()
 ```
 
-**Location:**
-- Shared fixtures: `backend/app/tests/conftest.py`
-- Class-specific helpers: `_make_book()`, `_make_chunk()`, `_make_snippet()` defined as private methods on test classes
+**Auth fixture:**
+```python
+@pytest.fixture
+def mock_auth_headers():
+    """Return headers with mock authentication token."""
+    return {"Authorization": "Bearer mock-token"}
+```
+
+**Helper Factories (from `test_snippet_manager.py`):**
+```python
+def _make_book(self, db_session):
+    """Helper: create a completed book owned by the mock user."""
+    book = Book(
+        id=uuid.uuid4(),
+        owner_id=MOCK_USER_ID,
+        title="Test Book",
+        filename="test.pdf",
+        file_type="pdf",
+        status=BookStatus.COMPLETED,
+    )
+    db_session.add(book)
+    db_session.commit()
+    return book
+
+def _make_snippet(self, db_session, book, **kwargs):
+    """Helper: create a Snippet record for a given book."""
+    defaults = dict(
+        id=uuid.uuid4(),
+        book_id=str(book.id),
+        content="test content",
+        token_count=42,
+    )
+    defaults.update(kwargs)
+    snippet = Snippet(**defaults)
+    db_session.add(snippet)
+    db_session.commit()
+    return snippet
+```
+
+**Location:** Helper methods defined in test class itself (underscore-prefixed)
 
 ## Coverage
 
-**Requirements:** None enforced — no coverage config or thresholds detected
+**Requirements:** No coverage threshold enforced (not configured in `pytest.ini`)
 
 **View Coverage:**
 ```bash
-cd backend && source venv/bin/activate
-pytest --cov=app app/tests/     # If pytest-cov installed
+pytest --cov=app app/tests/  # Generate coverage report
 ```
+
+**Tools:**
+- `pytest-cov==4.1.0` provides coverage plugin
 
 ## Test Types
 
 **Unit Tests:**
-- `backend/app/tests/test_validators.py` — tests standalone validation functions in isolation
-- Pure function tests: input/output assertions, `pytest.raises` for expected exceptions
-- No DB or HTTP client needed
+- Scope: Individual functions and methods (validators, service helpers)
+- Approach: Direct function calls, minimal fixtures
+- Example from `test_validators.py`:
+```python
+def test_validate_email(self):
+    """Test email validation"""
+    assert validate_email("user@example.com") is True
+    assert validate_email("invalid.email") is False
+```
 
-**Integration Tests (API):**
-- `backend/app/tests/test_api.py` — tests endpoint handlers through FastAPI TestClient
-- `backend/app/tests/test_snippets_api.py` — Phase 1 snippet CRUD
-- `backend/app/tests/test_snippet_manager.py` — Phase 2 snippet manager CRUD
-- Full request/response cycle: HTTP method, headers, JSON body, status code, response body
-- Database state verified after mutations: `db_session.refresh(obj); assert obj.field == expected`
-
-**Pipeline Tests:**
-- `backend/app/tests/test_snippet_extraction.py` — tests AI extraction pipeline with mocked AI
-- Uses `asyncio.get_event_loop().run_until_complete()` for async service methods
-- Verifies DB records created correctly after pipeline execution
-
-**E2E Tests:**
-- Not present — no Playwright, Cypress, or similar framework
-
-**Frontend Tests:**
-- Not present — no test files, no vitest/jest config detected
-
-## Common Patterns
-
-**API Endpoint Testing:**
+**Integration Tests:**
+- Scope: Full API endpoints with database interactions
+- Approach: Use TestClient with overridden dependency injection, in-memory SQLite database
+- Example from `test_api.py`:
 ```python
 def test_create_project_valid(self, client, mock_auth_headers):
+    """Test creating a project with valid data"""
     response = client.post(
         "/api/projects/",
         json={"title": "Test Project", "framework": "three_act"},
@@ -322,9 +248,35 @@ def test_create_project_valid(self, client, mock_auth_headers):
     assert data["title"] == "Test Project"
 ```
 
-**Validation Error Testing:**
+**E2E Tests:**
+- Status: Not detected in codebase
+- Frontend testing infrastructure not set up (no test files, no jest/vitest config)
+
+## Common Patterns
+
+**Async Testing:**
+- `pytest-asyncio` automatically detects async test functions
+- No special decorator needed (asyncio_mode = auto in pytest.ini)
+- Example from `test_snippets_api.py`:
+```python
+def test_edit_snippet_persists(self, client, db_session, mock_auth_headers, mock_embed):
+    """EDIT-01: PATCH updates content in DB."""
+    book = self._make_book(db_session)
+    chunk = self._make_chunk(db_session, book, index=0)
+
+    # AsyncMock fixture handles embedding call
+    resp = client.patch(
+        f"/api/books/{book.id}/snippets/{chunk.id}",
+        json={"content": "Updated content"},
+        headers=mock_auth_headers,
+    )
+    assert resp.status_code == 200
+```
+
+**Error Testing:**
 ```python
 def test_create_project_invalid_title(self, client, mock_auth_headers):
+    """Test creating a project with invalid title"""
     response = client.post(
         "/api/projects/",
         json={"title": "", "framework": "three_act"},
@@ -335,79 +287,77 @@ def test_create_project_invalid_title(self, client, mock_auth_headers):
     assert any("title" in error["field"] for error in errors)
 ```
 
-**Exception Testing (unit):**
+**Validation Testing (from `test_validators.py`):**
 ```python
 def test_validate_project_title(self):
+    """Test project title validation"""
+    # Valid titles
+    validate_project_title("My Project")
+    validate_project_title("A" * 255)
+
+    # Invalid titles
     with pytest.raises(HTTPException) as exc:
         validate_project_title("")
     assert exc.value.status_code == 400
     assert "empty" in exc.value.detail
 ```
 
-**Soft Delete Testing:**
+**State Verification:**
 ```python
-def test_delete_snippet_soft(self, client, db_session, mock_auth_headers):
-    # Delete via API
-    resp = client.delete(f"/api/books/{book.id}/snippets/{chunk.id}", headers=mock_auth_headers)
+def test_edit_snippet_persists(self, client, db_session, mock_auth_headers, mock_embed):
+    """Verify database state after operation."""
+    # Setup
+    book = self._make_book(db_session)
+    chunk = self._make_chunk(db_session, book, index=0)
+
+    # Operation
+    resp = client.patch(...)
     assert resp.status_code == 200
 
-    # Verify is_deleted flag in DB
+    # Verify state
     db_session.refresh(chunk)
-    assert chunk.is_deleted is True
-
-    # Verify absent from list endpoint
-    list_resp = client.get(f"/api/books/{book.id}/snippets", headers=mock_auth_headers)
-    ids_in_list = [item["id"] for item in list_resp.json()["items"]]
-    assert str(chunk.id) not in ids_in_list
+    assert chunk.content == "Updated content for the snippet"
 ```
 
-**Atomic Rollback Testing:**
+**Special Test Setup for PostgreSQL Features:**
+
+From `conftest.py` — Tests run on SQLite but need to handle PostgreSQL-specific features:
 ```python
-def test_edit_snippet_atomic_rollback(self, db_session, mock_auth_headers):
-    """If embed fails, DB content must be unchanged."""
-    # ... setup ...
-    with patch("...embed_text", side_effect=RuntimeError("fail")):
-        with TestClient(app, raise_server_exceptions=False) as rollback_client:
-            resp = rollback_client.patch(...)
-    assert resp.status_code >= 500
-    db_session.expire(chunk)
-    db_session.refresh(chunk)
-    assert chunk.content == original_content
+def _patch_uuid_columns_for_sqlite():
+    """Patch PostgreSQL UUID columns, Enum columns, and SafeVector columns to work with SQLite."""
+    from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+
+    for table in Base.metadata.tables.values():
+        for column in table.columns:
+            if isinstance(column.type, PG_UUID):
+                column.type = String(36)
+            elif isinstance(column.type, SAEnum):
+                column.type = String(50)
+            elif isinstance(column.type, SafeVector):
+                column.type = VectorAsText()
 ```
 
-**Async Service Testing:**
-```python
-raw_snippets = asyncio.get_event_loop().run_until_complete(
-    service.extract_snippets(
-        chapter_text="...",
-        chapter_title="Chapter 1",
-        book_title="Test Book",
-        concepts=fake_concepts,
-    )
-)
-assert len(raw_snippets) >= 1
-```
+## Test Coverage Gaps
 
-## Test Inventory
+**Frontend:**
+- No test files present
+- No test runner configured (no jest/vitest config)
+- React components, hooks, API client untested
 
-| File | Classes | Test Count | Focus |
-|------|---------|------------|-------|
-| `backend/app/tests/test_api.py` | `TestProjectsAPI`, `TestSectionsAPI`, `TestReviewAPI`, `TestAuthAPI`, `TestMiddleware` | ~11 | Core API endpoints, validation, middleware |
-| `backend/app/tests/test_validators.py` | `TestValidators` | ~7 | Standalone validator functions |
-| `backend/app/tests/test_snippets_api.py` | `TestSnippetsAPI`, `TestRetryBook` | ~7 | Phase 1 snippet CRUD on BookChunks |
-| `backend/app/tests/test_snippet_manager.py` | `TestSnippetAPI` | ~4 | Phase 2 snippet CRUD on Snippet entity |
-| `backend/app/tests/test_snippet_extraction.py` | `TestSnippetExtraction` | ~2 | AI extraction pipeline |
+**Backend:**
+- Middleware tests exist but are incomplete (e.g., `test_rate_limiting()` is a stub)
+- Service layer tests minimal (only `openai_service` implicitly tested via endpoint tests)
+- Edge cases in complex services (document processing, RAG, embedding) not fully covered
 
-## Key Test Conventions
+## Best Practices Observed
 
-1. **Always pass `mock_auth_headers`** for authenticated endpoints — value is `{"Authorization": "Bearer mock-token"}`
-2. **Use `mock_embed` fixture** for any test that triggers embedding (snippet create/edit)
-3. **Verify DB state after mutations** — call `db_session.refresh(obj)` then assert field values
-4. **Use `raise_server_exceptions=False`** on TestClient when testing that 5xx errors are returned gracefully
-5. **Requirement traceability** — docstrings reference ticket IDs like `BROW-01`, `EDIT-02`, `CUST-03`, `EXTR-01`
-6. **Helper methods prefixed with `_`** on test classes for creating test data — `_make_book()`, `_make_chunk()`, `_make_snippet()`
-7. **Mock user ID is stable** — `uuid.UUID("12345678-1234-5678-1234-567812345678")` matches `MockAuthService`
+1. **Isolation:** Each test gets a fresh database session (scope="function")
+2. **Clarity:** Descriptive test names and docstrings explain intent
+3. **Fixtures:** Common setup (auth, DB) centralized in conftest.py
+4. **Dependency Injection:** Database dependency overridden via FastAPI's `dependency_overrides`
+5. **SQLite for Testing:** In-memory database for speed and isolation
+6. **Mock External Services:** OpenAI calls mocked to avoid API costs and network flakiness
 
 ---
 
-*Testing analysis: 2026-03-06*
+*Testing analysis: 2026-03-11*

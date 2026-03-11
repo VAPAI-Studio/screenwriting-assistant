@@ -1,186 +1,188 @@
 # External Integrations
 
-**Analysis Date:** 2026-03-06
+**Analysis Date:** 2026-03-11
 
 ## APIs & External Services
 
-**Large Language Models:**
+**AI Providers (Dual-Provider Support):**
 
-- **Anthropic Claude** - Primary AI provider for chat completions (default)
-  - SDK/Client: `anthropic` (>=0.39.0)
-  - Auth: `ANTHROPIC_API_KEY` environment variable
-  - Model: `ANTHROPIC_MODEL` env var (default: `claude-sonnet-4-6`)
-  - Capabilities used: non-streaming chat, streaming chat
-  - Implementation: `backend/app/services/ai_provider.py` → `_anthropic_completion()`, `_anthropic_stream()`
-  - System prompt handling: Extracted from messages list and passed as top-level `system` param
+1. **OpenAI**
+   - What it's used for: LLM completions, embeddings, knowledge graph extraction, structured JSON responses
+   - SDK/Client: `openai` v1.12.0
+   - Auth: `OPENAI_API_KEY` environment variable
+   - Models supported:
+     - `gpt-4o` (default chat model)
+     - `gpt-4` (knowledge graph extraction, `KG_EXTRACTION_MODEL`)
+     - `text-embedding-3-small` (embeddings, default 1536 dimensions)
+   - Implementation: `backend/app/services/ai_provider.py` → `_openai_completion()`, `_openai_stream()`
+   - Rate limit handling: Exponential backoff in embedding service
 
-- **OpenAI GPT-4** - Secondary AI provider and embeddings (always used for embeddings)
-  - SDK/Client: `openai` 1.12.0
-  - Auth: `OPENAI_API_KEY` environment variable
-  - Chat model: `OPENAI_MODEL` env var (default: `gpt-4o`)
-  - Embedding model: `EMBEDDING_MODEL` env var (default: `text-embedding-3-small`, dimension: 1536)
-  - Capabilities used: chat completions, JSON mode, streaming, batch embeddings
-  - Implementation: `backend/app/services/ai_provider.py`, `backend/app/services/embedding_service.py`
-  - Knowledge extraction always uses `gpt-4` (via `KG_EXTRACTION_MODEL` config in `backend/app/config.py`)
+2. **Anthropic**
+   - What it's used for: LLM completions, streaming responses, agent-based reviews
+   - SDK/Client: `anthropic` >=0.39.0
+   - Auth: `ANTHROPIC_API_KEY` environment variable
+   - Models supported:
+     - `claude-sonnet-4-6` (default chat model)
+   - Implementation: `backend/app/services/ai_provider.py` → `_anthropic_completion()`, `_anthropic_stream()`
+   - JSON mode support: Manual instruction appending to system prompt
 
-**Provider Switching:**
-- Controlled by `AI_PROVIDER` env var ("openai" or "anthropic")
-- All chat routes through unified `chat_completion()` in `backend/app/services/ai_provider.py`
-- Embeddings are always OpenAI regardless of `AI_PROVIDER` setting
-- Clients are lazy-initialized to avoid startup errors when a key is missing
+**Provider Selection:**
+- Active provider configured via `AI_PROVIDER` env var ("openai" or "anthropic")
+- Lazy client initialization (missing API keys don't crash on import)
+- Unified interface: `chat_completion()` and `chat_completion_stream()` in `ai_provider.py`
 
 ## Data Storage
 
-**Databases:**
+**Primary Database:**
 - **PostgreSQL 15 with pgvector extension**
+  - Docker image: `pgvector/pgvector:pg15`
   - Connection: `DATABASE_URL` environment variable
-  - Format: `postgresql://user:password@host:5432/dbname`
-  - Client: psycopg2-binary 2.9.9
-  - ORM: SQLAlchemy 2.0.27 (synchronous sessions via `SessionLocal`)
-  - Session management: `backend/app/db.py` → `get_db()` dependency
-  - Vector columns: Custom `SafeVector` type in `backend/app/models/database.py` (handles psycopg2 list/string format differences)
-  - Embedding dimension: 1536 (matches `text-embedding-3-small`)
-
-**Database Schema (Migration Files):**
-- `backend/migrations/init_db.sql` - Core tables: projects, sections, checklist_items
-- `backend/migrations/002_knowledge_graph.sql` - Books, chunks, concepts, relationships, agents
-- `backend/migrations/003_template_system.sql` - Template system: phase_data, list_items, ai_sessions, ai_messages, wizard_runs, screenplay_content
-- `backend/migrations/004_agent_type_and_quality.sql` - Agent type enum, quality score columns
-- `backend/migrations/005_book_progress.sql` - Book processing progress tracking
-- `backend/migrations/006_snippet_management.sql` - Snippet soft-delete and user-created flags
-- `backend/migrations/007_snippets_table.sql` - Dedicated snippets table
+  - ORM: SQLAlchemy 2.0.27
+  - Client: `psycopg2-binary` 2.9.9
+  - Database name (default): "screenwriter_db"
+  - Tables: 24+ (projects, sections, books, concepts, agents, chat sessions, etc.)
+  - Vector support: SafeVector custom type for embeddings (1536-dimensional)
 
 **File Storage:**
-- **Local filesystem** only — no cloud object storage
-  - Upload directory: `backend/uploads/` (configured via `UPLOAD_DIR` in `backend/app/config.py`)
-  - Docker volume: `book_uploads` (persisted across container restarts)
-  - Max file size: `MAX_BOOK_SIZE_MB` (default: 50MB)
-  - Supported formats: PDF (PyPDF2), EPUB (ebooklib)
-  - Processing: `backend/app/services/document_service.py`, `backend/app/services/book_processing_service.py`
+- Local filesystem only
+- Upload directory: `backend/uploads/` (configurable via `UPLOAD_DIR`)
+- Volumes: `book_uploads` (Docker Compose)
+- File types supported: PDF (PyPDF2), EPUB (ebooklib)
+- Max file size: 50MB (configurable via `MAX_BOOK_SIZE_MB`)
+- Tracking: Filename and metadata stored in `Book` table
 
 **Caching:**
-- **In-memory only** — no Redis, Memcached, or external cache
-  - AI response cache (LRU, 100 items): `backend/app/services/openai_service.py` — `OpenAIService.cache`
-  - Embedding cache (LRU, 500 items): `backend/app/services/embedding_service.py` — `EmbeddingService._cache`
-  - Cache keys: MD5 hash of content
-  - Cache TTL: configured by `CACHE_TTL` (default: 900 seconds / 15 min)
-  - Note: Cache is process-local and does not persist across restarts
+- In-memory only (no Redis)
+- Backend caches:
+  - OpenAI embedding query results (500-item LRU cache in `EmbeddingService`)
+  - AI response caching (15-minute TTL, configurable via `CACHE_TTL`)
+- Frontend: React Query with 5-minute stale time default
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- **Custom JWT (Mock implementation for MVP)**
-  - Implementation: `backend/app/services/auth_service.py`
-  - JWT library: python-jose 3.3.0, algorithm: HS256
-  - Token expiry: 7 days for access tokens, 15 minutes for magic link tokens
-  - Password hashing: passlib 1.7.4 with bcrypt
-  - Development mock: `MockAuthService` returns fixed user `12345678-1234-5678-1234-567812345678`
-  - Mock token string: `"mock-token"` accepted in all API tests
-  - Frontend storage: `localStorage` key `AUTH_TOKEN_KEY`
-  - Request header format: `Authorization: Bearer <token>`
-  - Auth endpoints: `backend/app/api/endpoints/auth.py` → `/api/auth`
-  - Dependencies: `backend/app/api/dependencies.py` → `get_current_user()`
+- Custom implementation (mock auth for MVP)
+- Implementation: `backend/app/services/auth_service.py`
+- Auth method: Mock token ("mock-token" for development)
+- JWT support: `python-jose[cryptography]` 3.3.0
+- Password hashing: `passlib[bcrypt]` 1.7.4
+- Token storage (frontend): `localStorage`
+- Token format: Bearer token in Authorization header
+
+**User Identity:**
+- Owner ID: UUID (tracked in projects, books, agents, chat sessions)
+- No password-based authentication in MVP
+- Session tracking: Per-project and per-chat session
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Not integrated — no Sentry, Datadog, or similar service
+- Not detected (no Sentry, Rollbar, etc.)
 
 **Logs:**
-- Python `logging` module (standard library only)
-- Configuration: `backend/app/main.py` → `logging.basicConfig()`
+- Standard Python logging (`logging` module)
+- Log level: INFO (development: DEBUG)
 - Format: `%(asctime)s - %(name)s - %(levelname)s - %(message)s`
-- Levels: DEBUG in development, INFO in production (controlled by `ENVIRONMENT` config)
-- Request/response logging: `backend/app/middleware.py` → `LoggingMiddleware` (logs method, path, client IP, status, duration, request ID)
+- Log files: Console output only
+- Custom middleware logging: `LoggingMiddleware` in `backend/app/middleware.py`
 
-**Performance Metrics:**
-- Not integrated — no APM service
+**Middleware Instrumentation:**
+- `LoggingMiddleware` - Request/response logging
+- `SecurityMiddleware` - Security header enforcement
+- `RateLimitMiddleware` - 600 requests/minute (development), configurable for production
+- `RequestSizeLimitMiddleware` - 10MB request limit
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Docker Compose (local/self-hosted) — all services defined in `docker-compose.yml`
-- No cloud platform (AWS, GCP, Azure, Vercel, Railway, etc.) configured
+- Not preconfigured (infrastructure-agnostic)
+- Container-ready: Docker & Docker Compose provided
 
 **CI Pipeline:**
-- Not configured — no GitHub Actions, GitLab CI, CircleCI, or other CI service
+- Not detected (no GitHub Actions, GitLab CI, etc.)
+
+**Containerization:**
+- Docker Compose orchestration: 3 services (db, backend, frontend)
+- Backend: `Dockerfile` with Python 3.11-slim, Uvicorn
+- Frontend: `Dockerfile` with Node 18-alpine, Vite dev server
+- Database: Pre-built pgvector/pgvector:pg15 image
 
 ## Environment Configuration
 
-**Required env vars (will fail or warn if missing):**
-- `DATABASE_URL` - Full PostgreSQL connection string
-- `SECRET_KEY` - JWT signing secret (startup warning if default value used)
-- `POSTGRES_PASSWORD` - Required by `docker-compose.yml` (no default allowed)
-- `OPENAI_API_KEY` - Required if `AI_PROVIDER=openai` or for embeddings
-- `ANTHROPIC_API_KEY` - Required if `AI_PROVIDER=anthropic` (default provider)
+**Required Environment Variables:**
+- `POSTGRES_PASSWORD` - Database password (Docker Compose requirement)
+- `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` - AI provider key (at least one required)
+- `SECRET_KEY` - JWT signing key (must be changed from default in production)
 
-**Optional env vars with defaults:**
+**Optional Environment Variables:**
+- `DATABASE_URL` - PostgreSQL URL (default: postgresql://user:password@localhost:5432/screenwriter_db)
 - `AI_PROVIDER` - "openai" or "anthropic" (default: "anthropic")
 - `OPENAI_MODEL` - (default: "gpt-4o")
 - `ANTHROPIC_MODEL` - (default: "claude-sonnet-4-6")
+- `ALLOWED_ORIGINS` - CORS whitelist JSON (default: localhost:5173, localhost:3000, localhost:5174)
+- `ENVIRONMENT` - "development" | "staging" | "production"
+- `DEBUG` - True/False (auto-set from ENVIRONMENT)
 - `EMBEDDING_MODEL` - (default: "text-embedding-3-small")
-- `EMBEDDING_DIMENSION` - (default: 1536)
-- `ENVIRONMENT` - "development", "staging", "production" (default: "development")
-- `ALLOWED_ORIGINS` - JSON array of allowed CORS origins (default: localhost:5173, localhost:3000)
-- `MAX_TOKENS` - AI response token limit (default: 4000)
-- `MAX_SECTION_LENGTH` - Max section text length (default: 1500 chars)
-- `CACHE_TTL` - Cache TTL seconds (default: 900)
-- `MAX_BOOK_SIZE_MB` - Max upload size (default: 50)
-- `CHUNK_SIZE_TOKENS` - Book chunking size (default: 750)
-- `CHUNK_OVERLAP_TOKENS` - Chunk overlap (default: 150)
-- `MAX_CHUNKS_PER_RETRIEVAL` - RAG retrieval limit (default: 6)
-- `MAX_CONCEPTS_PER_REVIEW` - Agent concept limit (default: 10)
-- `KG_EXTRACTION_MODEL` - Model for knowledge graph extraction (default: "gpt-4")
-- `MAX_AGENTS_PER_REVIEW` - Max agents per review (default: 5)
-- `AGENT_REVIEW_TIMEOUT` - Agent timeout seconds (default: 90)
-- `VITE_API_URL` - Frontend API base URL (frontend, default: "/api" in Docker)
+- `MAX_TOKENS`, `MAX_SECTION_LENGTH`, `CACHE_TTL` - Performance tuning
+- `POSTGRES_USER`, `POSTGRES_DB` - Database credentials
 
-**Secrets location:**
-- Development: `.env` file at project root or `backend/.env` (not committed)
-- Production: Environment variables injected into Docker containers via `docker-compose.yml`
-- `docker-compose.yml` uses `${VAR:?error}` syntax to enforce required vars at startup
+**Secrets Location:**
+- Backend: `.env` file (git-ignored)
+- Frontend: Environment variables at build/deploy time
+- Docker Compose: `.env` file for service configuration
+
+**Configuration Validation:**
+- Pydantic v2 field validators in `backend/app/config.py`
+- Production validation: Rejects default SECRET_KEY, warns on localhost in ALLOWED_ORIGINS
+- Environment validation: Enforces valid values (development/staging/production)
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- Not implemented — no webhook endpoints
+- Not detected (no webhook endpoints)
 
 **Outgoing:**
-- Not implemented — no outbound webhooks
+- Not detected (API clients only, no outbound callbacks)
 
-## AI Service Integration Details
+## Third-Party Integrations Used in Data Processing
 
-**Unified Chat Completion Pattern:**
-```python
-# All AI calls go through this interface in backend/app/services/ai_provider.py
-await chat_completion(messages=[...], temperature=0.7, max_tokens=2000, json_mode=True)
-await chat_completion_stream(messages=[...], temperature=0.7, max_tokens=2000)
-```
+**Document Processing:**
+- **PyPDF2 3.0.1** - PDF text extraction
+- **ebooklib 0.18** - EPUB ebook processing
+- **BeautifulSoup4 4.12.3** - HTML/XML parsing from extracted documents
 
-**Streaming Response Pattern:**
-- Used in: `backend/app/api/endpoints/ai_chat.py`, `backend/app/api/endpoints/chat.py`
-- Returns: `StreamingResponse` with `text/event-stream` content type
-- Yields text chunks from `chat_completion_stream()` async generator
+**Embeddings & Vector Search:**
+- **pgvector** - PostgreSQL vector storage and similarity search
+- **Embeddings generated via OpenAI API** (text-embedding-3-small, 1536 dimensions)
+- **tiktoken 0.7.0** - OpenAI token counting for input size tracking
 
-**Embedding Pipeline:**
-```python
-# In backend/app/services/embedding_service.py
-await embedding_service.embed_text(text)          # Single embedding, cached
-await embedding_service.embed_batch(texts, batch_size=50)  # Batched with rate limit retry
-```
+## Database Schema Highlights
 
-**Knowledge Graph Extraction:**
-- Service: `backend/app/services/knowledge_extraction_service.py`
-- Uses `KG_EXTRACTION_MODEL` (default: "gpt-4") via OpenAI directly
-- Extracts: concepts, relationships, definitions, examples, actionable questions
-- Stores: `backend/app/models/database.py` → `Concept`, `ConceptRelationship` tables
+**Core Tables:**
+- `projects` - Screenplay projects with framework/template selection
+- `sections` - Legacy section system (deprecated in favor of phase_data)
+- `phase_data` - Template system with phases (idea, story, scenes, write)
+- `list_items` - Ordered content items within phase data
 
-**RAG Retrieval:**
-- Service: `backend/app/services/rag_service.py`
-- Mode 1 (concept-first): Queries concepts by `section_relevance` score, traverses relationships
-- Mode 2 (semantic): Embeds user message, searches concept + chunk embeddings via pgvector
-- Max retrieval: `MAX_CHUNKS_PER_RETRIEVAL` (default: 6 chunks)
+**Book Processing:**
+- `books` - Uploaded books with processing status tracking
+- `book_chunks` - Document chunks with embeddings
+- `snippets` - User-created or extracted snippets with vectors
+- `concepts` - Knowledge graph nodes extracted from books
+- `concept_relationships` - Graph edges (depends_on, related_to, part_of, example_of, contradicts, extends)
+
+**AI & Chat:**
+- `ai_sessions` - Scoped chat contexts (project + phase + subsection)
+- `ai_messages` - Message history with metadata
+- `chat_sessions` - Agent-based chat conversations
+- `chat_messages` - Agent chat history with book references and agent consultation log
+- `wizard_runs` - Results of automated generation wizards
+
+**Agents & Configuration:**
+- `agents` - Custom AI agents (book-based, tag-based, orchestrator)
+- `agent_books` - Association table for agent-book relationships
+- `screenplay_content` - Generated screenplay formatted output
 
 ---
 
-*Integration audit: 2026-03-06*
+*Integration audit: 2026-03-11*

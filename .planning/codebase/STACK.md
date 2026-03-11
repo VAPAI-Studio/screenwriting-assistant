@@ -1,138 +1,168 @@
 # Technology Stack
 
-**Analysis Date:** 2026-03-06
+**Analysis Date:** 2026-03-11
 
 ## Languages
 
 **Primary:**
-- Python 3.11 - Backend API and all services
-- TypeScript 5.2.2 - Frontend React application, types, all `.ts`/`.tsx` files
-- SQL - PostgreSQL database schemas and migration scripts
+- **Python 3.11** - Backend API, AI service integration, document processing
+- **TypeScript 5.2** - Frontend application with strict type checking
+- **SQL** - PostgreSQL schemas and migrations
 
 **Secondary:**
-- JavaScript - Frontend build tooling config files (e.g., `frontend/tailwind.config.js`, `frontend/postcss.config.js`)
+- **JavaScript (ES2020)** - Node.js scripts, build tooling
+- **Bash** - Container initialization, development automation
 
 ## Runtime
 
-**Environment:**
-- Python 3.11 (via Docker/virtualenv at `backend/venv/`)
-- Node.js 18+ (managed via Vite and npm)
-- PostgreSQL 15 with pgvector extension
+**Backend:**
+- Python 3.11 (slim base image in Docker)
+- Uvicorn ASGI server
+- PYTHONPATH configured to `/app`
 
-**Package Manager:**
-- npm (frontend) - lockfile: `frontend/package-lock.json` (present)
-- pip (backend) - pinned in `backend/requirements.txt` (present)
+**Frontend:**
+- Node.js 18 (Alpine base in Docker)
+- Vite 5.1 (dev server and build tool)
+- Browser runtime (ES2020+)
+
+**Package Managers:**
+- **Backend:** pip (Python) with virtual environment isolation (`venv/`)
+- **Frontend:** npm with lockfile (`package-lock.json`)
 
 ## Frameworks
 
-**Core:**
-- FastAPI 0.110.0 - Backend REST API framework, entry point `backend/app/main.py`
-- Uvicorn 0.27.1 - ASGI server for FastAPI
-- React 18.2.0 - Frontend UI library, entry point `frontend/src/main.tsx`
-- Vite 5.1.0 - Frontend build tool and dev server (port 5173)
-- SQLAlchemy 2.0.27 - ORM for all database interactions
-- Pydantic 2.10+ with pydantic-settings 2.6+ - Data validation and config management
+**Backend:**
+- **FastAPI 0.110.0** - REST API framework with automatic OpenAPI documentation
+- **SQLAlchemy 2.0.27** - ORM with support for PostgreSQL extensions (pgvector)
+- **Pydantic v2** (>=2.10) - Request/response validation with field validators
+- **Pydantic Settings** (>=2.6) - Environment-based configuration management
+
+**Frontend:**
+- **React 18.2** - UI framework with hooks
+- **React Router v6.21** - Client-side routing with `BrowserRouter`
+- **React Query (TanStack) v5.20** - Server state management with 5-minute stale time default
+- **React Markdown 10.1** - Markdown rendering with GitHub flavored markdown support (`remark-gfm`)
+
+**UI & Styling:**
+- **Tailwind CSS 3.4** - Utility-first CSS framework with HSL CSS variables for theming
+- **Radix UI** - Headless component library:
+  - `@radix-ui/react-dialog` v1.0.5 - Modal dialogs
+  - `@radix-ui/react-dropdown-menu` v2.0.6 - Dropdown menus
+  - `@radix-ui/react-select` v2.0.0 - Accessible select components
+  - `@radix-ui/react-tabs` v1.0.4 - Tabbed interfaces
+  - `@radix-ui/react-toast` v1.1.5 - Toast notifications
+  - `@radix-ui/react-slot` v1.0.2 - Slot rendering
+- **Lucide React 0.314** - Icon library (314+ icons)
+- **Class Variance Authority 0.7** - Type-safe CSS class composition
+- **Tailwind Merge 2.2** - Merge Tailwind CSS classes without conflicts
 
 **Testing:**
-- pytest 8.0.2 - Backend unit and integration tests
-- pytest-asyncio 0.23.5 - Async test support for FastAPI endpoints
-- pytest-cov 4.1.0 - Coverage reporting
-- httpx 0.25.0-0.27.x - Async HTTP client used in test fixtures
+- **pytest 8.0.2** - Python test runner
+- **pytest-asyncio 0.23.5** - Async test support for FastAPI
+- **pytest-cov 4.1.0** - Code coverage reporting
+- **httpx >=0.25.0,<0.28.0** - Async HTTP client for testing
 
-**Build/Dev:**
-- TypeScript 5.2.2 - Strict mode enabled (`frontend/tsconfig.json`)
-- ESLint 8.56.0 - Frontend linting with `@typescript-eslint` rules
-- Tailwind CSS 3.4.1 - Utility-first CSS with HSL CSS variable theming
-- PostCSS 8.4.35 + Autoprefixer 10.4.17 - CSS processing pipeline
-
-**UI Component Layer:**
-- Radix UI (dialog, dropdown-menu, select, slot, tabs, toast) - Accessible, unstyled component primitives
-- class-variance-authority 0.7.0 - Variant-based component composition
-- clsx 2.1.0 + tailwind-merge 2.2.1 - Conditional class utilities
-- lucide-react 0.314.0 - Icon library
+**Development Tools:**
+- **TypeScript 5.2** - Static type checking
+- **Vite 5.1** - Fast dev server and build bundler
+- **ESLint 8.56** - TypeScript/JavaScript linting with React plugin
+- **@typescript-eslint** - TypeScript AST linting support
+- **PostCSS 8.4** - CSS processor for Tailwind
+- **Autoprefixer 10.4** - Browser vendor prefixes
 
 ## Key Dependencies
 
-**Critical:**
-- `openai` 1.12.0 - OpenAI GPT-4 and embedding API client; used by `backend/app/services/ai_provider.py` and `backend/app/services/embedding_service.py`
-- `anthropic` >=0.39.0 - Anthropic Claude API client (default AI provider); used by `backend/app/services/ai_provider.py`
-- `psycopg2-binary` 2.9.9 - PostgreSQL adapter for SQLAlchemy
-- `pgvector` 0.3.6 - Vector column support in PostgreSQL for storing embeddings
+**Critical (Backend):**
+- **openai 1.12.0** - OpenAI API client for GPT models and embeddings
+- **anthropic >=0.39.0** - Anthropic API client for Claude models
+- **psycopg2-binary 2.9.9** - PostgreSQL adapter for Python
+- **python-jose[cryptography] 3.3.0** - JWT authentication
+- **pgvector 0.3.6** - PostgreSQL vector extension support for embeddings
+- **tiktoken 0.7.0** - Token counting for OpenAI models
 
-**Auth & Security:**
-- `python-jose` 3.3.0 - JWT encoding/decoding in `backend/app/services/auth_service.py`
-- `passlib` 1.7.4 with bcrypt - Password hashing
-- `python-multipart` 0.0.9 - Multipart form uploads (book file ingestion)
+**Infrastructure (Backend):**
+- **uvicorn 0.27.1** - ASGI application server
+- **python-multipart 0.0.9** - Form data and file upload parsing
+- **passlib[bcrypt] 1.7.4** - Password hashing (bcrypt)
 
 **Document Processing:**
-- `PyPDF2` 3.0.1 - PDF text extraction in `backend/app/services/document_service.py`
-- `ebooklib` 0.18 - EPUB parsing in `backend/app/services/document_service.py`
-- `beautifulsoup4` 4.12.3 - HTML/XML parsing for EPUB content
+- **PyPDF2 3.0.1** - PDF extraction and manipulation
+- **ebooklib 0.18** - eBook format handling (EPUB)
+- **beautifulsoup4 4.12.3** - HTML/XML parsing
+- **numpy >=1.24.0** - Numerical operations (required by pgvector)
 
-**AI/ML Utilities:**
-- `tiktoken` 0.7.0 - Token counting for GPT-4 based on `gpt-4` tokenizer
-- `numpy` >=1.24.0 - Numerical support for embedding operations
-
-**Frontend State/Routing:**
-- `@tanstack/react-query` 5.20.1 - Server state management (5-minute stale time by convention)
-- `react-router-dom` 6.21.3 - Client-side routing
-- `react-markdown` 10.1.0 + `remark-gfm` 4.0.1 - Markdown rendering in AI responses
+**Frontend State & Utilities:**
+- **clsx 2.1.0** - Conditional CSS class concatenation
+- **react-dom 18.2** - React DOM rendering
 
 ## Configuration
 
-**Environment (Backend):**
-- Managed via Pydantic Settings class in `backend/app/config.py`
-- Loads from `.env` file and environment variables
-- Required at startup: `DATABASE_URL`, `SECRET_KEY`, `OPENAI_API_KEY` (or `ANTHROPIC_API_KEY`)
-- AI provider selected by `AI_PROVIDER` env var ("openai" or "anthropic", default: "anthropic")
-- Default Anthropic model: `claude-sonnet-4-6`
-- Default OpenAI model: `gpt-4o`
-- Embedding model: `text-embedding-3-small` (always OpenAI, even if Anthropic is primary provider)
+**Environment:**
 
-**Environment (Frontend):**
-- Vite env vars prefixed with `VITE_`
-- `VITE_API_URL` - API base URL (defaults to `/api` in Docker)
-- `VITE_PROXY_TARGET` - Backend URL for Vite proxy (defaults to `http://localhost:8000`)
+Backend configuration via Pydantic Settings (`backend/app/config.py`) with `.env` file support:
+- `DATABASE_URL` - PostgreSQL connection string (required)
+- `AI_PROVIDER` - "openai" or "anthropic" (default: "anthropic")
+- `OPENAI_API_KEY` - OpenAI API key (required if provider is openai)
+- `OPENAI_MODEL` - Model name (default: "gpt-4o")
+- `ANTHROPIC_API_KEY` - Anthropic API key (required if provider is anthropic)
+- `ANTHROPIC_MODEL` - Model name (default: "claude-sonnet-4-6")
+- `SECRET_KEY` - JWT signing key (must be changed in production)
+- `ALLOWED_ORIGINS` - CORS whitelist (defaults: localhost:5173, localhost:3000, localhost:5174)
+- `ENVIRONMENT` - "development", "staging", or "production"
+- `DEBUG` - Debug mode (auto-set based on ENVIRONMENT)
+- `EMBEDDING_MODEL` - OpenAI embedding model (default: "text-embedding-3-small")
+- `MAX_TOKENS` - Max response tokens (default: 4000)
+- `MAX_SECTION_LENGTH` - Max section content length (default: 1500)
+- `CACHE_TTL` - Caching time-to-live in seconds (default: 900 / 15 min)
+- `UPLOAD_DIR` - File upload directory (default: `backend/uploads/`)
+- `MAX_BOOK_SIZE_MB` - Max book file size (default: 50)
+- `CHUNK_SIZE_TOKENS` - Document chunk size (default: 750)
+- `AGENT_REVIEW_TIMEOUT` - Agent timeout in seconds (default: 90)
+
+Frontend configuration via Vite environment:
+- `VITE_API_URL` - API endpoint path (default: "/api", proxied to backend)
+- `VITE_PROXY_TARGET` - Backend URL for dev proxy (default: "http://localhost:8000")
+
+Docker Compose overrides via environment:
+- `POSTGRES_USER` - Database user (default: "screenwriter")
+- `POSTGRES_PASSWORD` - Database password (required)
+- `POSTGRES_DB` - Database name (default: "screenwriter_db")
 
 **Build:**
-- `frontend/vite.config.ts` - Dev server at `:5173`, proxies `/api` to backend
-- `frontend/tailwind.config.js` - Tailwind with HSL CSS variable theming
-- `frontend/tsconfig.json` - Strict TS, ES2020 target, bundler module resolution
+- Frontend: `frontend/tsconfig.json` (ES2020, JSX support, strict mode)
+- Frontend: `frontend/vite.config.ts` (React plugin, API proxy on port 5173)
+- Backend: Uses standard Python packaging with `requirements.txt`
+
+**Testing:**
+- `backend/pytest.ini` - pytest configuration
+- Test discovery: `backend/app/tests/test_*.py`
+- Run: `pytest` or specific test file `pytest app/tests/test_api.py`
 
 ## Platform Requirements
 
 **Development:**
-- Docker 20.10+ and Docker Compose 2.0+ (full stack via `docker compose up --build`)
-- OR: Node.js 18+ for frontend standalone, Python 3.11+ with virtualenv for backend standalone
-- PostgreSQL 15 with pgvector extension required for database
+- **Python 3.11+** (backend)
+- **Node.js 18+** (frontend, Alpine image in Docker)
+- **PostgreSQL 15 with pgvector extension** (database)
+- **Docker & Docker Compose** (optional, full-stack via containers)
+- **OpenAI API key** or **Anthropic API key** (for AI features)
 
 **Production:**
-- Docker container runtime
-- PostgreSQL 15 with pgvector extension (or managed service with extension support)
-- File storage volume for uploaded books (`book_uploads`)
-- `SECRET_KEY` must be overridden from default; `POSTGRES_PASSWORD` is required
+- Deployment target: Container orchestration (Kubernetes) or managed cloud platforms
+- Minimum: Docker, PostgreSQL 15, API keys for AI providers
+- Security: Production-grade `SECRET_KEY`, HTTPS CORS origins, environment-based config
+- Validation: ENVIRONMENT must be set to "production" to trigger security checks
 
-## Docker Configuration
+## Node and Python Versions
 
-**Services Defined in `docker-compose.yml`:**
-- `db` - `pgvector/pgvector:pg15` image; runs migrations from `backend/migrations/` on init
-- `backend` - Custom image from `backend/Dockerfile`; mounts `backend/app/` for live reload
-- `frontend` - Custom image from `frontend/Dockerfile`; mounts `frontend/src/` for live reload
+**Node:**
+- `frontend/Dockerfile` specifies `node:18-alpine`
+- No `.nvmrc` file detected
 
-**Volumes:**
-- `postgres_data` - PostgreSQL persistent data
-- `book_uploads` - Uploaded books and documents (shared between host and backend container)
-
-**Port Mapping:**
-- Frontend: 5173
-- Backend API: 8000
-- PostgreSQL: 5432
-
-**Migration Strategy:**
-- SQL files in `backend/migrations/` auto-applied at DB container init
-- Files: `init_db.sql`, `002_knowledge_graph.sql`, `003_template_system.sql`, `004_agent_type_and_quality.sql`, `005_book_progress.sql`, `006_snippet_management.sql`, `007_snippets_table.sql`
-- No Alembic — all schema changes require new numbered SQL files
+**Python:**
+- `backend/Dockerfile` specifies `python:3.11-slim`
+- No `.python-version` file detected
 
 ---
 
-*Stack analysis: 2026-03-06*
+*Stack analysis: 2026-03-11*
