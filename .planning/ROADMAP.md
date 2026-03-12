@@ -132,13 +132,11 @@ Plans:
   2. Setting `MAX_AGENTS_PER_PIPELINE_STEP=2` limits reviews to the 2 highest-relevance agents even when 5 are mapped to a step
   3. Agents below the `AGENT_RELEVANCE_THRESHOLD` do not fire for steps where their relevance score is below the threshold
   4. A YOLO run with zero mapped agents completes at the same speed as pre-orchestration (no overhead introduced)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: Add `MAX_AGENTS_PER_PIPELINE_STEP` and `AGENT_RELEVANCE_THRESHOLD` config values to `config.py`
-- [ ] 08-02: Implement relevance-score gating in the review middleware pipeline dispatcher
-- [ ] 08-03: Confirm YOLO auto-generation flow routes through the same review middleware path as manual generation
-- [ ] 08-04: Performance test a full YOLO run with 3 agents and verify total LLM call count matches expectations
+- [ ] 08-01-PLAN.md — Config values (MAX_AGENTS_PER_PIPELINE_STEP, AGENT_RELEVANCE_THRESHOLD) and relevance-score gating in middleware lookup
+- [ ] 08-02-PLAN.md — Wire YOLO _yolo_run_wizard through agent review middleware with integration tests
 
 ## Progress
 
@@ -156,4 +154,4 @@ Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel 
 | 5. Agent Review Middleware | 0/2 | Not started | - |
 | 6. Wizard Injection | 0/1 | Not started | - |
 | 7. Frontend Pipeline Tree | 0/3 | Not started | - |
-| 8. YOLO Integration and Token Budget | 0/4 | Not started | - |
+| 8. YOLO Integration and Token Budget | 0/2 | Not started | - |
