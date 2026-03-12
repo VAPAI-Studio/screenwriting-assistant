@@ -1,6 +1,6 @@
 # backend/app/models/schemas.py
 
-from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator
+from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator, model_validator
 from typing import List, Optional, Dict
 from datetime import datetime
 from uuid import UUID
@@ -481,8 +481,17 @@ class WizardRunResponse(BaseModel):
     error_message: Optional[str] = None
     created_at: datetime
     completed_at: Optional[datetime] = None
+    agents_consulted: List[Dict] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+    @model_validator(mode="after")
+    def extract_agents_consulted(self):
+        """Extract agents_consulted from result._meta for convenient access."""
+        if not self.agents_consulted and self.result:
+            meta = self.result.get("_meta", {})
+            self.agents_consulted = meta.get("agents_consulted", [])
+        return self
 
 
 class FillBlanksRequest(BaseModel):
