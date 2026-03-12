@@ -75,7 +75,7 @@ export interface ReviewResponse {
 // Book types
 // ============================================================
 
-export type BookStatus = 'pending' | 'extracting' | 'analyzing' | 'embedding' | 'completed' | 'failed';
+export type BookStatus = 'pending' | 'extracting' | 'analyzing' | 'embedding' | 'completed' | 'failed' | 'paused';
 
 export interface Book {
   id: string;
@@ -86,9 +86,12 @@ export interface Book {
   file_size_bytes: number;
   status: BookStatus;
   processing_step: string | null;
+  processing_error: string | null;
+  progress: number;
+  chapters_total: number;
+  chapters_processed: number;
   total_chunks: number;
   total_concepts: number;
-  processing_error: string | null;
   uploaded_at: string;
   processed_at: string | null;
 }
@@ -109,6 +112,8 @@ export interface Concept {
 // Agent types
 // ============================================================
 
+export type AgentType = 'book_based' | 'tag_based' | 'orchestrator';
+
 export interface Agent {
   id: string;
   name: string;
@@ -118,6 +123,8 @@ export interface Agent {
   icon: string;
   is_active: boolean;
   is_default: boolean;
+  agent_type: AgentType;
+  tags_filter: string[];
   created_at: string;
   book_count: number;
 }
@@ -145,12 +152,19 @@ export interface BookReference {
   page?: string;
 }
 
+export interface ConsultedAgent {
+  agent_id: string;
+  name: string;
+  color: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   message_type: 'chat' | 'review' | 'system';
   book_references: BookReference[];
+  consulted_agents: ConsultedAgent[];
   created_at: string;
 }
 
@@ -168,6 +182,29 @@ export interface AgentReviewResult {
   book_references: BookReference[];
   status: 'completed' | 'error';
   error?: string;
+}
+
+// ============================================================
+// Pipeline Map types (Phase 7)
+// ============================================================
+
+export interface PipelineMapEntry {
+  id: string;
+  owner_id: string;
+  agent_id: string;
+  phase: string;
+  subsection_key: string;
+  confidence: number;
+  rationale: string | null;
+  pipeline_dirty: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface PipelineMapResponse {
+  owner_id: string;
+  entries: PipelineMapEntry[];
+  total_mappings: number;
 }
 
 // Re-export template types

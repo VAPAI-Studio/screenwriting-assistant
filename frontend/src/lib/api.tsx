@@ -2,11 +2,12 @@
 
 import {
   Project, Section, ChecklistItem, ReviewRequest, ReviewResponse,
-  Book, Concept, Agent, ChatSession, ChatMessage,
+  Book, Concept, Agent, AgentType, ChatSession, ChatMessage,
   TemplateConfig, TemplateListItem, PhaseDataResponse, ListItemResponse,
   AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
-  Snippet, SnippetListResponse,
+  Snippet, SnippetListResponse, PipelineMapResponse,
 } from '../types';
+import type { YoloEvent } from '../types/template';
 import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT, CHAT_TIMEOUT } from './constants';
 
 // Get auth token from localStorage or use mock token for development
@@ -212,6 +213,39 @@ export const api = {
     return response.json();
   },
 
+  async getAgentTags(): Promise<{ tags: string[] }> {
+    const response = await fetch(`${API_BASE_URL}/agents/tags`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch agent tags');
+    return response.json();
+  },
+
+  async createAgent(data: {
+    name: string;
+    description?: string;
+    system_prompt_template: string;
+    personality?: string;
+    color: string;
+    icon: string;
+    agent_type: AgentType;
+    tags_filter: string[];
+  }): Promise<Agent> {
+    const response = await fetch(`${API_BASE_URL}/agents/`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create agent');
+    return response.json();
+  },
+
+  async deleteAgent(agentId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/agents/${agentId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete agent');
+  },
+
   async seedDefaultAgents(): Promise<void> {
     const response = await fetch(`${API_BASE_URL}/agents/seed-defaults`, {
       method: 'POST',
@@ -234,6 +268,34 @@ export const api = {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to unlink book from agent');
+  },
+
+  async updateAgent(agentId: string, data: {
+    name?: string;
+    description?: string;
+    system_prompt_template?: string;
+    personality?: string;
+    color?: string;
+    icon?: string;
+    is_active?: boolean;
+    agent_type?: AgentType;
+    tags_filter?: string[];
+  }): Promise<Agent> {
+    const response = await fetch(`${API_BASE_URL}/agents/${agentId}`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update agent');
+    return response.json();
+  },
+
+  async getPipelineMap(): Promise<PipelineMapResponse> {
+    const response = await fetch(`${API_BASE_URL}/agents/pipeline-map`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch pipeline map');
+    return response.json();
   },
 
   // ============================================================
@@ -313,6 +375,61 @@ export const api = {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to delete session');
+  },
+
+  async sendChatMessageStream(
+    sessionId: string,
+    content: string,
+    onChunk: (chunk: string) => void,
+    onDone: (data: { field_updates?: Record<string, string>; list_items_created?: number }) => void,
+    fieldContext?: Record<string, unknown>,
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages/stream`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ content, field_context: fieldContext }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to send chat message');
+
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6);
+          if (payload === '[DONE]') return;
+
+          try {
+            const data = JSON.parse(payload);
+            if (data.chunk) {
+              onChunk(data.chunk);
+            } else if (data.field_updates !== undefined || data.done) {
+              onDone({ field_updates: data.field_updates, list_items_created: data.list_items_created ?? 0 });
+            }
+          } catch {
+            // skip malformed events
+          }
+        }
+      }
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
   },
 
   // ============================================================
@@ -532,7 +649,7 @@ export const api = {
               onChunk(data.chunk);
             } else if (data.field_updates !== undefined) {
               // Action mode: field updates arrived after streaming completed
-              onDone({ id: data.id, metadata: { field_updates: data.field_updates, applied: data.applied } });
+              onDone({ id: data.id, metadata: { field_updates: data.field_updates, applied: data.applied, list_items_created: data.list_items_created ?? 0 } });
             } else if (data.done) {
               onDone({ id: data.id });
             }
@@ -556,7 +673,7 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete AI session');
   },
 
-  async fillBlanks(data: { project_id: string; phase: string; subsection_key: string; item_id?: string }): Promise<Record<string, any>> {
+  async fillBlanks(data: { project_id: string; phase: string; subsection_key: string; item_id?: string; field_key?: string }): Promise<Record<string, any>> {
     const response = await fetchWithTimeout(`${API_BASE_URL}/ai/fill-blanks`, {
       method: 'POST',
       headers: getHeaders(),
@@ -674,5 +791,57 @@ export const api = {
       headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to retry book');
+  },
+
+  // ============================================================
+  // YOLO Auto-Fill
+  // ============================================================
+
+  async yoloFill(
+    projectId: string,
+    onEvent: (event: YoloEvent) => void,
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes for all phases
+    try {
+      const response = await fetch(`${API_BASE_URL}/ai/yolo-fill`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ project_id: projectId }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to start YOLO fill');
+
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6);
+          if (payload === '[DONE]') return;
+
+          try {
+            const data = JSON.parse(payload) as YoloEvent;
+            onEvent(data);
+          } catch {
+            // skip malformed events
+          }
+        }
+      }
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
   },
 };

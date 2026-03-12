@@ -3,7 +3,7 @@
 import { SectionType, Framework } from '../types';
 
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 export const API_TIMEOUT = 30000; // 30 seconds
 export const CHAT_TIMEOUT = 120000; // 2 minutes for agent chat/review
 
@@ -147,6 +147,9 @@ export const STORAGE_KEYS = {
   AUTOSAVE_ENABLED: 'autosave_enabled',
   SIDEBAR_CHAT_WIDTH: 'sidebar_chat_width',
   CHAT_SIDEBAR_WIDTH: 'chat_sidebar_width',
+  SIDEBAR_CHAT_PANEL_MODE: 'sidebar_chat_panel_mode',
+  LAST_PHASE: 'last_phase',
+  LAST_SUBSECTION: 'last_subsection',
 } as const;
 
 // Query Keys for React Query
@@ -162,6 +165,7 @@ export const QUERY_KEYS = {
   BOOK_CONCEPTS: (id: string) => ['book-concepts', id],
   SNIPPETS: (bookId: string) => ['snippets', bookId],
   AGENTS: 'agents',
+  AGENT_TAGS: 'agent_tags',
   CHAT_SESSIONS: (projectId: string) => ['chat-sessions', projectId],
   CHAT_MESSAGES: (sessionId: string) => ['chat-messages', sessionId],
   TEMPLATES: 'templates',
@@ -174,6 +178,7 @@ export const QUERY_KEYS = {
   AI_SESSIONS: (projectId: string) => ['ai-sessions', projectId],
   AI_MESSAGES: (sessionId: string) => ['ai-messages', sessionId],
   WIZARD_RUN: (id: string) => ['wizard-run', id],
+  PIPELINE_MAP: 'pipeline-map',
 } as const;
 
 // Theme Configuration
@@ -243,3 +248,13 @@ export const ROUTES = {
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password'
 } as const;
+
+export const ORCHESTRATOR_PROMPT_TEMPLATE = `You are {name}, an orchestrator agent that coordinates multiple specialized screenwriting consultants. You synthesize insights from book-based and tag-based agents to provide comprehensive, well-rounded guidance.
+
+## Sub-Agent Responses
+{agent_responses}
+
+## Writer's Project
+{project_context}
+
+Synthesize the above into a cohesive, actionable response for the writer.`;
