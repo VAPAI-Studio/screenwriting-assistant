@@ -24,9 +24,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Frontend Pipeline Visualization
 
-- [ ] **TREE-01**: Collapsible tree view component showing which agents activate at which pipeline steps
+- [x] **TREE-01**: Collapsible tree view component showing which agents activate at which pipeline steps
 - [ ] **TREE-02**: Tree view auto-refreshes when agents are created, edited, or deleted
-- [ ] **TREE-03**: Per-agent toggle to exclude/include individual agents from the pipeline
+- [x] **TREE-03**: Per-agent toggle to exclude/include individual agents from the pipeline
 
 ### YOLO Integration
 
@@ -81,9 +81,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-03 | Phase 5 | Pending |
 | REVW-04 | Phase 5 | Pending |
 | REVW-05 | Phase 4 | Complete |
-| TREE-01 | Phase 7 | Pending |
+| TREE-01 | Phase 7 | Complete |
 | TREE-02 | Phase 7 | Pending |
-| TREE-03 | Phase 7 | Pending |
+| TREE-03 | Phase 7 | Complete |
 | YOLO-01 | Phase 8 | Pending |
 | YOLO-02 | Phase 8 | Pending |
 
