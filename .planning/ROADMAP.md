@@ -87,14 +87,11 @@ Plans:
   3. The merge AI call returns output matching the expected wizard result JSON schema with explicit conflict-resolution rules applied (most specific and actionable suggestion wins, not a blend)
   4. When zero agents are mapped to a step, the function returns `raw_output` unchanged and makes zero additional LLM calls
   5. The response includes `agents_consulted` metadata listing which agents ran and their contribution summary
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Build `agent_review_middleware.py` with `review_step_output()` entry point and agent lookup by `(owner_id, phase, subsection_key)`
-- [ ] 05-02: Implement parallel fan-out via `asyncio.gather` with per-task session factory
-- [ ] 05-03: Build `_build_pipeline_system_prompt()` mapping phase/subsection_key to agent template variables
-- [ ] 05-04: Implement merge AI call with conflict-resolution prompt engineering and token-length cap
-- [ ] 05-05: Implement zero-agent pass-through bypass and `agents_consulted` metadata attachment
+- [ ] 05-01-PLAN.md — Core middleware with review_step_output entry point, agent lookup, parallel fan-out, session-per-task, and zero-agent pass-through (TDD)
+- [ ] 05-02-PLAN.md — AI merge call with conflict-resolution prompt, schema validation per wizard_type, and agents_consulted summaries (TDD)
 
 ### Phase 6: Wizard Injection
 **Goal**: Manual screenplay generation through the wizard automatically routes through agent review at each step, with review metadata surfaced in the response
@@ -161,7 +158,7 @@ Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel 
 | 2. Pipeline Composer Service | 0/2 | Not started | - |
 | 3. Pipeline Map API and CRUD Wiring | 0/2 | Not started | - |
 | 4. Async Safety and Session Isolation | 0/1 | Not started | - |
-| 5. Agent Review Middleware | 0/5 | Not started | - |
+| 5. Agent Review Middleware | 0/2 | Not started | - |
 | 6. Wizard Injection | 0/4 | Not started | - |
 | 7. Frontend Pipeline Tree | 0/5 | Not started | - |
 | 8. YOLO Integration and Token Budget | 0/4 | Not started | - |
