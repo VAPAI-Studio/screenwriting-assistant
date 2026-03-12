@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-03-11T22:01:58.188Z"
-last_activity: 2026-03-11 — Completed 03-02-PLAN.md (Pipeline map integration tests)
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-03-12T00:59:56.029Z"
+last_activity: 2026-03-12 — Completed 04-01-PLAN.md (Session-per-task refactor for asyncio.gather)
 progress:
   total_phases: 8
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Agents you create actually influence the screenplay you generate — they don't just sit idle waiting for you to chat with them.
-**Current focus:** Phase 3 — Pipeline Map API and CRUD Wiring
+**Current focus:** Phase 4 — Async Safety and Session Isolation
 
 ## Current Position
 
-Phase: 3 of 8 (Pipeline Map API and CRUD Wiring) -- COMPLETE
-Plan: 2 of 2 in current phase (03-02 complete)
+Phase: 4 of 8 (Async Safety and Session Isolation) -- COMPLETE
+Plan: 1 of 1 in current phase (04-01 complete)
 Status: Phase Complete
-Last activity: 2026-03-11 — Completed 03-02-PLAN.md (Pipeline map integration tests)
+Last activity: 2026-03-12 — Completed 04-01-PLAN.md (Session-per-task refactor for asyncio.gather)
 
 Progress: [██████████] 100%
 
@@ -57,6 +57,7 @@ Progress: [██████████] 100%
 | Phase 02 P02 | 2min | 1 tasks | 1 files |
 | Phase 03 P01 | 2min | 2 tasks | 2 files |
 | Phase 03 P02 | 5min | 1 tasks | 2 files |
+| Phase 04 P01 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -82,6 +83,9 @@ Recent decisions affecting current work:
 - [Phase 03]: update_agent gates recomposition on is_semantic_change() -- cosmetic fields skip recomposition
 - [Phase 03]: _agent_type_value() helper for safe enum/string extraction in SQLite test environment
 - [Phase 03]: str() casting on UUID path params for cross-DB filter compatibility (PostgreSQL auto-casts, SQLite needs string comparison)
+- [Phase 04]: SessionFactory type alias (Callable[[], Session]) at module level for reuse across all gather sites
+- [Phase 04]: Optional session_factory param with backward-compatible fallback in _orchestrate/_orchestrate_stream_prepare
+- [Phase 04]: try/finally pattern for session cleanup to handle asyncio.CancelledError correctly
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-11T21:57:06Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-03-12T00:59:56.026Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None

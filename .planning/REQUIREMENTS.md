@@ -20,7 +20,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **REVW-02**: All agents mapped to a step review the generated output in parallel via `asyncio.gather`
 - [ ] **REVW-03**: AI merge call synthesizes all agent feedback into refined output matching the expected wizard result schema
 - [ ] **REVW-04**: If no agents are mapped to a step, generation passes through unchanged (zero-impact bypass)
-- [ ] **REVW-05**: Fix shared DB session bug in existing `run_multi_agent_review` for safe concurrent async context
+- [x] **REVW-05**: Fix shared DB session bug in existing `run_multi_agent_review` for safe concurrent async context
 
 ### Frontend Pipeline Visualization
 
@@ -80,7 +80,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REVW-02 | Phase 5 | Pending |
 | REVW-03 | Phase 5 | Pending |
 | REVW-04 | Phase 5 | Pending |
-| REVW-05 | Phase 4 | Pending |
+| REVW-05 | Phase 4 | Complete |
 | TREE-01 | Phase 7 | Pending |
 | TREE-02 | Phase 7 | Pending |
 | TREE-03 | Phase 7 | Pending |
