@@ -8,25 +8,49 @@ from uuid import UUID
 from ...models import schemas, database
 from ..dependencies import get_db, get_current_user
 from ...services.template_ai_service import template_ai_service
+from ...db import SessionLocal
+from ...services.agent_review_middleware import agent_review_middleware
 
 router = APIRouter()
 
 
 def _get_project_context(db: Session, project: database.Project) -> str:
-    """Build project context string from all phase data."""
-    phase_data = db.query(database.PhaseData).filter(
+    """Build project context string from all phase data, including list items."""
+    phase_data_records = db.query(database.PhaseData).filter(
         database.PhaseData.project_id == project.id
     ).all()
 
     project_data = {}
-    for pd in phase_data:
+    list_items_map = {}
+    for pd in phase_data_records:
         phase_key = pd.phase.value if hasattr(pd.phase, 'value') else pd.phase
         if phase_key not in project_data:
             project_data[phase_key] = {}
         project_data[phase_key][pd.subsection_key] = pd.content or {}
 
+        # Include list items (characters, scenes, etc.)
+        if pd.list_items:
+            items = [{"item_type": li.item_type, **(li.content or {})} for li in pd.list_items]
+            if items:
+                list_items_map[f"{phase_key}.{pd.subsection_key}"] = items
+
     template_id = project.template.value if hasattr(project.template, 'value') else project.template
-    return template_ai_service._build_project_context(project_data, template_id)
+    return template_ai_service._build_project_context(project_data, template_id, list_items=list_items_map, project_title=project.title)
+
+
+def _get_character_data(db: Session, project_id) -> list:
+    """Fetch character ListItems for the project."""
+    characters_pd = db.query(database.PhaseData).filter(
+        database.PhaseData.project_id == project_id,
+        database.PhaseData.phase == "story",
+        database.PhaseData.subsection_key == "characters",
+    ).first()
+    if not characters_pd:
+        return []
+    items = db.query(database.ListItem).filter(
+        database.ListItem.phase_data_id == characters_pd.id
+    ).order_by(database.ListItem.sort_order).all()
+    return [{"item_type": li.item_type, **(li.content or {})} for li in items]
 
 
 @router.post("/run", response_model=schemas.WizardRunResponse)
@@ -61,13 +85,36 @@ async def run_wizard(
     project_context = _get_project_context(db, project)
     template_id = project.template.value
 
+    # Inject character data for scene wizard
+    config = dict(request.config)
+    if request.wizard_type == "scene_wizard":
+        config["_characters"] = _get_character_data(db, project.id)
+
     try:
         result = await template_ai_service.wizard_generate(
             wizard_type=request.wizard_type,
-            config=request.config,
+            config=config,
             project_context=project_context,
             template_id=template_id
         )
+
+        # REVW-01: Route through agent review middleware
+        review_result = await agent_review_middleware.review_step_output(
+            phase=request.phase,
+            subsection_key=request.wizard_type,
+            raw_output=result,
+            owner_id=str(current_user.id),
+            session_factory=SessionLocal,
+            wizard_type=request.wizard_type,
+        )
+        result = review_result["output"]
+
+        # Embed review metadata in result JSON
+        if "_meta" not in result:
+            result["_meta"] = {}
+        result["_meta"]["agents_consulted"] = review_result["agents_consulted"]
+        result["_meta"]["review_applied"] = review_result["review_applied"]
+
         wizard_run.result = result
         wizard_run.status = "completed"
     except Exception as e:
@@ -123,23 +170,29 @@ async def apply_wizard_results(
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    result = wizard_run.result or {}
+    return apply_wizard_result_to_db(
+        db, project, wizard_run.phase, wizard_run.wizard_type, wizard_run.result or {}
+    )
+
+
+def apply_wizard_result_to_db(db: Session, project, phase: str, wizard_type: str, result: dict) -> dict:
+    """Apply wizard generation results to the database. Reusable by both the apply endpoint and YOLO fill."""
 
     # Idea wizard: update PhaseData fields directly
-    if wizard_run.wizard_type == "idea_wizard":
+    if wizard_type == "idea_wizard":
         fields = result.get("fields", {})
         if not fields:
             return {"status": "success", "message": "No fields to apply"}
 
         phase_data = db.query(database.PhaseData).filter(
             database.PhaseData.project_id == project.id,
-            database.PhaseData.phase == wizard_run.phase,
+            database.PhaseData.phase == phase,
             database.PhaseData.subsection_key == "idea_wizard",
         ).first()
         if not phase_data:
             phase_data = database.PhaseData(
                 project_id=project.id,
-                phase=wizard_run.phase,
+                phase=phase,
                 subsection_key="idea_wizard",
                 content={},
             )
@@ -155,33 +208,68 @@ async def apply_wizard_results(
 
     items_created = 0
 
-    # Determine which phase_data to add items to
-    if wizard_run.wizard_type == "episode_wizard":
-        items_key = "episodes"
-        item_type = "episode"
-        subsection_key = "episode_list"
-    elif wizard_run.wizard_type == "scene_wizard":
+    # Script writer wizard: store screenplays in ScreenplayContent + PhaseData
+    if wizard_type == "script_writer_wizard":
+        screenplays = result.get("screenplays", [])
+        if not screenplays:
+            return {"status": "success", "items_created": 0, "message": "No screenplays to apply"}
+
+        phase_data = db.query(database.PhaseData).filter(
+            database.PhaseData.project_id == project.id,
+            database.PhaseData.phase == phase,
+            database.PhaseData.subsection_key == "screenplay_editor"
+        ).first()
+        if not phase_data:
+            phase_data = database.PhaseData(
+                project_id=project.id,
+                phase=phase,
+                subsection_key="screenplay_editor",
+                content={},
+            )
+            db.add(phase_data)
+            db.flush()
+
+        phase_data.content = {"screenplays": screenplays}
+        flag_modified(phase_data, "content")
+
+        for sp in screenplays:
+            sc = database.ScreenplayContent(
+                project_id=project.id,
+                content=sp.get("content", ""),
+                formatted_content=sp,
+            )
+            db.add(sc)
+
+        db.commit()
+        return {"status": "success", "items_created": len(screenplays)}
+
+    # Episode/scene wizard: create ListItem records
+    if wizard_type == "scene_wizard":
         items_key = "scenes"
         item_type = "scene"
         subsection_key = "scene_list"
     else:
         return {"status": "success", "items_created": 0, "message": "No items to apply for this wizard type"}
 
-    # Find the target phase_data
     phase_data = db.query(database.PhaseData).filter(
         database.PhaseData.project_id == project.id,
-        database.PhaseData.phase == wizard_run.phase,
+        database.PhaseData.phase == phase,
         database.PhaseData.subsection_key == subsection_key
     ).first()
     if not phase_data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Phase data for {subsection_key} not found")
+        phase_data = database.PhaseData(
+            project_id=project.id,
+            phase=phase,
+            subsection_key=subsection_key,
+            content={},
+        )
+        db.add(phase_data)
+        db.flush()
 
-    # Get current max sort_order
     existing_count = db.query(database.ListItem).filter(
         database.ListItem.phase_data_id == phase_data.id
     ).count()
 
-    # Create list items from results
     generated_items = result.get(items_key, [])
     for i, item_data in enumerate(generated_items):
         db_item = database.ListItem(
