@@ -271,6 +271,7 @@ export function AgentManager() {
     mutationFn: (data: Parameters<typeof api.createAgent>[0]) => api.createAgent(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AGENTS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PIPELINE_MAP] });
       setShowCreateForm(false);
     },
   });
@@ -279,6 +280,7 @@ export function AgentManager() {
     mutationFn: (agentId: string) => api.deleteAgent(agentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AGENTS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PIPELINE_MAP] });
     },
   });
 
