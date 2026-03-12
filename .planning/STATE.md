@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-12T02:42:12.034Z"
-last_activity: 2026-03-11 — Completed 05-02-PLAN.md (AI merge with schema validation)
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-12T03:01:22.373Z"
+last_activity: 2026-03-12 — Completed 06-01-PLAN.md (wizard injection with agents_consulted)
 progress:
   total_phases: 8
-  completed_phases: 5
-  total_plans: 10
-  completed_plans: 10
+  completed_phases: 6
+  total_plans: 11
+  completed_plans: 11
   percent: 100
 ---
 
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Agents you create actually influence the screenplay you generate — they don't just sit idle waiting for you to chat with them.
-**Current focus:** Phase 5 — Agent Review Middleware
+**Current focus:** Phase 6 — Wizard Injection
 
 ## Current Position
 
-Phase: 5 of 8 (Agent Review Middleware) -- COMPLETE
-Plan: 2 of 2 complete (all plans done)
+Phase: 6 of 8 (Wizard Injection) -- COMPLETE
+Plan: 1 of 1 complete (all plans done)
 Status: Phase Complete
-Last activity: 2026-03-11 — Completed 05-02-PLAN.md (AI merge with schema validation)
+Last activity: 2026-03-12 — Completed 06-01-PLAN.md (wizard injection with agents_consulted)
 
 Progress: [██████████] 100%
 
@@ -58,6 +58,7 @@ Progress: [██████████] 100%
 | Phase 03 P01 | 2min | 2 tasks | 2 files |
 | Phase 03 P02 | 5min | 1 tasks | 2 files |
 | Phase 04 P01 | 3min | 2 tasks | 3 files |
+| Phase 06 P01 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,9 @@ Recent decisions affecting current work:
 - [Phase 04]: SessionFactory type alias (Callable[[], Session]) at module level for reuse across all gather sites
 - [Phase 04]: Optional session_factory param with backward-compatible fallback in _orchestrate/_orchestrate_stream_prepare
 - [Phase 04]: try/finally pattern for session cleanup to handle asyncio.CancelledError correctly
+- [Phase 06]: Embed agents_consulted in result JSON under _meta key -- avoids DB migration for v1
+- [Phase 06]: Pass SessionLocal factory (not db session) to middleware for parallel session safety
+- [Phase 06]: model_validator(mode="after") extracts agents_consulted from _meta for top-level response access
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-12T00:59:56.026Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-12T03:01:22Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None

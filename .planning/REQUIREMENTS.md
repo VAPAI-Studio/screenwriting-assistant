@@ -16,7 +16,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Generation Review Loop
 
-- [ ] **REVW-01**: Agent review middleware injected in `wizards.py` between `wizard_generate()` and `apply_wizard_result_to_db()`
+- [x] **REVW-01**: Agent review middleware injected in `wizards.py` between `wizard_generate()` and `apply_wizard_result_to_db()`
 - [ ] **REVW-02**: All agents mapped to a step review the generated output in parallel via `asyncio.gather`
 - [ ] **REVW-03**: AI merge call synthesizes all agent feedback into refined output matching the expected wizard result schema
 - [ ] **REVW-04**: If no agents are mapped to a step, generation passes through unchanged (zero-impact bypass)
@@ -76,7 +76,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | COMP-02 | Phase 1 | Complete |
 | COMP-03 | Phase 2 + Phase 3 | Complete |
 | COMP-04 | Phase 3 | Complete |
-| REVW-01 | Phase 5 + Phase 6 | Pending |
+| REVW-01 | Phase 5 + Phase 6 | Complete |
 | REVW-02 | Phase 5 | Pending |
 | REVW-03 | Phase 5 | Pending |
 | REVW-04 | Phase 5 | Pending |
