@@ -59,7 +59,6 @@ async def list_agents(
         .filter(
             (Agent.owner_id == current_user.id) | (Agent.is_default == True)
         )
-        .filter(Agent.is_active == True)
         .all()
     )
     return [
