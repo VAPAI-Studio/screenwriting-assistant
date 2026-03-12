@@ -1,14 +1,22 @@
+import json
+import logging
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
+from ...config import settings
+from ...db import SessionLocal
 from ...models import schemas
 from ...models.database import (
     Agent, Project, Section, ChatSession, ChatMessage,
 )
 from ...services.agent_service import agent_service
+from ...services.ai_provider import chat_completion_stream
 from ..dependencies import get_db, get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -124,6 +132,7 @@ async def get_chat_messages(
             "content": m.content,
             "message_type": m.message_type,
             "book_references": m.book_references or [],
+            "consulted_agents": m.consulted_agents or [],
             "created_at": m.created_at.isoformat() if m.created_at else None,
         }
         for m in messages
@@ -150,9 +159,83 @@ async def send_chat_message(
         session=session,
         user_message=data.content,
         db=db,
+        field_context=data.field_context,
+        session_factory=SessionLocal,
     )
 
     return result
+
+
+@router.post("/sessions/{session_id}/messages/stream")
+async def send_chat_message_stream(
+    session_id: UUID,
+    data: schemas.ChatMessageCreate,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Send a message and stream the agent response via SSE."""
+    session = (
+        db.query(ChatSession)
+        .filter(ChatSession.id == session_id, ChatSession.user_id == current_user.id)
+        .first()
+    )
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    prepared = await agent_service.chat_stream_prepare(
+        session=session,
+        user_message=data.content,
+        db=db,
+        field_context=data.field_context,
+        session_factory=SessionLocal,
+    )
+
+    # Capture values before the generator runs (db session will be closed by then)
+    chat_session_id = prepared["session_id"]
+    stream_messages = prepared["messages"]
+    stream_concepts = prepared["concepts"]
+    stream_consulted = prepared["consulted_agents"]
+    stream_list_item_config = prepared.get("list_item_config")
+    stream_project_id = session.project_id
+
+    async def event_stream():
+        full_text = ""
+        try:
+            async for chunk in chat_completion_stream(
+                messages=stream_messages,
+                temperature=0.7,
+                max_tokens=settings.MAX_TOKENS,
+            ):
+                full_text += chunk
+                yield f"data: {json.dumps({'chunk': chunk})}\n\n"
+        except Exception as e:
+            logger.error(f"Agent streaming error: {e}", exc_info=True)
+            if not full_text:
+                full_text = "I had trouble generating a response."
+                yield f"data: {json.dumps({'chunk': full_text})}\n\n"
+
+        # Use a fresh DB session for finalization (original is closed)
+        finalize_db = SessionLocal()
+        try:
+            metadata = await agent_service.chat_stream_finalize(
+                session_id=chat_session_id,
+                full_text=full_text,
+                concepts=stream_concepts,
+                consulted_agents=stream_consulted,
+                db=finalize_db,
+                project_id=stream_project_id,
+                list_item_config=stream_list_item_config,
+            )
+            yield f"data: {json.dumps({'book_references': metadata['book_references'], 'consulted_agents': metadata['consulted_agents'], 'field_updates': metadata['field_updates'], 'list_items_created': metadata.get('list_items_created', 0), 'done': True, 'id': metadata['message_id']})}\n\n"
+        except Exception as e:
+            logger.error(f"Agent finalize error: {e}", exc_info=True)
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        finally:
+            finalize_db.close()
+
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 
 @router.post("/sessions/{session_id}/review")
