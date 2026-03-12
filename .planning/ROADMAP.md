@@ -116,14 +116,12 @@ Plans:
   2. Creating, editing, or deleting an agent causes the tree to refresh automatically without a page reload (React Query invalidation)
   3. An empty state message ("Create agents to see how they map to your pipeline") renders when the user has no agents
   4. Clicking the toggle on an individual agent badge excludes that agent from pipeline reviews; the toggle state persists and the tree reflects the exclusion visually
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: Add `getPipelineMap()` API function and `QUERY_KEYS.PIPELINE_MAP` constant
-- [ ] 07-02: Build `AgentPipelineTree.tsx` collapsible tree with phase → subsection → agent badge hierarchy
-- [ ] 07-03: Add React Query invalidation for `PIPELINE_MAP` on all agent mutation hooks
-- [ ] 07-04: Add empty state rendering and loading skeleton for the tree component
-- [ ] 07-05: Build per-agent toggle UI and wire to backend exclude/include state
+- [ ] 07-01-PLAN.md — API layer (types, constants, fetch methods) + backend is_active filter fix
+- [ ] 07-02-PLAN.md — AgentPipelineTree.tsx collapsible tree with toggle, embedded in AgentManager.tsx
+- [ ] 07-03-PLAN.md — React Query invalidation for PIPELINE_MAP on agent create/delete mutations
 
 ### Phase 8: YOLO Integration and Token Budget
 **Goal**: YOLO auto-generation fires agent reviews at each step within configurable token and agent-count budgets, preventing cost explosion while preserving review quality
@@ -145,7 +143,7 @@ Plans:
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
 
 Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel with Phases 4-6 once Phase 3 is complete.
 
@@ -157,5 +155,5 @@ Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel 
 | 4. Async Safety and Session Isolation | 0/1 | Not started | - |
 | 5. Agent Review Middleware | 0/2 | Not started | - |
 | 6. Wizard Injection | 0/1 | Not started | - |
-| 7. Frontend Pipeline Tree | 0/5 | Not started | - |
+| 7. Frontend Pipeline Tree | 0/3 | Not started | - |
 | 8. YOLO Integration and Token Budget | 0/4 | Not started | - |
