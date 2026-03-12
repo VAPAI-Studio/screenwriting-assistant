@@ -30,7 +30,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### YOLO Integration
 
-- [ ] **YOLO-01**: Agent reviews fire during YOLO auto-generation flow through same middleware path
+- [x] **YOLO-01**: Agent reviews fire during YOLO auto-generation flow through same middleware path
 - [x] **YOLO-02**: Token budget controls — configurable max agents per step and relevance threshold
 
 ## v2 Requirements
@@ -84,7 +84,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TREE-01 | Phase 7 | Complete |
 | TREE-02 | Phase 7 | Complete |
 | TREE-03 | Phase 7 | Complete |
-| YOLO-01 | Phase 8 | Pending |
+| YOLO-01 | Phase 8 | Complete |
 | YOLO-02 | Phase 8 | Complete |
 
 **Coverage:**
