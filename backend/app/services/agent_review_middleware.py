@@ -4,13 +4,10 @@
 Agent Review Middleware — intercepts wizard generation output and routes
 it through mapped agents for parallel review.
 
+REVW-01 (partial): Entry point and metadata — injection into wizards.py deferred to Phase 6
 REVW-02: Parallel fan-out via asyncio.gather with session-per-task
+REVW-03: AI merge with conflict-resolution and schema validation
 REVW-04: Zero-agent pass-through bypass
-REVW-01 (partial): Entry point and metadata — injection into wizards.py
-         deferred to Phase 6
-
-Merge is currently a STUB (returns first review's feedback).
-Plan 05-02 replaces with real AI merge call.
 """
 
 import asyncio
@@ -28,6 +25,53 @@ from .ai_provider import chat_completion
 logger = logging.getLogger(__name__)
 
 SessionFactory = Callable[[], Session]
+
+WIZARD_RESULT_SCHEMAS = {
+    "idea_wizard": {
+        "top_key": "fields",
+        "description": '{"fields": {"genre": "...", "initial_idea": "...", "tone": "...", "target_audience": "..."}}',
+    },
+    "scene_wizard": {
+        "top_key": "scenes",
+        "description": '{"scenes": [{"summary": "...", "arena": "...", "inciting_incident": "...", "goal": "...", "subtext": "...", "turning_point": "...", "crisis": "...", "climax": "...", "fallout": "...", "push_forward": "..."}]}',
+    },
+    "script_writer_wizard": {
+        "top_key": "screenplays",
+        "description": '{"screenplays": [{"title": "...", "content": "...", "episode_index": 0}]}',
+    },
+}
+
+MERGE_SYSTEM_PROMPT = """You are a screenplay development AI that synthesizes feedback from multiple expert agents into a single refined output.
+
+CONFLICT RESOLUTION RULES:
+- When agents disagree, the MOST SPECIFIC and ACTIONABLE suggestion wins. Do NOT blend conflicting feedback into vague compromises.
+- If one agent provides a concrete improvement and another is generic, use the concrete one.
+- Preserve the original structure and intent of the content while applying improvements.
+
+You are merging {agent_count} agent reviews for the {wizard_type} step.
+
+The output MUST match this JSON schema exactly:
+{schema_description}
+
+Return ONLY the refined output as valid JSON matching the schema above. No explanations, no markdown."""
+
+
+def _summarize_feedback(feedback: Dict[str, Any]) -> str:
+    """Build a concise summary string from agent feedback."""
+    parts = []
+    issues = feedback.get("issues", [])
+    if issues:
+        parts.append(f"Flagged: {len(issues)} issues.")
+    suggestions = feedback.get("suggestions", [])
+    if suggestions:
+        parts.append(" ".join(suggestions[:2]))
+    refined = feedback.get("refined_fields", {})
+    if refined:
+        parts.append(f"Refined {len(refined)} fields.")
+    summary = " ".join(parts) if parts else "Reviewed content."
+    if len(summary) > 200:
+        summary = summary[:197] + "..."
+    return summary
 
 
 class AgentReviewMiddleware:
@@ -72,18 +116,27 @@ class AgentReviewMiddleware:
                 "review_applied": False,
             }
 
-        # STUB merge — Plan 05-02 replaces with real AI merge call
-        logger.warning("Using stub merge -- Plan 05-02 replaces with AI merge call")
-        refined_output = successful[0]["feedback"]
+        # REVW-03: AI merge with schema validation
+        merge_type = wizard_type or subsection_key
+        refined_output = await self._merge_reviews(raw_output, successful, merge_type)
 
-        # Build agents_consulted metadata
+        # Build agents_consulted metadata with summaries
         agents_consulted = [
             {
                 "agent_id": r["agent_id"],
                 "name": r["agent_name"],
+                "summary": _summarize_feedback(r["feedback"]),
             }
             for r in successful
         ]
+
+        if refined_output is None:
+            # Schema validation failed — fall back to raw_output
+            return {
+                "output": raw_output,
+                "agents_consulted": agents_consulted,
+                "review_applied": False,
+            }
 
         return {
             "output": refined_output,
@@ -139,6 +192,64 @@ class AgentReviewMiddleware:
             })
 
         return agents_data
+
+    async def _merge_reviews(
+        self,
+        raw_output: Any,
+        reviews: List[Dict[str, Any]],
+        wizard_type: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Merge multiple agent reviews into refined output via AI call."""
+        schema_info = WIZARD_RESULT_SCHEMAS.get(wizard_type)
+        schema_description = schema_info["description"] if schema_info else "Same schema as the input"
+
+        # Format reviews for the merge prompt
+        review_sections = []
+        for r in reviews:
+            review_sections.append(
+                f"### Agent: {r['agent_name']}\n{json.dumps(r['feedback'], indent=2)}"
+            )
+
+        system_prompt = MERGE_SYSTEM_PROMPT.format(
+            agent_count=len(reviews),
+            wizard_type=wizard_type,
+            schema_description=schema_description,
+        )
+
+        raw_json = json.dumps(raw_output) if not isinstance(raw_output, str) else raw_output
+        user_content = (
+            f"Original output:\n{raw_json}\n\n"
+            f"Agent reviews:\n{''.join(review_sections)}"
+        )
+
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ]
+
+        response = await chat_completion(
+            messages=messages,
+            temperature=0.3,
+            max_tokens=settings.MAX_TOKENS,
+            json_mode=True,
+        )
+
+        try:
+            parsed = json.loads(response)
+        except (json.JSONDecodeError, TypeError):
+            logger.warning("Merge AI returned non-JSON response, falling back to raw_output")
+            return None
+
+        # Schema validation: check expected top-level key
+        if schema_info and schema_info["top_key"] not in parsed:
+            logger.warning(
+                "Merge output missing expected key '%s' for %s, falling back to raw_output",
+                schema_info["top_key"],
+                wizard_type,
+            )
+            return None
+
+        return parsed
 
     async def _fan_out_reviews(
         self,

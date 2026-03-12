@@ -97,6 +97,8 @@ async def test_parallel_fanout_uses_session_factory(db_session, owner_id, make_a
 
     raw_output = {"title": "Test"}
     mock_review = json.dumps({"issues": [], "suggestions": ["improve pacing"], "refined_fields": {}})
+    # subsection_key="idea_wizard" triggers schema validation — merge must have "fields" key
+    mock_merge = json.dumps({"fields": {"genre": "drama", "initial_idea": "merged", "tone": "neutral", "target_audience": "general"}})
 
     mock_sessions = []
 
@@ -106,7 +108,9 @@ async def test_parallel_fanout_uses_session_factory(db_session, owner_id, make_a
         mock_sessions.append(mock_sess)
         return db_session
 
-    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, return_value=mock_review):
+    # 3 review calls + 1 merge call
+    side_effects = [mock_review, mock_review, mock_review, mock_merge]
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects):
         result = await agent_review_middleware.review_step_output(
             phase="idea",
             subsection_key="idea_wizard",
@@ -133,11 +137,14 @@ async def test_review_returns_result_with_agents_consulted(db_session, owner_id,
 
     raw_output = {"title": "Test"}
     mock_review = json.dumps({"issues": [], "suggestions": ["good pacing"], "refined_fields": {}})
+    mock_merge = json.dumps({"fields": {"genre": "drama", "initial_idea": "merged", "tone": "neutral", "target_audience": "general"}})
 
     def session_factory():
         return db_session
 
-    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, return_value=mock_review):
+    # 2 review calls + 1 merge call
+    side_effects = [mock_review, mock_review, mock_merge]
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects):
         result = await agent_review_middleware.review_step_output(
             phase="idea",
             subsection_key="idea_wizard",
@@ -163,11 +170,15 @@ async def test_failed_agent_review_filtered_out(db_session, owner_id, make_agent
 
     raw_output = {"title": "Test"}
     call_count = {"n": 0}
+    merge_response = json.dumps({"fields": {"genre": "drama", "initial_idea": "merged", "tone": "neutral", "target_audience": "general"}})
 
     async def mock_chat_side_effect(*args, **kwargs):
         call_count["n"] += 1
         if call_count["n"] == 2:
             raise Exception("AI provider timeout")
+        # Last call (after reviews) is the merge call
+        if call_count["n"] == 4:
+            return merge_response
         return json.dumps({"issues": [], "suggestions": ["note"], "refined_fields": {}})
 
     def session_factory():
