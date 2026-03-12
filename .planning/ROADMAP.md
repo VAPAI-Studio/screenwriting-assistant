@@ -102,13 +102,10 @@ Plans:
   2. The wizard run response includes `agents_consulted` showing which agents reviewed the step
   3. Running a wizard step for a phase with no mapped agents completes without error and returns raw output identical to pre-injection behavior
   4. Existing wizard generation tests pass without modification after injection
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 06-01: Identify the exact injection point in `wizards.py` between `wizard_generate()` and `apply_wizard_result_to_db()`
-- [ ] 06-02: Wire `review_step_output()` call into wizard pipeline at injection point
-- [ ] 06-03: Propagate `agents_consulted` metadata through to wizard run response schema
-- [ ] 06-04: Validate end-to-end: create agent, run wizard, confirm agent review fires and output is refined
+- [ ] 06-01-PLAN.md — Wire review middleware into wizards.py, update WizardRunResponse schema with agents_consulted, and integration tests
 
 ### Phase 7: Frontend Pipeline Tree
 **Goal**: Users can see exactly which agents are mapped to which pipeline steps, and can toggle individual agents in or out of the pipeline
@@ -159,6 +156,6 @@ Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel 
 | 3. Pipeline Map API and CRUD Wiring | 0/2 | Not started | - |
 | 4. Async Safety and Session Isolation | 0/1 | Not started | - |
 | 5. Agent Review Middleware | 0/2 | Not started | - |
-| 6. Wizard Injection | 0/4 | Not started | - |
+| 6. Wizard Injection | 0/1 | Not started | - |
 | 7. Frontend Pipeline Tree | 0/5 | Not started | - |
 | 8. YOLO Integration and Token Budget | 0/4 | Not started | - |
