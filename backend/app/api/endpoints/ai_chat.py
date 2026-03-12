@@ -13,7 +13,10 @@ from uuid import UUID
 from ...models import schemas, database
 from ..dependencies import get_db, get_current_user
 from ...services.template_ai_service import template_ai_service
+from ...services.agent_review_middleware import agent_review_middleware
+from ...db import SessionLocal
 from ...templates import get_template
+from .wizards import apply_wizard_result_to_db
 
 logger = logging.getLogger(__name__)
 
@@ -21,18 +24,26 @@ router = APIRouter()
 
 
 def _get_project_context(db: Session, project: database.Project) -> str:
-    """Build project context from all phase data."""
-    phase_data = db.query(database.PhaseData).filter(
+    """Build project context from all phase data, including list items."""
+    phase_data_records = db.query(database.PhaseData).filter(
         database.PhaseData.project_id == project.id
     ).all()
     project_data = {}
-    for pd in phase_data:
+    list_items_map = {}
+    for pd in phase_data_records:
         phase_key = pd.phase.value if hasattr(pd.phase, 'value') else pd.phase
         if phase_key not in project_data:
             project_data[phase_key] = {}
         project_data[phase_key][pd.subsection_key] = pd.content or {}
+
+        # Include list items (characters, scenes, etc.)
+        if pd.list_items:
+            items = [{"item_type": li.item_type, **(li.content or {})} for li in pd.list_items]
+            if items:
+                list_items_map[f"{phase_key}.{pd.subsection_key}"] = items
+
     template_id = project.template.value if hasattr(project.template, 'value') else project.template
-    return template_ai_service._build_project_context(project_data, template_id)
+    return template_ai_service._build_project_context(project_data, template_id, list_items=list_items_map, project_title=project.title)
 
 
 def _get_subsection_config(template_id: str, phase: str, subsection_key: str) -> dict:
@@ -399,6 +410,10 @@ async def send_ai_message_stream(
             if phase_data:
                 current_content = phase_data.content or {}
 
+        # Detect ordered_list subsection → enable list item creation by AI
+        is_list_subsection = bool(sub_config.get("list_config")) and not session.context_item_id
+        item_type = sub_config.get("list_config", {}).get("item_type") if is_list_subsection else None
+
         async def action_stream():
             full_text = ""
             try:
@@ -410,6 +425,7 @@ async def send_ai_message_stream(
                     project_context=project_context,
                     field_definitions=field_defs,
                     current_content=current_content,
+                    item_type=item_type,
                 ):
                     full_text += chunk
                     yield f"data: {json.dumps({'chunk': chunk})}\n\n"
@@ -417,17 +433,21 @@ async def send_ai_message_stream(
                 logger.error(f"Action streaming error: {e}", exc_info=True)
                 full_text = full_text or "I had trouble generating a response."
 
-            # Phase 2: Extract field updates via JSON-mode call
+            # Phase 2: Extract field updates (and optionally list_item_creates) via JSON-mode call
             field_updates = {}
+            list_item_creates = []
             applied = False
             try:
-                field_updates = await template_ai_service.chat_action_extract_updates(
+                extraction_result = await template_ai_service.chat_action_extract_updates(
                     user_message=message.content,
                     assistant_message=full_text,
                     field_definitions=field_defs,
                     current_content=current_content,
+                    item_type=item_type,
                 )
-                logger.info(f"Action mode extracted field_updates keys={list(field_updates.keys()) if field_updates else 'none'}")
+                field_updates = extraction_result.get("field_updates", {})
+                list_item_creates = extraction_result.get("list_item_creates", []) if is_list_subsection else []
+                logger.info(f"Action mode extracted field_updates keys={list(field_updates.keys()) if field_updates else 'none'}, list_item_creates={len(list_item_creates)}")
             except Exception as e:
                 logger.error(f"Action field extraction error: {e}", exc_info=True)
 
@@ -466,6 +486,47 @@ async def send_ai_message_stream(
                     db.commit()
                     applied = True
 
+            # Create new list items described by the AI (ordered_list subsections only)
+            items_created = 0
+            if list_item_creates:
+                from sqlalchemy import func as sqlfunc
+                pd = db.query(database.PhaseData).filter(
+                    database.PhaseData.project_id == project.id,
+                    database.PhaseData.phase == session.phase,
+                    database.PhaseData.subsection_key == session.subsection_key,
+                ).first()
+                if not pd:
+                    pd = database.PhaseData(
+                        project_id=project.id,
+                        phase=session.phase,
+                        subsection_key=session.subsection_key,
+                        content={},
+                    )
+                    db.add(pd)
+                    db.flush()
+
+                max_order = db.query(sqlfunc.max(database.ListItem.sort_order)).filter(
+                    database.ListItem.phase_data_id == pd.id
+                ).scalar()
+                next_order = (max_order + 1) if max_order is not None else 0
+
+                for item_content in list_item_creates:
+                    if isinstance(item_content, dict) and item_content:
+                        db.add(database.ListItem(
+                            phase_data_id=pd.id,
+                            item_type=item_type or "item",
+                            content=item_content,
+                            sort_order=next_order,
+                            status="draft",
+                        ))
+                        next_order += 1
+                        items_created += 1
+
+                if items_created:
+                    db.commit()
+                    applied = True
+                    logger.info(f"Action mode: created {items_created} list items of type '{item_type}'")
+
             # Save AI message to database
             ai_msg = database.AIMessage(
                 session_id=session_id,
@@ -478,7 +539,7 @@ async def send_ai_message_stream(
                 db.add(ai_msg)
                 db.commit()
                 db.refresh(ai_msg)
-                yield f"data: {json.dumps({'field_updates': field_updates, 'applied': applied, 'done': True, 'id': str(ai_msg.id)})}\n\n"
+                yield f"data: {json.dumps({'field_updates': field_updates, 'applied': applied, 'list_items_created': items_created, 'done': True, 'id': str(ai_msg.id)})}\n\n"
             except IntegrityError:
                 db.rollback()
                 logger.warning(f"Session {session_id} deleted during action streaming")
@@ -488,6 +549,45 @@ async def send_ai_message_stream(
         return StreamingResponse(action_stream(), media_type="text/event-stream")
 
     # Brainstorm mode: stream the response
+    allow_field_suggestions = getattr(message, "allow_field_suggestions", False)
+
+    # Gather field defs + current content for brainstorm-with-suggestions path
+    brainstorm_field_defs = []
+    brainstorm_current_content = {}
+    if allow_field_suggestions:
+        if "fields" in sub_config:
+            brainstorm_field_defs = sub_config["fields"]
+        elif "field_groups" in sub_config:
+            for group in sub_config.get("field_groups", []):
+                brainstorm_field_defs.extend(group.get("fields", []))
+        elif "cards" in sub_config:
+            brainstorm_field_defs = sub_config["cards"]
+        elif "card_groups" in sub_config:
+            for group in sub_config.get("card_groups", []):
+                brainstorm_field_defs.extend(group.get("fields", []))
+        if not brainstorm_field_defs:
+            editor_config = sub_config.get("editor_config", {})
+            if editor_config.get("fields"):
+                brainstorm_field_defs = editor_config["fields"]
+
+        if session.context_item_id:
+            item = db.query(database.ListItem).filter(
+                database.ListItem.id == session.context_item_id
+            ).first()
+            if item:
+                brainstorm_current_content = item.content or {}
+                editor_config = sub_config.get("editor_config", {})
+                if editor_config.get("fields"):
+                    brainstorm_field_defs = editor_config["fields"]
+        else:
+            phase_data = db.query(database.PhaseData).filter(
+                database.PhaseData.project_id == project.id,
+                database.PhaseData.phase == session.phase,
+                database.PhaseData.subsection_key == session.subsection_key,
+            ).first()
+            if phase_data:
+                brainstorm_current_content = phase_data.content or {}
+
     async def brainstorm_stream():
         full_text = ""
         try:
@@ -503,18 +603,38 @@ async def send_ai_message_stream(
             logger.error(f"Streaming error: {e}")
             full_text = full_text or "I'm having trouble generating a response right now."
 
+        # If field suggestions enabled, extract proposed updates (no DB write)
+        field_updates = {}
+        if allow_field_suggestions and brainstorm_field_defs:
+            try:
+                extraction_result = await template_ai_service.chat_action_extract_updates(
+                    user_message=message.content,
+                    assistant_message=full_text,
+                    field_definitions=brainstorm_field_defs,
+                    current_content=brainstorm_current_content,
+                )
+                field_updates = extraction_result.get("field_updates", {})
+                logger.info(f"Brainstorm suggestions extracted keys={list(field_updates.keys()) if field_updates else 'none'}")
+            except Exception as e:
+                logger.error(f"Brainstorm field extraction error: {e}", exc_info=True)
+
         # Save the complete AI message to the database
         ai_msg = database.AIMessage(
             session_id=session_id,
             role="assistant",
             content=full_text,
             message_type="chat",
+            metadata_={"field_updates": field_updates, "applied": False} if field_updates else {},
         )
         try:
             db.add(ai_msg)
             db.commit()
             db.refresh(ai_msg)
-            yield f"data: {json.dumps({'done': True, 'id': str(ai_msg.id)})}\n\n"
+            if field_updates:
+                # Send field_updates to frontend for confirmation (applied=False)
+                yield f"data: {json.dumps({'field_updates': field_updates, 'applied': False, 'done': True, 'id': str(ai_msg.id)})}\n\n"
+            else:
+                yield f"data: {json.dumps({'done': True, 'id': str(ai_msg.id)})}\n\n"
         except IntegrityError:
             db.rollback()
             logger.warning(f"Session {session_id} deleted during streaming")
@@ -565,9 +685,15 @@ async def fill_blanks(
         if not item:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
         current_content = item.content or {}
-        # Use editor_config fields if available
+        # Resolve field definitions: editor_config (individual_editor) or card_groups (repeatable_cards)
         editor_config = sub_config.get("editor_config", {})
-        field_config = {"fields": editor_config.get("fields", [])}
+        if editor_config.get("fields"):
+            field_config = {"fields": editor_config["fields"]}
+        elif "card_groups" in sub_config:
+            group = next((g for g in sub_config["card_groups"] if g["item_type"] == item.item_type), None)
+            field_config = {"fields": group["fields"]} if group else {"fields": []}
+        else:
+            field_config = {"fields": []}
     else:
         # Fill blanks for a subsection
         phase_data = db.query(database.PhaseData).filter(
@@ -579,6 +705,13 @@ async def fill_blanks(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phase data not found")
         current_content = phase_data.content or {}
         field_config = sub_config
+
+    # If field_key specified, filter to just that field
+    if request.field_key:
+        all_fields = field_config.get("fields", []) or field_config.get("cards", []) or []
+        matched = [f for f in all_fields if f.get("key") == request.field_key]
+        if matched:
+            field_config = {"fields": matched}
 
     project_context = _get_project_context(db, project)
     result = await template_ai_service.fill_blanks(
@@ -692,3 +825,305 @@ async def analyze_structure(
     )
 
     return result
+
+
+# ── YOLO auto-fill ────────────────────────────────────────────
+
+def _determine_yolo_strategy(sub_config: dict) -> str:
+    """Pick the generation strategy for a subsection based on its ui_pattern."""
+    pattern = sub_config.get("ui_pattern", "")
+    if pattern in ("structured_form", "card_grid"):
+        return "fill_blanks"
+    if pattern in ("wizard", "wizard_with_chat"):
+        return "wizard"
+    if pattern == "individual_editor":
+        return "fill_items"
+    if pattern == "repeatable_cards":
+        return "fill_repeatable"
+    # ordered_list, screenplay_editor, import_wizard, analyzer — populated by paired wizards
+    return "skip"
+
+
+def _get_or_create_phase_data(db: Session, project_id, phase: str, subsection_key: str):
+    """Get or create a PhaseData record."""
+    pd = db.query(database.PhaseData).filter(
+        database.PhaseData.project_id == project_id,
+        database.PhaseData.phase == phase,
+        database.PhaseData.subsection_key == subsection_key,
+    ).first()
+    if not pd:
+        pd = database.PhaseData(
+            project_id=project_id,
+            phase=phase,
+            subsection_key=subsection_key,
+            content={},
+        )
+        db.add(pd)
+        db.flush()
+    return pd
+
+
+async def _yolo_fill_blanks(db: Session, project, phase: str, sub_config: dict, project_context: str):
+    """Fill blanks for a structured_form / card_grid subsection."""
+    pd = _get_or_create_phase_data(db, project.id, phase, sub_config["key"])
+    current_content = pd.content or {}
+
+    result = await template_ai_service.fill_blanks(
+        current_content=current_content,
+        subsection_config=sub_config,
+        project_context=project_context,
+    )
+    if result.get("content"):
+        existing = dict(pd.content or {})
+        existing.update(result["content"])
+        pd.content = existing
+        flag_modified(pd, "content")
+        db.commit()
+    return "filled"
+
+
+async def _yolo_run_wizard(db: Session, project, phase: str, sub_config: dict, project_context: str, template_id: str, owner_id: str = ""):
+    """Run a wizard with default config, route through agent review middleware, and apply results."""
+    wizard_type = sub_config["key"]
+    wizard_config = sub_config.get("wizard_config", {})
+
+    config = {}
+    if wizard_config.get("default_count"):
+        config["count"] = wizard_config["default_count"]
+
+    # For idea_wizard: seed with existing field data
+    if wizard_type == "idea_wizard":
+        pd = _get_or_create_phase_data(db, project.id, phase, sub_config["key"])
+        config.update(pd.content or {})
+
+    # For scene_wizard: inject character data
+    if wizard_type == "scene_wizard":
+        characters_pd = db.query(database.PhaseData).filter(
+            database.PhaseData.project_id == project.id,
+            database.PhaseData.phase == "story",
+            database.PhaseData.subsection_key == "characters",
+        ).first()
+        if characters_pd:
+            char_items = db.query(database.ListItem).filter(
+                database.ListItem.phase_data_id == characters_pd.id
+            ).order_by(database.ListItem.sort_order).all()
+            config["_characters"] = [{"item_type": li.item_type, **(li.content or {})} for li in char_items]
+
+    # For script_writer_wizard: pull existing list items as episodes
+    if wizard_type == "script_writer_wizard":
+        # Find episode/scene list items in the same phase
+        for list_key in ("episode_list", "scene_list"):
+            list_pd = db.query(database.PhaseData).filter(
+                database.PhaseData.project_id == project.id,
+                database.PhaseData.phase == phase,
+                database.PhaseData.subsection_key == list_key,
+            ).first()
+            if list_pd:
+                items = db.query(database.ListItem).filter(
+                    database.ListItem.phase_data_id == list_pd.id
+                ).order_by(database.ListItem.sort_order).all()
+                if items:
+                    config["episodes"] = [item.content for item in items]
+                    break
+        if not config.get("episodes"):
+            return "skipped (no episodes/scenes to write)"
+
+    result = await template_ai_service.wizard_generate(
+        wizard_type=wizard_type,
+        config=config,
+        project_context=project_context,
+        template_id=template_id,
+    )
+
+    # YOLO-01: Route through agent review middleware (same path as manual wizard)
+    review_result = await agent_review_middleware.review_step_output(
+        phase=phase,
+        subsection_key=wizard_type,
+        raw_output=result,
+        owner_id=owner_id,
+        session_factory=SessionLocal,
+        wizard_type=wizard_type,
+    )
+    result = review_result["output"]
+
+    # Embed review metadata in result JSON
+    if isinstance(result, dict):
+        if "_meta" not in result:
+            result["_meta"] = {}
+        result["_meta"]["agents_consulted"] = review_result["agents_consulted"]
+        result["_meta"]["review_applied"] = review_result["review_applied"]
+
+    apply_result = apply_wizard_result_to_db(db, project, phase, wizard_type, result)
+    detail = apply_result.get("items_created") or apply_result.get("fields_updated") or ""
+    if isinstance(detail, list):
+        detail = f"{len(detail)} fields"
+    elif isinstance(detail, int):
+        detail = f"{detail} items"
+    return f"generated ({detail})" if detail else "generated"
+
+
+async def _yolo_fill_items(db: Session, project, phase: str, sub_config: dict, project_context: str):
+    """Fill blanks for each ListItem in an individual_editor subsection."""
+    editor_config = sub_config.get("editor_config", {})
+    # Find the ordered_list PhaseData that holds the items
+    source_key = sub_config.get("source_subsection", sub_config["key"].replace("_editor", "_list"))
+    list_pd = db.query(database.PhaseData).filter(
+        database.PhaseData.project_id == project.id,
+        database.PhaseData.phase == phase,
+        database.PhaseData.subsection_key == source_key,
+    ).first()
+    if not list_pd:
+        return "skipped (no items)"
+
+    items = db.query(database.ListItem).filter(
+        database.ListItem.phase_data_id == list_pd.id
+    ).order_by(database.ListItem.sort_order).all()
+    if not items:
+        return "skipped (no items)"
+
+    field_config = {"fields": editor_config.get("fields", [])}
+    filled = 0
+    for item in items:
+        current = item.content or {}
+        result = await template_ai_service.fill_blanks(
+            current_content=current,
+            subsection_config=field_config,
+            project_context=project_context,
+        )
+        if result.get("content"):
+            existing = dict(item.content or {})
+            existing.update(result["content"])
+            item.content = existing
+            flag_modified(item, "content")
+            filled += 1
+    if filled:
+        db.commit()
+    return f"filled {filled} items"
+
+
+async def _yolo_fill_repeatable(db: Session, project, phase: str, sub_config: dict, project_context: str):
+    """Fill blanks for each ListItem in a repeatable_cards subsection."""
+    pd = _get_or_create_phase_data(db, project.id, phase, sub_config["key"])
+    card_groups = sub_config.get("card_groups", [])
+    if not card_groups:
+        return "skipped (no card groups)"
+
+    filled = 0
+    for group in card_groups:
+        item_type = group.get("item_type", group.get("key", ""))
+        min_items = group.get("min_items", 0)
+        fields = group.get("fields", [])
+        if not fields:
+            continue
+
+        # Get existing items for this group
+        group_items = db.query(database.ListItem).filter(
+            database.ListItem.phase_data_id == pd.id,
+            database.ListItem.item_type == item_type,
+        ).order_by(database.ListItem.sort_order).all()
+
+        # Auto-create minimum required items if none exist
+        if not group_items and min_items >= 1:
+            max_order = db.query(database.ListItem).filter(
+                database.ListItem.phase_data_id == pd.id
+            ).count()
+            new_item = database.ListItem(
+                phase_data_id=pd.id,
+                item_type=item_type,
+                content={},
+                sort_order=max_order,
+            )
+            db.add(new_item)
+            db.flush()
+            group_items = [new_item]
+
+        field_config = {"fields": fields}
+        for item in group_items:
+            current = item.content or {}
+            result = await template_ai_service.fill_blanks(
+                current_content=current,
+                subsection_config=field_config,
+                project_context=project_context,
+            )
+            if result.get("content"):
+                existing = dict(item.content or {})
+                existing.update(result["content"])
+                item.content = existing
+                flag_modified(item, "content")
+                filled += 1
+
+    if filled:
+        db.commit()
+    return f"filled {filled} items"
+
+
+@router.post("/yolo-fill")
+async def yolo_fill(
+    request: schemas.YoloFillRequest,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Auto-fill ALL phases by iterating every subsection and generating content."""
+    project = db.query(database.Project).filter(
+        database.Project.id == request.project_id,
+        database.Project.owner_id == current_user.id,
+    ).first()
+    if not project or not project.template:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+    template_id = project.template.value if hasattr(project.template, 'value') else project.template
+    template = get_template(template_id)
+    all_phases = template.get("phases", [])
+
+    # Build flat list of (phase_id, subsection_config) pairs across all phases
+    all_steps = []
+    for phase_config in all_phases:
+        phase_id = phase_config["id"]
+        for sub_config in phase_config.get("subsections", []):
+            all_steps.append((phase_id, phase_config.get("name", phase_id), sub_config))
+
+    async def event_stream():
+        yield f"data: {json.dumps({'type': 'start', 'total': len(all_steps)})}\n\n"
+
+        completed = 0
+        skipped = 0
+        errors = 0
+
+        for i, (phase_id, phase_name, sub_config) in enumerate(all_steps):
+            strategy = _determine_yolo_strategy(sub_config)
+            step_name = f"{phase_name} / {sub_config.get('name', sub_config['key'])}"
+
+            if strategy == "skip":
+                yield f"data: {json.dumps({'type': 'progress', 'key': sub_config['key'], 'name': step_name, 'index': i, 'phase': phase_id, 'status': 'skipped'})}\n\n"
+                skipped += 1
+                continue
+
+            yield f"data: {json.dumps({'type': 'progress', 'key': sub_config['key'], 'name': step_name, 'index': i, 'phase': phase_id, 'strategy': strategy, 'status': 'running'})}\n\n"
+
+            try:
+                # Re-read project context so earlier fills feed into later ones
+                project_context = _get_project_context(db, project)
+
+                if strategy == "fill_blanks":
+                    detail = await _yolo_fill_blanks(db, project, phase_id, sub_config, project_context)
+                elif strategy == "wizard":
+                    detail = await _yolo_run_wizard(db, project, phase_id, sub_config, project_context, template_id, owner_id=str(current_user.id))
+                elif strategy == "fill_items":
+                    detail = await _yolo_fill_items(db, project, phase_id, sub_config, project_context)
+                elif strategy == "fill_repeatable":
+                    detail = await _yolo_fill_repeatable(db, project, phase_id, sub_config, project_context)
+                else:
+                    detail = "unknown strategy"
+
+                yield f"data: {json.dumps({'type': 'progress', 'key': sub_config['key'], 'index': i, 'phase': phase_id, 'status': 'done', 'detail': detail})}\n\n"
+                completed += 1
+
+            except Exception as e:
+                logger.error(f"YOLO fill error for {phase_id}/{sub_config['key']}: {e}", exc_info=True)
+                yield f"data: {json.dumps({'type': 'progress', 'key': sub_config['key'], 'index': i, 'phase': phase_id, 'status': 'error', 'detail': str(e)})}\n\n"
+                errors += 1
+
+        yield f"data: {json.dumps({'type': 'done', 'completed': completed, 'skipped': skipped, 'errors': errors})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

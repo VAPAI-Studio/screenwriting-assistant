@@ -237,8 +237,10 @@ async def test_yolo_wizard_routes_through_middleware(
     assert call_kwargs.kwargs.get("phase") or call_kwargs[1].get("phase", call_kwargs[0][0] if call_kwargs[0] else None) is not None
 
     # The apply_wizard_result_to_db should receive refined output (with _meta embedded)
+    # Signature: apply_wizard_result_to_db(db, project, phase, wizard_type, result)
+    # So result is the 5th positional arg (index 4)
     apply_call = apply_mock.call_args
-    applied_result = apply_call[0][3] if len(apply_call[0]) >= 4 else apply_call[1].get("result")
+    applied_result = apply_call[0][4]
     # The result should have the refined fields, not the raw ones
     assert applied_result["fields"]["genre"] == "refined_genre"
     assert "_meta" in applied_result
