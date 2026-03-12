@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-11)
 
 **Core value:** Agents you create actually influence the screenplay you generate — they don't just sit idle waiting for you to chat with them.
-**Current focus:** Phase 4 — Async Safety and Session Isolation
+**Current focus:** Phase 5 — Agent Review Middleware
 
 ## Current Position
 
-Phase: 4 of 8 (Async Safety and Session Isolation) -- COMPLETE
-Plan: 1 of 1 in current phase (04-01 complete)
-Status: Phase Complete
-Last activity: 2026-03-12 — Completed 04-01-PLAN.md (Session-per-task refactor for asyncio.gather)
+Phase: 5 of 8 (Agent Review Middleware) -- IN PROGRESS
+Plan: 1 of 2 complete (05-01 done, 05-02 pending)
+Status: Executing
+Last activity: 2026-03-11 — Completed 05-01-PLAN.md (Core middleware with fan-out and pass-through)
 
 Progress: [██████████] 100%
 
