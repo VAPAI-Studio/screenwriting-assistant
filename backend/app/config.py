@@ -56,6 +56,10 @@ class Settings(BaseSettings):
     PIPELINE_BATCH_SIZE: int = 5
     PIPELINE_COMPOSITION_MAX_TOKENS: int = 2000
 
+    # Agent pipeline budget
+    MAX_AGENTS_PER_PIPELINE_STEP: int = 3
+    AGENT_RELEVANCE_THRESHOLD: float = 0.3
+
     # File storage
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
     

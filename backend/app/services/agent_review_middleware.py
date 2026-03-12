@@ -151,15 +151,22 @@ class AgentReviewMiddleware:
         subsection_key: str,
         db: Session,
     ) -> List[Dict[str, Any]]:
-        """Query AgentPipelineMap for active agents mapped to this step."""
+        """Query AgentPipelineMap for active agents mapped to this step.
+
+        Applies relevance-score gating (AGENT_RELEVANCE_THRESHOLD) and
+        count cap (MAX_AGENTS_PER_PIPELINE_STEP) at SQL query level to
+        control token budget before any AI calls are made.
+        """
         mappings = (
             db.query(AgentPipelineMap)
             .filter(
                 AgentPipelineMap.owner_id == str(owner_id),
                 AgentPipelineMap.phase == phase,
                 AgentPipelineMap.subsection_key == subsection_key,
+                AgentPipelineMap.confidence >= settings.AGENT_RELEVANCE_THRESHOLD,
             )
             .order_by(AgentPipelineMap.confidence.desc())
+            .limit(settings.MAX_AGENTS_PER_PIPELINE_STEP)
             .all()
         )
 
