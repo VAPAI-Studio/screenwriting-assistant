@@ -211,3 +211,170 @@ async def test_all_agents_fail_returns_raw_output(db_session, owner_id, make_age
     assert result["output"] == raw_output
     assert result["agents_consulted"] == []
     assert result["review_applied"] is False
+
+
+# ---------------------------------------------------------------------------
+# Plan 05-02: Merge AI call and schema validation tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_merge_preserves_idea_wizard_schema(db_session, owner_id, make_agent):
+    """Given wizard_type='idea_wizard', the merge output has top-level key
+    'fields' with expected sub-keys."""
+    agent1 = make_agent(name="Idea Agent 1")
+    agent2 = make_agent(name="Idea Agent 2")
+    _make_pipeline_map(db_session, owner_id, agent1.id)
+    _make_pipeline_map(db_session, owner_id, agent2.id)
+
+    raw_output = {"fields": {"genre": "drama", "initial_idea": "A story", "tone": "neutral", "target_audience": "general"}}
+    review_response = json.dumps({"issues": ["pacing slow"], "suggestions": ["add tension"], "refined_fields": {"tone": "dark"}})
+    merge_response = json.dumps({"fields": {"genre": "thriller", "initial_idea": "refined idea", "tone": "dark", "target_audience": "adults"}})
+
+    # N agent reviews + 1 merge call
+    side_effects = [review_response, review_response, merge_response]
+
+    def session_factory():
+        return db_session
+
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects):
+        result = await agent_review_middleware.review_step_output(
+            phase="idea",
+            subsection_key="idea_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="idea_wizard",
+        )
+
+    assert result["review_applied"] is True
+    assert "fields" in result["output"]
+    assert "genre" in result["output"]["fields"]
+    assert "initial_idea" in result["output"]["fields"]
+
+
+@pytest.mark.asyncio
+async def test_merge_preserves_scene_wizard_schema(db_session, owner_id, make_agent):
+    """Given wizard_type='scene_wizard', the merge output has top-level key 'scenes'."""
+    agent1 = make_agent(name="Scene Agent")
+    _make_pipeline_map(db_session, owner_id, agent1.id, phase="scenes", subsection_key="scene_wizard")
+
+    raw_output = {"scenes": [{"summary": "original scene", "arena": "park"}]}
+    review_response = json.dumps({"issues": [], "suggestions": ["add conflict"], "refined_fields": {}})
+    merge_response = json.dumps({"scenes": [{"summary": "refined scene", "arena": "office", "inciting_incident": "arrival", "goal": "escape", "subtext": "fear", "turning_point": "discovery", "crisis": "trapped", "climax": "confrontation", "fallout": "resolution", "push_forward": "next chapter"}]})
+
+    side_effects = [review_response, merge_response]
+
+    def session_factory():
+        return db_session
+
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects):
+        result = await agent_review_middleware.review_step_output(
+            phase="scenes",
+            subsection_key="scene_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="scene_wizard",
+        )
+
+    assert result["review_applied"] is True
+    assert "scenes" in result["output"]
+    assert isinstance(result["output"]["scenes"], list)
+
+
+@pytest.mark.asyncio
+async def test_merge_preserves_script_wizard_schema(db_session, owner_id, make_agent):
+    """Given wizard_type='script_writer_wizard', the merge output has top-level key 'screenplays'."""
+    agent1 = make_agent(name="Script Agent")
+    _make_pipeline_map(db_session, owner_id, agent1.id, phase="write", subsection_key="script_writer_wizard")
+
+    raw_output = {"screenplays": [{"title": "Act 1", "content": "original", "episode_index": 0}]}
+    review_response = json.dumps({"issues": [], "suggestions": ["sharpen dialogue"], "refined_fields": {}})
+    merge_response = json.dumps({"screenplays": [{"title": "Act 1", "content": "refined script", "episode_index": 0}]})
+
+    side_effects = [review_response, merge_response]
+
+    def session_factory():
+        return db_session
+
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects):
+        result = await agent_review_middleware.review_step_output(
+            phase="write",
+            subsection_key="script_writer_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="script_writer_wizard",
+        )
+
+    assert result["review_applied"] is True
+    assert "screenplays" in result["output"]
+    assert isinstance(result["output"]["screenplays"], list)
+
+
+@pytest.mark.asyncio
+async def test_merge_invalid_schema_falls_back_to_raw(db_session, owner_id, make_agent):
+    """If the merge AI call returns JSON missing the expected top-level key,
+    review_step_output falls back to raw_output with review_applied=False."""
+    agent1 = make_agent(name="Bad Merge Agent")
+    _make_pipeline_map(db_session, owner_id, agent1.id)
+
+    raw_output = {"fields": {"genre": "drama", "initial_idea": "A story", "tone": "neutral", "target_audience": "general"}}
+    review_response = json.dumps({"issues": [], "suggestions": ["note"], "refined_fields": {}})
+    bad_merge_response = json.dumps({"wrong_key": "data"})
+
+    side_effects = [review_response, bad_merge_response]
+
+    def session_factory():
+        return db_session
+
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects):
+        result = await agent_review_middleware.review_step_output(
+            phase="idea",
+            subsection_key="idea_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="idea_wizard",
+        )
+
+    assert result["output"] == raw_output
+    assert result["review_applied"] is False
+
+
+@pytest.mark.asyncio
+async def test_agents_consulted_has_summary(db_session, owner_id, make_agent):
+    """Each entry in agents_consulted has keys agent_id, name, and summary."""
+    agent1 = make_agent(name="Summary Agent 1")
+    agent2 = make_agent(name="Summary Agent 2")
+    _make_pipeline_map(db_session, owner_id, agent1.id)
+    _make_pipeline_map(db_session, owner_id, agent2.id)
+
+    raw_output = {"fields": {"genre": "drama", "initial_idea": "A story", "tone": "neutral", "target_audience": "general"}}
+    review_response = json.dumps({"issues": ["pacing"], "suggestions": ["add tension", "more conflict"], "refined_fields": {"tone": "dark"}})
+    merge_response = json.dumps({"fields": {"genre": "thriller", "initial_idea": "refined", "tone": "dark", "target_audience": "adults"}})
+
+    side_effects = [review_response, review_response, merge_response]
+
+    def session_factory():
+        return db_session
+
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects):
+        result = await agent_review_middleware.review_step_output(
+            phase="idea",
+            subsection_key="idea_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="idea_wizard",
+        )
+
+    assert result["review_applied"] is True
+    assert len(result["agents_consulted"]) == 2
+    for ac in result["agents_consulted"]:
+        assert "agent_id" in ac
+        assert "name" in ac
+        assert "summary" in ac
+        assert isinstance(ac["summary"], str)
+        assert len(ac["summary"]) > 0
