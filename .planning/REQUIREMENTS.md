@@ -37,10 +37,10 @@
 
 ### Data Foundation
 
-- [ ] **BKDN-01**: `breakdown_elements` table with category column, JSONB metadata, `user_modified` flag, `is_deleted` soft-delete, unique constraint on `(project_id, category, name)`
-- [ ] **BKDN-02**: `element_scene_links` junction table linking breakdown elements to scene ListItems with context notes and source tracking
-- [ ] **BKDN-03**: `breakdown_runs` audit table tracking extraction runs (status, element counts, errors, timestamps)
-- [ ] **BKDN-04**: `breakdown_stale` boolean column on projects table, set when script content changes
+- [x] **BKDN-01**: `breakdown_elements` table with category column, JSONB metadata, `user_modified` flag, `is_deleted` soft-delete, unique constraint on `(project_id, category, name)`
+- [x] **BKDN-02**: `element_scene_links` junction table linking breakdown elements to scene ListItems with context notes and source tracking
+- [x] **BKDN-03**: `breakdown_runs` audit table tracking extraction runs (status, element counts, errors, timestamps)
+- [x] **BKDN-04**: `breakdown_stale` boolean column on projects table, set when script content changes
 
 ### AI Extraction
 
@@ -111,10 +111,10 @@
 | TREE-03 | Phase 7 | Complete |
 | YOLO-01 | Phase 8 | Complete |
 | YOLO-02 | Phase 8 | Complete |
-| BKDN-01 | Phase 9 | Pending |
-| BKDN-02 | Phase 9 | Pending |
-| BKDN-03 | Phase 9 | Pending |
-| BKDN-04 | Phase 9 | Pending |
+| BKDN-01 | Phase 9 | Complete |
+| BKDN-02 | Phase 9 | Complete |
+| BKDN-03 | Phase 9 | Complete |
+| BKDN-04 | Phase 9 | Complete |
 | EXTR-01 | Phase 11 | Pending |
 | EXTR-02 | Phase 11 | Pending |
 | EXTR-03 | Phase 11 | Pending |
