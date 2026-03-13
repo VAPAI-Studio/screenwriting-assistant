@@ -1,11 +1,9 @@
-# Requirements: Agent Orchestration Pipeline
+# Requirements: Screenwriting Assistant
 
 **Defined:** 2026-03-11
-**Core Value:** Agents you create actually influence the screenplay you generate — they don't just sit idle waiting for you to chat with them.
+**Updated:** 2026-03-13 (v2.0 Script Breakdown)
 
-## v1 Requirements
-
-Requirements for initial release. Each maps to roadmap phases.
+## v1 Requirements (Agent Orchestration Pipeline) — COMPLETE
 
 ### Pipeline Composition
 
@@ -17,9 +15,9 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Generation Review Loop
 
 - [x] **REVW-01**: Agent review middleware injected in `wizards.py` between `wizard_generate()` and `apply_wizard_result_to_db()`
-- [ ] **REVW-02**: All agents mapped to a step review the generated output in parallel via `asyncio.gather`
-- [ ] **REVW-03**: AI merge call synthesizes all agent feedback into refined output matching the expected wizard result schema
-- [ ] **REVW-04**: If no agents are mapped to a step, generation passes through unchanged (zero-impact bypass)
+- [x] **REVW-02**: All agents mapped to a step review the generated output in parallel via `asyncio.gather`
+- [x] **REVW-03**: AI merge call synthesizes all agent feedback into refined output matching the expected wizard result schema
+- [x] **REVW-04**: If no agents are mapped to a step, generation passes through unchanged (zero-impact bypass)
 - [x] **REVW-05**: Fix shared DB session bug in existing `run_multi_agent_review` for safe concurrent async context
 
 ### Frontend Pipeline Visualization
@@ -33,65 +31,87 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **YOLO-01**: Agent reviews fire during YOLO auto-generation flow through same middleware path
 - [x] **YOLO-02**: Token budget controls — configurable max agents per step and relevance threshold
 
-## v2 Requirements
+## v2 Requirements (Script Breakdown)
 
-### Pipeline Composition
+**Core Value:** AI extracts production elements from the screenplay into master lists, users refine them, and changes sync bidirectionally on save/generate.
 
-- **COMP-05**: Confidence scores per mapping (AI rates agent relevance 0-1 per step)
-- **COMP-06**: Mapping versioning and history tracking
+### Data Foundation
 
-### Generation Review Loop
+- [ ] **BKDN-01**: `breakdown_elements` table with category column, JSONB metadata, `user_modified` flag, `is_deleted` soft-delete, unique constraint on `(project_id, category, name)`
+- [ ] **BKDN-02**: `element_scene_links` junction table linking breakdown elements to scene ListItems with context notes and source tracking
+- [ ] **BKDN-03**: `breakdown_runs` audit table tracking extraction runs (status, element counts, errors, timestamps)
+- [ ] **BKDN-04**: `breakdown_stale` boolean column on projects table, set when script content changes
 
-- **REVW-06**: Per-agent audit trail showing what each agent suggested before merge
-- **REVW-07**: Explicit merge conflict-resolution rules in prompt engineering
+### AI Extraction
 
-### Frontend Pipeline Visualization
+- [ ] **EXTR-01**: AI extraction service analyzes screenplay content + character names to produce structured JSON of production elements across 5 categories (character, location, prop, wardrobe, vehicle)
+- [ ] **EXTR-02**: Extraction uses structured outputs (schema-enforced JSON) via upgraded OpenAI/Anthropic SDKs for guaranteed response shape
+- [ ] **EXTR-03**: Deduplication — same element described differently across scenes maps to one master list entry with canonical name
+- [ ] **EXTR-04**: Low temperature (0.1-0.2) for extraction calls; only extract elements physically present on screen, not mentioned in dialogue or backstory
+- [ ] **EXTR-05**: Scene linking — each extracted element tracks which scenes it appears in by matching to scene ListItem records
 
-- **TREE-04**: Visual indicators showing which agents are actively reviewing during generation
-- **TREE-05**: Per-step cost estimation display
+### User Refinement & Sync
 
-### YOLO Integration
+- [ ] **SYNC-01**: Re-extraction preserves user modifications — elements with `user_modified=true` keep their user-edited name, description, and metadata
+- [ ] **SYNC-02**: Soft-deleted elements (`is_deleted=true`) are not resurrected by re-extraction
+- [ ] **SYNC-03**: Staleness detection — saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
+- [ ] **SYNC-04**: Re-extraction clears the stale flag and creates a new `breakdown_runs` audit record
+- [ ] **SYNC-05**: Reverse sync is user-initiated — "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
 
-- **YOLO-03**: Progress indicators showing which agents are reviewing during auto-generation
-- **YOLO-04**: Per-step cost estimation before YOLO run begins
+### API
 
-## Out of Scope
+- [ ] **API-01**: `POST /api/breakdown/extract/{project_id}` — trigger AI extraction, return run result
+- [ ] **API-02**: `GET /api/breakdown/elements/{project_id}` — list elements filtered by category, excluding soft-deleted by default
+- [ ] **API-03**: `PUT /api/breakdown/element/{element_id}` — update element, sets `user_modified=true`
+- [ ] **API-04**: `POST /api/breakdown/elements/{project_id}` — create element manually with `source='user'`
+- [ ] **API-05**: `DELETE /api/breakdown/element/{element_id}` — soft-delete element
+- [ ] **API-06**: `POST/DELETE /api/breakdown/element/{element_id}/scenes` — add/remove scene links
+- [ ] **API-07**: `GET /api/breakdown/summary/{project_id}` — breakdown summary with staleness, category counts, last run info
+
+### Frontend
+
+- [ ] **UI-01**: Dedicated Breakdown page accessible from project workspace navigation (not a template phase)
+- [ ] **UI-02**: Category tabs (Characters, Locations, Props, Wardrobe, Vehicles) with count badges
+- [ ] **UI-03**: Master list per category with element name, description, scene count, source badge (AI/User), user-modified indicator
+- [ ] **UI-04**: Inline editing of element names and descriptions; expand/collapse for details
+- [ ] **UI-05**: Scene chips on each element showing linked scenes; clickable to navigate to scene
+- [ ] **UI-06**: "Extract Breakdown" button for first extraction; "Refresh" button with staleness banner when breakdown is outdated
+- [ ] **UI-07**: Add element dialog for manually creating new elements
+- [ ] **UI-08**: Empty state with clear CTA when no breakdown exists yet
+
+## Out of Scope (v2)
 
 | Feature | Reason |
 |---------|--------|
-| Agent-to-agent communication | Agents review independently — no inter-agent dialogue |
-| User approval gates for reviews | Mapping is informational, reviews are automatic |
-| Custom pipeline step ordering by users | AI decides optimal placement |
-| Per-flow agent toggles (manual vs YOLO) | Agents activate equally in both flows |
-| Sequential agent chaining | Parallel + merge avoids bias compounding |
-| Real-time per-agent streaming | Over-complex for v1, undermines merge strategy |
+| Scheduling/calendar integration | Separate domain; deferred to future milestone |
+| Budget line items and cost tracking | Requires rate cards, union rules; separate domain |
+| Department assignments | Requires crew management system |
+| Day/Night and INT/EXT classification | Scene header parsing not mature yet |
+| Full 23-category Movie Magic parity | 5 core categories sufficient for v2; extensible design |
+| Real-time sync (as user types) | Sync on save/generate per PROJECT.md; avoids conflict complexity |
+| Export to industry formats | PDF/Movie Magic export deferred |
+| Color-coded text highlighting in script | Major frontend undertaking; deferred |
+| Automatic script rewriting from breakdown edits | Creates circular sync loops; reverse sync is advisory/user-initiated |
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMP-01 | Phase 2 + Phase 3 | Complete |
-| COMP-02 | Phase 1 | Complete |
-| COMP-03 | Phase 2 + Phase 3 | Complete |
-| COMP-04 | Phase 3 | Complete |
-| REVW-01 | Phase 5 + Phase 6 | Complete |
-| REVW-02 | Phase 5 | Pending |
-| REVW-03 | Phase 5 | Pending |
-| REVW-04 | Phase 5 | Pending |
-| REVW-05 | Phase 4 | Complete |
-| TREE-01 | Phase 7 | Complete |
-| TREE-02 | Phase 7 | Complete |
-| TREE-03 | Phase 7 | Complete |
-| YOLO-01 | Phase 8 | Complete |
-| YOLO-02 | Phase 8 | Complete |
+| COMP-01 through COMP-04 | v1 Phases 1-3 | Complete |
+| REVW-01 through REVW-05 | v1 Phases 4-6 | Complete |
+| TREE-01 through TREE-03 | v1 Phase 7 | Complete |
+| YOLO-01, YOLO-02 | v1 Phase 8 | Complete |
+| BKDN-01 through BKDN-04 | — | Pending |
+| EXTR-01 through EXTR-05 | — | Pending |
+| SYNC-01 through SYNC-05 | — | Pending |
+| API-01 through API-07 | — | Pending |
+| UI-01 through UI-08 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 14 total
-- Mapped to phases: 14
-- Unmapped: 0
+- v1 requirements: 14 total — all complete
+- v2 requirements: 29 total — all pending
+- Unmapped: 29 (pending roadmap creation)
 
 ---
 *Requirements defined: 2026-03-11*
-*Last updated: 2026-03-11 after roadmap creation — all 14 requirements mapped*
+*v2 requirements added: 2026-03-13*
