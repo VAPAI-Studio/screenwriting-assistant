@@ -75,6 +75,15 @@ class PhaseType(str, enum.Enum):
     SCENES = "scenes"
     WRITE = "write"
 
+
+class BreakdownCategory(str, enum.Enum):
+    CHARACTER = "character"
+    LOCATION = "location"
+    PROP = "prop"
+    WARDROBE = "wardrobe"
+    VEHICLE = "vehicle"
+
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -87,9 +96,14 @@ class Project(Base):
     template_config = Column(JSON, default=dict)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    breakdown_stale = Column(Boolean, default=False)
 
     sections = sa_relationship("Section", back_populates="project", cascade="all, delete-orphan")
     phase_data = sa_relationship("PhaseData", back_populates="project", cascade="all, delete-orphan")
+    breakdown_elements = sa_relationship("BreakdownElement", back_populates="project",
+                                          cascade="all, delete-orphan")
+    breakdown_runs = sa_relationship("BreakdownRun", back_populates="project",
+                                      cascade="all, delete-orphan")
 
 class Section(Base):
     __tablename__ = "sections"
@@ -453,3 +467,66 @@ class AgentPipelineMap(Base):
             name="uq_pipeline_map_lookup",
         ),
     )
+
+
+# ============================================================
+# Script Breakdown models (v2.0 — Phase 9 Data Foundation)
+# ============================================================
+
+class BreakdownElement(Base):
+    __tablename__ = "breakdown_elements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
+    category = Column(String(50), nullable=False)
+    name = Column(String(500), nullable=False)
+    description = Column(Text, default="")
+    metadata_ = Column("metadata", JSON, default=dict)
+    source = Column(String(20), default="ai")
+    user_modified = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    project = sa_relationship("Project", back_populates="breakdown_elements")
+    scene_links = sa_relationship("ElementSceneLink", back_populates="element",
+                                  cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint('project_id', 'category', 'name', name='uq_breakdown_element'),
+    )
+
+
+class ElementSceneLink(Base):
+    __tablename__ = "element_scene_links"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    element_id = Column(UUID(as_uuid=True), ForeignKey("breakdown_elements.id"), nullable=False, index=True)
+    scene_item_id = Column(UUID(as_uuid=True), ForeignKey("list_items.id", ondelete="CASCADE"), nullable=False, index=True)
+    context = Column(Text, default="")
+    source = Column(String(20), default="ai")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    element = sa_relationship("BreakdownElement", back_populates="scene_links")
+
+    __table_args__ = (
+        UniqueConstraint('element_id', 'scene_item_id', name='uq_element_scene'),
+    )
+
+
+class BreakdownRun(Base):
+    __tablename__ = "breakdown_runs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
+    status = Column(String(20), default="pending")
+    config = Column(JSON, default=dict)
+    result_summary = Column(JSON, default=dict)
+    error_message = Column(Text)
+    elements_created = Column(Integer, default=0)
+    elements_updated = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    completed_at = Column(DateTime(timezone=True))
+
+    project = sa_relationship("Project", back_populates="breakdown_runs")
