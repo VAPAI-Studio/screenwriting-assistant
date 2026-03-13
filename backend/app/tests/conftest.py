@@ -59,8 +59,14 @@ def _patch_uuid_columns_for_sqlite():
         for column in table.columns:
             if isinstance(column.type, PG_UUID):
                 column.type = String(36)
-                if column.default is not None and column.default.arg is uuid.uuid4:
-                    column.default.arg = lambda: str(uuid.uuid4())
+                if column.default is not None and callable(column.default.arg):
+                    # Check by function name+module (not identity) since SQLAlchemy
+                    # may wrap the callable, making `is uuid.uuid4` fail.
+                    fn = column.default.arg
+                    if getattr(fn, '__name__', '') == 'uuid4' and getattr(fn, '__module__', '') == 'uuid':
+                        # Accept optional ctx arg (SQLAlchemy passes execution context
+                        # when using RETURNING-based inserts)
+                        column.default.arg = lambda *_args: str(uuid.uuid4())
             elif isinstance(column.type, SAEnum):
                 # SQLite doesn't support native enums; use String instead
                 column.type = String(50)
