@@ -27,7 +27,7 @@
 
 - [ ] **Phase 9: Data Foundation** - Migration, SQLAlchemy models, Pydantic schemas for breakdown tables and staleness column
 - [x] **Phase 10: Breakdown API** - CRUD endpoints for elements, scene links, manual creation, summary, and extraction trigger (completed 2026-03-13)
-- [ ] **Phase 11: AI Extraction Service** - Structured output extraction with deduplication, user-modified protection, and scene link reconciliation
+- [x] **Phase 11: AI Extraction Service** - Structured output extraction with deduplication, user-modified protection, and scene link reconciliation (completed 2026-03-13)
 - [ ] **Phase 12: Staleness Hooks** - Wire save/generate paths to set breakdown_stale flag and clear it on re-extraction
 - [ ] **Phase 13: Breakdown Page** - Dedicated frontend page with category tabs, master lists, inline editing, and scene chips
 - [ ] **Phase 14: Reverse Sync** - User-initiated actions to push breakdown elements back to project data (e.g., "Add to Characters")
@@ -149,7 +149,7 @@ Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/
 | 8. YOLO Integration and Token Budget | v1.0 | 2/2 | Complete | 2026-03-12 |
 | 9. Data Foundation | v2.0 | 0/2 | Not started | - |
 | 10. Breakdown API | 2/2 | Complete    | 2026-03-13 | - |
-| 11. AI Extraction Service | 2/3 | In Progress|  | - |
+| 11. AI Extraction Service | 3/3 | Complete   | 2026-03-13 | - |
 | 12. Staleness Hooks | v2.0 | 0/2 | Not started | - |
 | 13. Breakdown Page | v2.0 | 0/3 | Not started | - |
 | 14. Reverse Sync | v2.0 | 0/2 | Not started | - |

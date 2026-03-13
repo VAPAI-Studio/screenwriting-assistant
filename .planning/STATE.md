@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: in-progress
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-13T20:49:00Z"
-last_activity: 2026-03-13 -- Completed Plan 11-02 (extraction pipeline implementation)
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-03-13T21:32:00Z"
+last_activity: 2026-03-13 -- Completed Plan 11-03 (integration tests and deduplication)
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 7
-  completed_plans: 6
-  percent: 71
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 11 - AI Extraction Service
+**Current focus:** Phase 11 complete - AI Extraction Service
 
 ## Current Position
 
 Phase: 11 of 14 (AI Extraction Service)
-Plan: 2 of 3 in current phase
-Status: Plan 11-02 complete -- extraction pipeline implemented and endpoint wired
-Last activity: 2026-03-13 -- Completed Plan 11-02 (extraction pipeline implementation)
+Plan: 3 of 3 in current phase (COMPLETE)
+Status: Phase 11 complete -- all 3 plans executed, all 7 requirements verified
+Last activity: 2026-03-13 -- Completed Plan 11-03 (integration tests and deduplication)
 
-Progress: [█████████-] 86% (v2.0 Phase 11: 2/3 plans complete)
+Progress: [██████████] 100% (v2.0 Phase 11: 3/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 16 (v1.0)
-- v2.0 plans completed: 6
-- Total execution time: 21min
+- v2.0 plans completed: 7
+- Total execution time: 24min
 
 **By Phase:**
 
@@ -52,6 +52,7 @@ Progress: [█████████-] 86% (v2.0 Phase 11: 2/3 plans complete)
 | Phase 10 P02 | 10min | 2 tasks | 2 files |
 | Phase 11 P01 | 3min | 2 tasks | 3 files |
 | Phase 11 P02 | 3min | 2 tasks | 2 files |
+| Phase 11 P03 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,9 @@ v2.0 decisions:
 - Single db.commit() at end of extract() pipeline; rollback on failure then record failed run in separate transaction (Phase 11)
 - User-modified elements included in element_map for scene linking even though description not overwritten (SYNC-01) (Phase 11)
 - AI scene links fully replaced on re-extraction (delete-all-ai then recreate) while user links always preserved (Phase 11)
+- Deduplication uses (category, canonical_name.lower()) as merge key, keeping first description and merging scene appearances (Phase 11)
+- Integration tests mock chat_completion_structured at module level for precision (Phase 11)
+- Conftest UUID default patching uses name/module check instead of identity check for robust SQLite compat (Phase 11)
 
 ### Pending Todos
 
@@ -100,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T20:49:00Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-13T21:32:00Z
+Stopped at: Completed 11-03-PLAN.md
 Resume file: None

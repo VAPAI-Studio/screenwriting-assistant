@@ -46,7 +46,7 @@
 
 - [x] **EXTR-01**: AI extraction service analyzes screenplay content + character names to produce structured JSON of production elements across 5 categories (character, location, prop, wardrobe, vehicle)
 - [x] **EXTR-02**: Extraction uses structured outputs (schema-enforced JSON) via upgraded OpenAI/Anthropic SDKs for guaranteed response shape
-- [ ] **EXTR-03**: Deduplication -- same element described differently across scenes maps to one master list entry with canonical name
+- [x] **EXTR-03**: Deduplication -- same element described differently across scenes maps to one master list entry with canonical name
 - [x] **EXTR-04**: Low temperature (0.1-0.2) for extraction calls; only extract elements physically present on screen, not mentioned in dialogue or backstory
 - [x] **EXTR-05**: Scene linking -- each extracted element tracks which scenes it appears in by matching to scene ListItem records
 
@@ -117,7 +117,7 @@
 | BKDN-04 | Phase 9 | Complete |
 | EXTR-01 | Phase 11 | Complete |
 | EXTR-02 | Phase 11 | Complete |
-| EXTR-03 | Phase 11 | Pending |
+| EXTR-03 | Phase 11 | Complete |
 | EXTR-04 | Phase 11 | Complete |
 | EXTR-05 | Phase 11 | Complete |
 | SYNC-01 | Phase 11 | Complete |
