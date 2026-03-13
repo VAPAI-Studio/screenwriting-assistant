@@ -3,6 +3,7 @@
 import uuid
 
 import pytest
+from unittest.mock import patch, AsyncMock
 from app.models.database import (
     BreakdownElement,
     BreakdownRun,
@@ -10,6 +11,12 @@ from app.models.database import (
     ListItem,
     PhaseData,
     Project,
+    ScreenplayContent,
+)
+from app.services.breakdown_service import (
+    ExtractionResponse,
+    ExtractedElement,
+    ExtractedSceneAppearance,
 )
 
 MOCK_USER_ID = "12345678-1234-5678-1234-567812345678"
@@ -252,9 +259,22 @@ class TestDeleteElement:
 # ============================================================
 
 class TestExtraction:
-    def test_extract_creates_pending_run(self, client, db_session, mock_auth_headers):
-        """POST /extract creates BreakdownRun with status='pending'."""
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    def test_extract_creates_completed_run(self, mock_ai, client, db_session, mock_auth_headers):
+        """POST /extract creates BreakdownRun with status='completed' (mocked AI)."""
         project_id = _create_project_via_api(client, mock_auth_headers)
+
+        # Create screenplay content so extraction doesn't fail early
+        sc = ScreenplayContent(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            content="INT. ROOM - DAY\nA bare room.",
+        )
+        db_session.add(sc)
+        db_session.commit()
+
+        # Mock AI returns empty elements
+        mock_ai.return_value = ExtractionResponse(elements=[])
 
         resp = client.post(
             f"/api/breakdown/extract/{project_id}",
@@ -262,12 +282,38 @@ class TestExtraction:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "pending"
+        assert data["status"] == "completed"
         assert data["project_id"] == str(project_id)
 
-    def test_extract_response_shape(self, client, db_session, mock_auth_headers):
-        """Response has all BreakdownRunResponse fields."""
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    def test_extract_response_shape(self, mock_ai, client, db_session, mock_auth_headers):
+        """Response has all BreakdownRunResponse fields and reflects extracted elements."""
         project_id = _create_project_via_api(client, mock_auth_headers)
+
+        # Create screenplay content
+        sc = ScreenplayContent(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            content="INT. OFFICE - DAY\nJOHN enters carrying a briefcase.",
+        )
+        db_session.add(sc)
+        db_session.commit()
+
+        # Mock AI returns sample elements
+        mock_ai.return_value = ExtractionResponse(elements=[
+            ExtractedElement(
+                category="character",
+                canonical_name="John",
+                description="A man with a briefcase",
+                scene_appearances=[],
+            ),
+            ExtractedElement(
+                category="prop",
+                canonical_name="Briefcase",
+                description="A leather briefcase",
+                scene_appearances=[],
+            ),
+        ])
 
         resp = client.post(
             f"/api/breakdown/extract/{project_id}",
@@ -281,9 +327,8 @@ class TestExtraction:
             "created_at", "completed_at",
         }
         assert expected_keys.issubset(set(data.keys()))
-        assert data["elements_created"] == 0
+        assert data["elements_created"] == 2
         assert data["elements_updated"] == 0
-        assert data["result_summary"]["message"] == "Extraction not yet implemented"
 
 
 # ============================================================

@@ -219,6 +219,35 @@ class BreakdownService:
             max_tokens=8000,
         )
 
+    def _deduplicate_elements(self, elements: List[ExtractedElement]) -> List[ExtractedElement]:
+        """Post-processing deduplication: merge elements with same category + case-insensitive name.
+
+        The AI prompt instructs deduplication, but this catches any remaining duplicates.
+        When duplicates found, merge scene_appearances and keep the first description.
+        """
+        seen: dict[tuple[str, str], ExtractedElement] = {}  # (category, name_lower) -> element
+        for elem in elements:
+            key = (elem.category, elem.canonical_name.lower())
+            if key in seen:
+                # Merge: combine scene appearances, keep first description
+                existing = seen[key]
+                merged_appearances = list(existing.scene_appearances)
+                seen_indices = {a.scene_index for a in merged_appearances}
+                for app in elem.scene_appearances:
+                    if app.scene_index not in seen_indices:
+                        merged_appearances.append(app)
+                        seen_indices.add(app.scene_index)
+                # Create new merged element
+                seen[key] = ExtractedElement(
+                    category=existing.category,
+                    canonical_name=existing.canonical_name,
+                    description=existing.description,
+                    scene_appearances=merged_appearances,
+                )
+            else:
+                seen[key] = elem
+        return list(seen.values())
+
     def _upsert_elements(
         self, db: Session, project_id: UUID, extracted: List[ExtractedElement]
     ) -> Dict:
@@ -409,11 +438,14 @@ class BreakdownService:
             # 3. Call AI
             response = await self._call_ai_extraction(ctx)
 
+            # 3b. Post-processing deduplication
+            deduplicated = self._deduplicate_elements(response.elements)
+
             # 4. Upsert elements
-            result = self._upsert_elements(db, project_id, response.elements)
+            result = self._upsert_elements(db, project_id, deduplicated)
 
             # 5. Reconcile scene links for each element in element_map
-            for extracted_el in response.elements:
+            for extracted_el in deduplicated:
                 db_element = result["element_map"].get(extracted_el.canonical_name)
                 if db_element is None:
                     continue  # Was skipped (deleted)
