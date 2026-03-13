@@ -11,13 +11,16 @@ user prompt formatter. Plan 11-02 implements the full extraction pipeline.
 
 import logging
 from dataclasses import dataclass
-from typing import List
+from datetime import datetime, timezone
+from typing import Dict, List
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..models import database
+from .ai_provider import chat_completion_structured
 
 logger = logging.getLogger(__name__)
 
@@ -203,9 +206,248 @@ class BreakdownService:
         parts.append("\nExtract all production elements from this screenplay.")
         return "\n".join(parts)
 
-    async def extract(self, db: Session, project_id: UUID) -> dict:
-        """Full extraction pipeline. Implemented in Plan 11-02."""
-        return {"status": "not_implemented"}
+    async def _call_ai_extraction(self, ctx: ExtractionContext) -> ExtractionResponse:
+        """Call AI with structured output to extract production elements."""
+        messages = [
+            {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
+            {"role": "user", "content": self._build_user_prompt(ctx)},
+        ]
+        return await chat_completion_structured(
+            messages=messages,
+            response_model=ExtractionResponse,
+            temperature=0.15,
+            max_tokens=8000,
+        )
+
+    def _upsert_elements(
+        self, db: Session, project_id: UUID, extracted: List[ExtractedElement]
+    ) -> Dict:
+        """
+        Upsert extracted elements into the database.
+
+        Respects user-modified (SYNC-01) and soft-deleted (SYNC-02) elements:
+        - is_deleted=True: SKIP entirely (do not resurrect)
+        - user_modified=True: SKIP update but include in element_map for scene linking
+        - Otherwise: UPDATE description and source
+        - New elements: CREATE with source="ai"
+
+        Returns dict with created/updated/skipped counts and element_map.
+        """
+        # Pre-load ALL existing elements for this project in a single query
+        existing_elements = db.query(database.BreakdownElement).filter(
+            database.BreakdownElement.project_id == str(project_id)
+        ).all()
+
+        # Build lookup map: (category, name_lower) -> element
+        lookup: Dict[tuple, database.BreakdownElement] = {
+            (el.category, el.name.lower()): el for el in existing_elements
+        }
+
+        created = 0
+        updated = 0
+        skipped = 0
+        element_map: Dict[str, database.BreakdownElement] = {}
+
+        for item in extracted:
+            key = (item.category, item.canonical_name.lower())
+            existing = lookup.get(key)
+
+            if existing and existing.is_deleted:
+                # SYNC-02: Do not resurrect soft-deleted elements
+                skipped += 1
+                continue
+
+            if existing and existing.user_modified:
+                # SYNC-01: Do not overwrite user-modified elements
+                # But include in element_map for scene linking
+                element_map[item.canonical_name] = existing
+                skipped += 1
+                continue
+
+            if existing:
+                # Update existing element
+                existing.description = item.description
+                existing.source = "ai"
+                element_map[item.canonical_name] = existing
+                updated += 1
+            else:
+                # Create new element
+                new_el = database.BreakdownElement(
+                    project_id=str(project_id),
+                    category=item.category,
+                    name=item.canonical_name,
+                    description=item.description,
+                    source="ai",
+                )
+                db.add(new_el)
+                db.flush()  # Get the ID assigned
+                element_map[item.canonical_name] = new_el
+                created += 1
+
+        return {
+            "created": created,
+            "updated": updated,
+            "skipped": skipped,
+            "element_map": element_map,
+        }
+
+    def _reconcile_scene_links(
+        self,
+        db: Session,
+        element: database.BreakdownElement,
+        new_scene_ids: List[str],
+    ) -> None:
+        """
+        Reconcile scene links for an element after extraction.
+
+        - Delete ALL existing AI-sourced links for this element
+        - Create new AI-sourced links for each scene_id
+        - Preserve user-sourced links (never delete them)
+        """
+        # Delete all existing AI-sourced scene links for this element
+        db.query(database.ElementSceneLink).filter(
+            database.ElementSceneLink.element_id == str(element.id),
+            database.ElementSceneLink.source == "ai",
+        ).delete(synchronize_session="fetch")
+
+        for scene_id in new_scene_ids:
+            # Check if a user-sourced link already exists for this pair
+            user_link = db.query(database.ElementSceneLink).filter(
+                database.ElementSceneLink.element_id == str(element.id),
+                database.ElementSceneLink.scene_item_id == str(scene_id),
+                database.ElementSceneLink.source == "user",
+            ).first()
+            if user_link:
+                continue
+
+            link = database.ElementSceneLink(
+                element_id=str(element.id),
+                scene_item_id=str(scene_id),
+                context="",
+                source="ai",
+            )
+            db.add(link)
+
+    def _map_scene_indices_to_ids(
+        self,
+        ctx: ExtractionContext,
+        scene_appearances: List[ExtractedSceneAppearance],
+    ) -> List[str]:
+        """
+        Convert 1-based scene_index values from AI response to ListItem IDs.
+
+        AI returns 1-based indices; scene_summaries is 0-indexed.
+        Invalid indices (out of range) are skipped with a warning.
+        """
+        scene_ids: List[str] = []
+        for appearance in scene_appearances:
+            zero_based = appearance.scene_index - 1
+            if 0 <= zero_based < len(ctx.scene_summaries):
+                scene_ids.append(ctx.scene_summaries[zero_based]["id"])
+            else:
+                logger.warning(
+                    "Invalid scene_index %d (total scenes: %d) -- skipping",
+                    appearance.scene_index,
+                    len(ctx.scene_summaries),
+                )
+        return scene_ids
+
+    def _record_run(
+        self,
+        db: Session,
+        project_id: UUID,
+        status: str,
+        result: dict,
+        error: str = None,
+        created: int = 0,
+        updated: int = 0,
+    ) -> database.BreakdownRun:
+        """Create a BreakdownRun audit record."""
+        run = database.BreakdownRun(
+            project_id=str(project_id),
+            status=status,
+            config={
+                "temperature": 0.15,
+                "provider": settings.AI_PROVIDER,
+            },
+            result_summary=result,
+            error_message=error,
+            elements_created=created,
+            elements_updated=updated,
+        )
+        if status in ("completed", "failed"):
+            run.completed_at = datetime.now(timezone.utc)
+        db.add(run)
+        return run
+
+    async def extract(self, db: Session, project_id: UUID) -> database.BreakdownRun:
+        """
+        Full extraction pipeline in a single transaction:
+
+        1. Build context from database (screenplay text, characters, scenes)
+        2. Validate context has screenplay content
+        3. Call AI with structured output
+        4. Upsert elements (respecting user_modified and is_deleted)
+        5. Reconcile scene links for each element
+        6. Record audit run
+        7. Single commit for entire transaction
+        """
+        try:
+            # 1. Build context
+            ctx = self._build_extraction_context(db, project_id)
+
+            # 2. Validate -- must have screenplay content
+            if not ctx.screenplay_texts:
+                run = self._record_run(
+                    db, project_id, "failed",
+                    result={"error": "No screenplay content found"},
+                    error="No screenplay content found for project",
+                )
+                db.commit()
+                return run
+
+            # 3. Call AI
+            response = await self._call_ai_extraction(ctx)
+
+            # 4. Upsert elements
+            result = self._upsert_elements(db, project_id, response.elements)
+
+            # 5. Reconcile scene links for each element in element_map
+            for extracted_el in response.elements:
+                db_element = result["element_map"].get(extracted_el.canonical_name)
+                if db_element is None:
+                    continue  # Was skipped (deleted)
+                scene_ids = self._map_scene_indices_to_ids(ctx, extracted_el.scene_appearances)
+                self._reconcile_scene_links(db, db_element, scene_ids)
+
+            # 6. Record run
+            run = self._record_run(
+                db, project_id, "completed",
+                result={
+                    "elements_extracted": len(response.elements),
+                    "created": result["created"],
+                    "updated": result["updated"],
+                    "skipped": result["skipped"],
+                },
+                created=result["created"],
+                updated=result["updated"],
+            )
+
+            # 7. Single commit
+            db.commit()
+            return run
+
+        except Exception as e:
+            db.rollback()
+            logger.error("Extraction failed for project %s: %s", project_id, e)
+            # Record a failed run in a new transaction
+            run = self._record_run(
+                db, project_id, "failed",
+                result={"error": str(e)},
+                error=str(e),
+            )
+            db.commit()
+            raise
 
 
 # Module-level singleton
