@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
-status: completed
-stopped_at: Completed 10-02-PLAN.md
-last_updated: "2026-03-13T15:03:30.560Z"
-last_activity: 2026-03-13 -- Completed Plan 10-02 (breakdown API scene links, summary, tests)
+status: in-progress
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-13T20:43:00Z"
+last_activity: 2026-03-13 -- Completed Plan 11-01 (AI extraction service foundation)
 progress:
   total_phases: 6
   completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_plans: 7
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 10 - Breakdown API
+**Current focus:** Phase 11 - AI Extraction Service
 
 ## Current Position
 
-Phase: 10 of 14 (Breakdown API)
-Plan: 2 of 2 in current phase
-Status: Phase 10 complete -- all plans done
-Last activity: 2026-03-13 -- Completed Plan 10-02 (breakdown API scene links, summary, tests)
+Phase: 11 of 14 (AI Extraction Service)
+Plan: 1 of 3 in current phase
+Status: Plan 11-01 complete -- extraction service foundation built
+Last activity: 2026-03-13 -- Completed Plan 11-01 (AI extraction service foundation)
 
-Progress: [██████████] 100% (v2.0 Phase 10: 2/2 plans complete)
+Progress: [███████---] 71% (v2.0 Phase 11: 1/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 16 (v1.0)
-- v2.0 plans completed: 4
-- Total execution time: 15min
+- v2.0 plans completed: 5
+- Total execution time: 18min
 
 **By Phase:**
 
@@ -50,6 +50,7 @@ Progress: [██████████] 100% (v2.0 Phase 10: 2/2 plans comple
 | Phase 09 P02 | 3min | 3 tasks | 3 files |
 | Phase 10 P01 | 1min | 2 tasks | 2 files |
 | Phase 10 P02 | 10min | 2 tasks | 2 files |
+| Phase 11 P01 | 3min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,9 @@ v2.0 decisions:
 - Scene link POST uses JSONResponse to return 200 for idempotent duplicates, overriding default 201 (Phase 10)
 - UUID params cast to str() in all SQLAlchemy filter queries for PostgreSQL/SQLite compatibility (Phase 10)
 - Scene link DELETE is hard-delete (junction table), not soft-delete (Phase 10)
+- Use response_format JSON schema for Anthropic structured outputs (more robust than messages.parse() across SDK versions) (Phase 11)
+- OpenAI structured output tries stable API first, falls back to beta API for older SDK versions (Phase 11)
+- Scene indexing is 1-based in prompts so AI scene_index maps directly to position (Phase 11)
 
 ### Pending Todos
 
@@ -87,11 +91,11 @@ None yet.
 
 ### Blockers/Concerns
 
-- SDK version floors for structured outputs need verification (openai>=1.40.0, anthropic>=0.42.0)
+- SDK version floors verified and upgraded (openai>=1.40.0, anthropic>=0.77.0) -- RESOLVED
 - Scene ListItem ID stability: element_scene_links cascades on ListItem deletion; links break if scenes regenerated
 
 ## Session Continuity
 
-Last session: 2026-03-13T14:58:09Z
-Stopped at: Completed 10-02-PLAN.md
+Last session: 2026-03-13T20:43:00Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
