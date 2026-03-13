@@ -8,6 +8,7 @@ from pydantic import ValidationError
 from .api.endpoints import projects, sections, review, auth, books, agents, chat, snippets, snippet_manager
 from .api.endpoints import templates as templates_ep, phase_data as phase_data_ep, list_items as list_items_ep
 from .api.endpoints import wizards as wizards_ep, ai_chat as ai_chat_ep
+from .api.endpoints import breakdown as breakdown_ep
 from .config import settings
 from .middleware import (
     LoggingMiddleware,
@@ -93,6 +94,7 @@ app.include_router(phase_data_ep.router, prefix="/api/phase-data", tags=["phase-
 app.include_router(list_items_ep.router, prefix="/api/list-items", tags=["list-items"])
 app.include_router(wizards_ep.router, prefix="/api/wizards", tags=["wizards"])
 app.include_router(ai_chat_ep.router, prefix="/api/ai", tags=["ai"])
+app.include_router(breakdown_ep.router, prefix="/api/breakdown", tags=["breakdown"])
 
 @app.get("/health")
 async def health_check():
