@@ -6,11 +6,15 @@ All chat services use this instead of calling APIs directly.
 """
 
 import logging
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import AsyncGenerator, Dict, List, Optional, Type, TypeVar
+
+from pydantic import BaseModel
 
 from ..config import settings
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T", bound=BaseModel)
 
 # Lazy-init clients so missing keys don't crash on import
 _openai_client = None
@@ -128,6 +132,107 @@ async def _anthropic_completion(
         text = "\n".join(lines)
 
     return text
+
+
+async def chat_completion_structured(
+    messages: List[Dict[str, str]],
+    response_model: Type[T],
+    temperature: float = 0.1,
+    max_tokens: int = 4000,
+    provider: Optional[str] = None,
+) -> T:
+    """
+    Structured output completion. Returns a validated Pydantic model instance.
+
+    Uses provider-native structured output support to guarantee schema-compliant
+    JSON responses. Falls back to JSON parsing if structured output methods
+    are unavailable.
+
+    Args:
+        messages: List of {"role": "system"|"user"|"assistant", "content": "..."}
+        response_model: Pydantic model class defining the response schema
+        temperature: Sampling temperature (default 0.1 for deterministic extraction)
+        max_tokens: Max tokens in response
+        provider: Override the default AI_PROVIDER setting
+    """
+    provider = provider or settings.AI_PROVIDER
+
+    if provider == "anthropic":
+        return await _anthropic_structured(messages, response_model, temperature, max_tokens)
+    else:
+        return await _openai_structured(messages, response_model, temperature, max_tokens)
+
+
+async def _openai_structured(
+    messages: List[Dict[str, str]],
+    response_model: Type[T],
+    temperature: float,
+    max_tokens: int,
+) -> T:
+    """OpenAI structured output using client.beta.chat.completions.parse()."""
+    client = _get_openai_client()
+    kwargs = {
+        "model": settings.OPENAI_MODEL,
+        "messages": messages,
+        "response_format": response_model,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+
+    try:
+        # Try the stable API first (available in newer SDK versions)
+        completion = await client.chat.completions.parse(**kwargs)
+        return completion.choices[0].message.parsed
+    except AttributeError:
+        # Fall back to beta API for older SDK versions
+        completion = await client.beta.chat.completions.parse(**kwargs)
+        return completion.choices[0].message.parsed
+
+
+async def _anthropic_structured(
+    messages: List[Dict[str, str]],
+    response_model: Type[T],
+    temperature: float,
+    max_tokens: int,
+) -> T:
+    """Anthropic structured output using JSON schema in response_format."""
+    client = _get_anthropic_client()
+
+    # Separate system prompt from messages (same pattern as _anthropic_completion)
+    system_prompt = None
+    chat_messages = []
+    for msg in messages:
+        if msg["role"] == "system":
+            system_prompt = (system_prompt or "") + msg["content"]
+        else:
+            chat_messages.append({"role": msg["role"], "content": msg["content"]})
+
+    # Ensure messages start with user role (same pattern)
+    if not chat_messages or chat_messages[0]["role"] != "user":
+        chat_messages.insert(0, {"role": "user", "content": "Begin."})
+
+    kwargs = {
+        "model": settings.ANTHROPIC_MODEL,
+        "messages": chat_messages,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+    }
+    if system_prompt:
+        kwargs["system"] = system_prompt
+
+    # Use response_format with JSON schema for structured output
+    json_schema = response_model.model_json_schema()
+    kwargs["response_format"] = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": response_model.__name__,
+            "schema": json_schema,
+        },
+    }
+
+    response = await client.messages.create(**kwargs)
+    # Parse the text response into the Pydantic model
+    return response_model.model_validate_json(response.content[0].text)
 
 
 async def chat_completion_stream(
