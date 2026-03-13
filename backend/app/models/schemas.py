@@ -642,3 +642,65 @@ class PipelineMapResponse(BaseModel):
     total_mappings: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# ============================================================
+# Breakdown Schemas (v2.0 — Phase 9 Data Foundation)
+# ============================================================
+
+class BreakdownElementCreate(BaseModel):
+    category: str = Field(..., pattern="^(character|location|prop|wardrobe|vehicle)$")
+    name: str = Field(..., min_length=1, max_length=500)
+    description: str = ""
+    metadata: Dict = Field(default_factory=dict)
+
+
+class BreakdownElementUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=500)
+    description: Optional[str] = None
+    metadata: Optional[Dict] = None
+
+
+class BreakdownElementResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    category: str
+    name: str
+    description: str
+    metadata: Dict = Field(default_factory=dict, validation_alias="metadata_")
+    source: str
+    user_modified: bool
+    is_deleted: bool
+    sort_order: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BreakdownRunResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    status: str
+    config: Dict = Field(default_factory=dict)
+    result_summary: Dict = Field(default_factory=dict)
+    elements_created: int = 0
+    elements_updated: int = 0
+    error_message: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BreakdownSummaryResponse(BaseModel):
+    project_id: UUID
+    is_stale: bool
+    total_elements: int
+    counts_by_category: Dict[str, int] = Field(default_factory=dict)
+    last_run: Optional[BreakdownRunResponse] = None
+
+
+class SceneLinkCreate(BaseModel):
+    scene_item_id: UUID
+    context: str = ""
