@@ -1,157 +1,155 @@
-# Roadmap: Agent Orchestration Pipeline
+# Roadmap: Screenwriting Assistant
 
-## Overview
+## Milestones
 
-This milestone wires two already-built subsystems — the template-based generation pipeline and the multi-agent review system — into a unified orchestration pipeline. The work progresses in four natural layers: data foundation, backend review infrastructure, frontend visibility, and YOLO integration. Each phase delivers a coherent, independently verifiable capability. Phases follow hard sequential dependencies: the DB table must exist before mapping logic can write to it; mapping must be computed before the review middleware can look anything up; the review middleware must be proven stable with manual generation before YOLO amplifies its volume.
+- [x] **v1.0 Agent Orchestration Pipeline** - Phases 1-8 (shipped 2026-03-12)
+- [ ] **v2.0 Script Breakdown** - Phases 9-14 (in progress)
 
 ## Phases
 
-- [ ] **Phase 1: DB Foundation** - Create `agent_pipeline_maps` table, SQLAlchemy model, and Pydantic schemas
-- [ ] **Phase 2: Pipeline Composer Service** - Build `pipeline_composer.py` with AI mapping, hash-based cache, and dirty-flag gating
-- [ ] **Phase 3: Pipeline Map API and CRUD Wiring** - Expose GET endpoint and wire agent CRUD to trigger re-composition via BackgroundTasks
-- [ ] **Phase 4: Async Safety and Session Isolation** - Fix shared DB session bug in `run_multi_agent_review` for safe concurrent use
-- [ ] **Phase 5: Agent Review Middleware** - Build `agent_review_middleware.py` with parallel fan-out, merge AI call, and pass-through bypass
-- [ ] **Phase 6: Wizard Injection** - Inject review middleware into `wizards.py` generation path and surface `agents_consulted` metadata
-- [ ] **Phase 7: Frontend Pipeline Tree** - Build `AgentPipelineTree.tsx` collapsible tree component embedded in `AgentManager.tsx`
-- [ ] **Phase 8: YOLO Integration and Token Budget** - Wire YOLO auto-generation through review middleware with configurable agent budgets
+<details>
+<summary>v1.0 Agent Orchestration Pipeline (Phases 1-8) - SHIPPED 2026-03-12</summary>
+
+- [x] **Phase 1: DB Foundation** - Create `agent_pipeline_maps` table, SQLAlchemy model, and Pydantic schemas
+- [x] **Phase 2: Pipeline Composer Service** - Build `pipeline_composer.py` with AI mapping, hash-based cache, and dirty-flag gating
+- [x] **Phase 3: Pipeline Map API and CRUD Wiring** - Expose GET endpoint and wire agent CRUD to trigger re-composition via BackgroundTasks
+- [x] **Phase 4: Async Safety and Session Isolation** - Fix shared DB session bug in `run_multi_agent_review` for safe concurrent use
+- [x] **Phase 5: Agent Review Middleware** - Build `agent_review_middleware.py` with parallel fan-out, merge AI call, and pass-through bypass
+- [x] **Phase 6: Wizard Injection** - Inject review middleware into `wizards.py` generation path and surface `agents_consulted` metadata
+- [x] **Phase 7: Frontend Pipeline Tree** - Build `AgentPipelineTree.tsx` collapsible tree component embedded in `AgentManager.tsx`
+- [x] **Phase 8: YOLO Integration and Token Budget** - Wire YOLO auto-generation through review middleware with configurable agent budgets
+
+</details>
+
+### v2.0 Script Breakdown
+
+**Milestone Goal:** AI-powered script breakdown that extracts production elements (characters, locations, props, wardrobe, vehicles) into master lists linked to scenes, with full bidirectional sync between breakdown and script.
+
+- [ ] **Phase 9: Data Foundation** - Migration, SQLAlchemy models, Pydantic schemas for breakdown tables and staleness column
+- [ ] **Phase 10: Breakdown API** - CRUD endpoints for elements, scene links, manual creation, summary, and extraction trigger
+- [ ] **Phase 11: AI Extraction Service** - Structured output extraction with deduplication, user-modified protection, and scene link reconciliation
+- [ ] **Phase 12: Staleness Hooks** - Wire save/generate paths to set breakdown_stale flag and clear it on re-extraction
+- [ ] **Phase 13: Breakdown Page** - Dedicated frontend page with category tabs, master lists, inline editing, and scene chips
+- [ ] **Phase 14: Reverse Sync** - User-initiated actions to push breakdown elements back to project data (e.g., "Add to Characters")
 
 ## Phase Details
 
-### Phase 1: DB Foundation
-**Goal**: The `agent_pipeline_maps` table and its ORM layer exist and are ready for writes
-**Depends on**: Nothing (first phase)
-**Requirements**: COMP-02
+### Phase 9: Data Foundation
+**Goal**: The database schema for breakdown elements, scene links, audit runs, and staleness tracking exists and is ready for use by the API and service layers
+**Depends on**: Nothing (first phase of v2.0; builds on existing projects and list_items tables)
+**Requirements**: BKDN-01, BKDN-02, BKDN-03, BKDN-04
 **Success Criteria** (what must be TRUE):
-  1. Running the migration creates `agent_pipeline_maps` table with `owner_id`, `agent_id`, `phase`, `subsection_key`, `confidence`, `rationale`, and `pipeline_dirty` columns
-  2. The composite index on `(owner_id, phase, subsection_key)` exists and can be confirmed via `\d agent_pipeline_maps` in psql
-  3. The `AgentPipelineMap` SQLAlchemy model is importable and its relationship to the `Agent` model includes `ON DELETE CASCADE`
-  4. `PipelineMapEntry` and `PipelineMapResponse` Pydantic schemas validate correctly and can round-trip from the ORM model
+  1. Running the migration creates `breakdown_elements`, `element_scene_links`, and `breakdown_runs` tables with all columns, indexes, and constraints matching the architecture spec
+  2. The `breakdown_elements` table enforces a unique constraint on `(project_id, category, name)` and supports the `user_modified` flag and `is_deleted` soft-delete
+  3. The `projects` table has a `breakdown_stale` boolean column defaulting to FALSE
+  4. SQLAlchemy models (`BreakdownElement`, `ElementSceneLink`, `BreakdownRun`) are importable, have cascade-delete relationships to `Project`, and `ElementSceneLink` cascades on `ListItem` deletion
+  5. Pydantic request/response schemas (`BreakdownElementCreate`, `BreakdownElementUpdate`, `BreakdownElementResponse`, `BreakdownSummaryResponse`, `BreakdownRunResponse`, `SceneLinkCreate`) validate correctly and round-trip from ORM models
+**Plans**: 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md -- SQL migration for breakdown_elements, element_scene_links, breakdown_runs tables and breakdown_stale column on projects
+- [ ] 09-02-PLAN.md -- SQLAlchemy models, Pydantic schemas, and relationship wiring
+
+### Phase 10: Breakdown API
+**Goal**: The backend exposes a complete REST API for breakdown element CRUD, scene link management, extraction triggering, and summary queries
+**Depends on**: Phase 9
+**Requirements**: API-01, API-02, API-03, API-04, API-05, API-06, API-07
+**Success Criteria** (what must be TRUE):
+  1. `POST /api/breakdown/extract/{project_id}` accepts a request and returns a `BreakdownRunResponse` (extraction logic stubbed until Phase 11)
+  2. `GET /api/breakdown/elements/{project_id}` returns elements filtered by category query param, excluding soft-deleted by default
+  3. `PUT /api/breakdown/element/{element_id}` updates an element and sets `user_modified=true`; `DELETE` soft-deletes; `POST /api/breakdown/elements/{project_id}` creates with `source='user'`
+  4. `POST/DELETE /api/breakdown/element/{element_id}/scenes` adds and removes scene links correctly
+  5. `GET /api/breakdown/summary/{project_id}` returns staleness status, category counts, and last run info
+**Plans**: 2 plans
+
+Plans:
+- [ ] 10-01-PLAN.md -- breakdown.py router with element CRUD endpoints (API-02 through API-05) and main.py mount
+- [ ] 10-02-PLAN.md -- Scene link endpoints (API-06), summary endpoint (API-07), extraction trigger stub (API-01), and test suite
+
+### Phase 11: AI Extraction Service
+**Goal**: AI analyzes screenplay content and project data to produce structured JSON of production elements across 5 categories, with deduplication, user-modified protection, and scene link reconciliation
+**Depends on**: Phase 10
+**Requirements**: EXTR-01, EXTR-02, EXTR-03, EXTR-04, EXTR-05, SYNC-01, SYNC-02
+**Success Criteria** (what must be TRUE):
+  1. Calling `BreakdownService.extract(project_id)` gathers screenplay content and character names, sends a structured-output AI call, and persists elements to the database with scene links
+  2. The extraction uses low temperature (0.1-0.2) and the prompt restricts output to elements physically present on screen (not mentioned in dialogue or backstory)
+  3. The same element described differently across scenes (e.g., "GUN" and "revolver") maps to one master list entry with a canonical name
+  4. Re-extraction preserves elements where `user_modified=true` (name, description, and metadata unchanged) and does not resurrect soft-deleted elements
+  5. Each extracted element is linked to the scene ListItems where it appears via `element_scene_links` records
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — SQL migration for `agent_pipeline_maps` table and indexes
-- [ ] 01-02-PLAN.md — `AgentPipelineMap` SQLAlchemy model with cascade relationship to Agent
-- [ ] 01-03-PLAN.md — `PipelineMapEntry` / `PipelineMapResponse` Pydantic schemas + COMP-02 test suite
+- [ ] 11-01-PLAN.md -- BreakdownService skeleton, extraction context builder (screenplay + character names), and structured output schema
+- [ ] 11-02-PLAN.md -- AI extraction call with structured outputs, response parsing, and element upsert with user_modified/is_deleted protection
+- [ ] 11-03-PLAN.md -- Deduplication logic, scene link reconciliation, audit run recording, and integration tests
 
-### Phase 2: Pipeline Composer Service
-**Goal**: An AI orchestrator can analyze all user agents and produce a stable, deterministic mapping to pipeline steps
-**Depends on**: Phase 1
-**Requirements**: COMP-01, COMP-03
+### Phase 12: Staleness Hooks
+**Goal**: Saving screenplay content or regenerating scenes automatically sets the project's breakdown as stale, and re-extraction clears it
+**Depends on**: Phase 11
+**Requirements**: SYNC-03, SYNC-04
 **Success Criteria** (what must be TRUE):
-  1. Calling `compose_pipeline(owner_id, db)` produces `agent_pipeline_maps` rows for each agent-to-step pairing with confidence scores
-  2. Running `compose_pipeline` twice with identical agent descriptions produces identical output (temperature=0 + hash-based cache)
-  3. A cosmetic agent edit (name, color, icon) does NOT trigger re-composition; a semantic edit (system_prompt_template, description) DOES set `pipeline_dirty=True`
-  4. The composer handles the case where a user has zero agents without error (returns empty mapping)
-  5. The composition prompt embeds all phase/subsection_key values from the active template system
+  1. Saving content via the phase_data PUT endpoint for write/scenes phases sets `project.breakdown_stale = true` when a breakdown exists
+  2. Running `apply_wizard_result_to_db()` for `script_writer_wizard` sets `project.breakdown_stale = true`
+  3. Creating, updating, or deleting scene ListItems sets `project.breakdown_stale = true`
+  4. Running a successful extraction via `BreakdownService.extract()` clears `breakdown_stale` to false and creates a new `breakdown_runs` audit record
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Core pipeline_composer.py service with AI mapping, template discovery, batch splitting, and COMP-01 TDD tests
-- [ ] 02-02-PLAN.md — Hash-based cache and semantic change detection with COMP-03 TDD tests
+- [ ] 12-01-PLAN.md -- mark_breakdown_stale() utility and hooks in phase_data.py, wizards.py, and list_items.py
+- [ ] 12-02-PLAN.md -- Wire extraction to clear stale flag, create audit run on completion, and integration tests
 
-### Phase 3: Pipeline Map API and CRUD Wiring
-**Goal**: The frontend and generation layer can retrieve current pipeline mappings, and agent CRUD automatically triggers re-composition in the background
-**Depends on**: Phase 2
-**Requirements**: COMP-01 (trigger side), COMP-03 (CRUD gate), COMP-04
+### Phase 13: Breakdown Page
+**Goal**: Users can view, filter, edit, and manage their script breakdown from a dedicated page in the project workspace
+**Depends on**: Phase 10, Phase 11, Phase 12
+**Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, UI-08
 **Success Criteria** (what must be TRUE):
-  1. `GET /api/agents/pipeline-map` returns the current mapping for the authenticated user in the `PipelineMapResponse` schema
-  2. Creating an agent triggers background re-composition; the mapping updates within seconds without blocking the POST response
-  3. Editing an agent's `system_prompt_template` triggers re-composition; editing only the agent's name does not
-  4. Deleting an agent removes its `agent_pipeline_maps` rows via cascade and triggers a fresh composition of remaining agents
-**Plans**: 2 plans
-
-Plans:
-- [ ] 03-01-PLAN.md — Schema expansion, GET /pipeline-map endpoint, BackgroundTasks wiring into create/update/delete
-- [ ] 03-02-PLAN.md — Integration test suite (6 tests) for COMP-01/COMP-03/COMP-04
-
-### Phase 4: Async Safety and Session Isolation
-**Goal**: Parallel async agent review tasks each operate on their own DB session, eliminating intermittent `DetachedInstanceError` failures
-**Depends on**: Phase 3
-**Requirements**: REVW-05
-**Success Criteria** (what must be TRUE):
-  1. Running `run_multi_agent_review` with 3+ agents concurrently via `asyncio.gather` produces no `DetachedInstanceError` or `MissingGreenlet` exceptions
-  2. The function signature accepts a `session_factory` callable instead of a shared `Session`, and each parallel task creates and closes its own session
-  3. Existing callers of `run_multi_agent_review` in `agent_service.py` pass the session factory correctly and all existing tests continue to pass
-**Plans**: 1 plan
-
-Plans:
-- [ ] 04-01-PLAN.md — TDD refactor of all 3 asyncio.gather sites to session-per-task pattern with session_factory callable
-
-### Phase 5: Agent Review Middleware
-**Goal**: A middleware layer can intercept any generation step output, run mapped agents in parallel, merge their feedback into a refined result, and pass through unchanged when no agents are mapped
-**Depends on**: Phase 4
-**Requirements**: REVW-01, REVW-02, REVW-03, REVW-04
-**Success Criteria** (what must be TRUE):
-  1. Calling `review_step_output(phase, subsection_key, raw_output, owner_id, session_factory)` returns refined output when agents are mapped to that step
-  2. When multiple agents are mapped to the same step, their reviews execute concurrently (confirmed via timing: N agents take ~1x not N×x time)
-  3. The merge AI call returns output matching the expected wizard result JSON schema with explicit conflict-resolution rules applied (most specific and actionable suggestion wins, not a blend)
-  4. When zero agents are mapped to a step, the function returns `raw_output` unchanged and makes zero additional LLM calls
-  5. The response includes `agents_consulted` metadata listing which agents ran and their contribution summary
-**Plans**: 2 plans
-
-Plans:
-- [ ] 05-01-PLAN.md — Core middleware with review_step_output entry point, agent lookup, parallel fan-out, session-per-task, and zero-agent pass-through (TDD)
-- [ ] 05-02-PLAN.md — AI merge call with conflict-resolution prompt, schema validation per wizard_type, and agents_consulted summaries (TDD)
-
-### Phase 6: Wizard Injection
-**Goal**: Manual screenplay generation through the wizard automatically routes through agent review at each step, with review metadata surfaced in the response
-**Depends on**: Phase 5
-**Requirements**: REVW-01 (injection point)
-**Success Criteria** (what must be TRUE):
-  1. Running a wizard generation step for a phase that has mapped agents returns refined output visibly different from (or equal to, with justification) the raw generation
-  2. The wizard run response includes `agents_consulted` showing which agents reviewed the step
-  3. Running a wizard step for a phase with no mapped agents completes without error and returns raw output identical to pre-injection behavior
-  4. Existing wizard generation tests pass without modification after injection
-**Plans**: 1 plan
-
-Plans:
-- [ ] 06-01-PLAN.md — Wire review middleware into wizards.py, update WizardRunResponse schema with agents_consulted, and integration tests
-
-### Phase 7: Frontend Pipeline Tree
-**Goal**: Users can see exactly which agents are mapped to which pipeline steps, and can toggle individual agents in or out of the pipeline
-**Depends on**: Phase 3
-**Requirements**: TREE-01, TREE-02, TREE-03
-**Success Criteria** (what must be TRUE):
-  1. The pipeline tree renders inside `AgentManager.tsx` showing a collapsible hierarchy of phases, subsections, and agent badges
-  2. Creating, editing, or deleting an agent causes the tree to refresh automatically without a page reload (React Query invalidation)
-  3. An empty state message ("Create agents to see how they map to your pipeline") renders when the user has no agents
-  4. Clicking the toggle on an individual agent badge excludes that agent from pipeline reviews; the toggle state persists and the tree reflects the exclusion visually
+  1. A "Breakdown" tab appears in the project workspace navigation (separate from phase tabs) and navigates to a dedicated breakdown page
+  2. The page shows category tabs (Characters, Locations, Props, Wardrobe, Vehicles) with count badges reflecting the number of elements per category
+  3. Each element in the master list displays its name, description, scene count, source badge (AI/User), and user-modified indicator, with inline editing for name and description
+  4. Scene chips on each element show linked scenes and are clickable to navigate to the scene in the workspace
+  5. "Extract Breakdown" button triggers first extraction; a staleness banner with "Refresh" button appears when the breakdown is outdated; empty state shows a clear CTA when no breakdown exists
+  6. The "Add Element" dialog allows manually creating new elements with category, name, and description
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — API layer (types, constants, fetch methods) + backend is_active filter fix
-- [ ] 07-02-PLAN.md — AgentPipelineTree.tsx collapsible tree with toggle, embedded in AgentManager.tsx
-- [ ] 07-03-PLAN.md — React Query invalidation for PIPELINE_MAP on agent create/delete mutations
+- [ ] 13-01-PLAN.md -- TypeScript types, API client functions, React Query hooks, route in App.tsx, and breakdown tab in PhaseNavigation.tsx
+- [ ] 13-02-PLAN.md -- BreakdownPage layout with CategoryTabs, ElementList, ElementCard (inline editing, source badges, scene chips), and staleness banner
+- [ ] 13-03-PLAN.md -- AddElementDialog, empty state, extraction trigger UX, and soft-delete with optimistic updates
 
-### Phase 8: YOLO Integration and Token Budget
-**Goal**: YOLO auto-generation fires agent reviews at each step within configurable token and agent-count budgets, preventing cost explosion while preserving review quality
-**Depends on**: Phase 6
-**Requirements**: YOLO-01, YOLO-02
+### Phase 14: Reverse Sync
+**Goal**: Users can push breakdown elements back to project data through explicit actions, keeping the screenplay as source of truth
+**Depends on**: Phase 13
+**Requirements**: SYNC-05
 **Success Criteria** (what must be TRUE):
-  1. Running a full YOLO auto-generation with 3 agents mapped fires agent reviews at each matching pipeline step without error
-  2. Setting `MAX_AGENTS_PER_PIPELINE_STEP=2` limits reviews to the 2 highest-relevance agents even when 5 are mapped to a step
-  3. Agents below the `AGENT_RELEVANCE_THRESHOLD` do not fire for steps where their relevance score is below the threshold
-  4. A YOLO run with zero mapped agents completes at the same speed as pre-orchestration (no overhead introduced)
+  1. An "Add to Characters" button on character elements in the breakdown creates a corresponding ListItem in the `story.characters` PhaseData
+  2. The action only appears for elements not already present in the characters list (duplicate detection by name)
+  3. After adding, the breakdown element shows a "Synced" indicator and the character appears in the project's characters phase
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Config values (MAX_AGENTS_PER_PIPELINE_STEP, AGENT_RELEVANCE_THRESHOLD) and relevance-score gating in middleware lookup
-- [ ] 08-02-PLAN.md — Wire YOLO _yolo_run_wizard through agent review middleware with integration tests
+- [ ] 14-01-PLAN.md -- Backend endpoint for reverse sync (character element to ListItem creation) with duplicate detection
+- [ ] 14-02-PLAN.md -- Frontend "Add to Characters" button, synced indicator, and integration with existing characters phase
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8
+Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
 
-Note: Phase 7 (Frontend) depends only on Phase 3, so it can proceed in parallel with Phases 4-6 once Phase 3 is complete.
+Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/types work (Plan 13-01) can begin once Phase 10 is complete.
 
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. DB Foundation | 0/3 | Not started | - |
-| 2. Pipeline Composer Service | 0/2 | Not started | - |
-| 3. Pipeline Map API and CRUD Wiring | 0/2 | Not started | - |
-| 4. Async Safety and Session Isolation | 0/1 | Not started | - |
-| 5. Agent Review Middleware | 0/2 | Not started | - |
-| 6. Wizard Injection | 0/1 | Not started | - |
-| 7. Frontend Pipeline Tree | 0/3 | Not started | - |
-| 8. YOLO Integration and Token Budget | 0/2 | Not started | - |
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 1. DB Foundation | v1.0 | 3/3 | Complete | 2026-03-11 |
+| 2. Pipeline Composer Service | v1.0 | 2/2 | Complete | 2026-03-11 |
+| 3. Pipeline Map API and CRUD Wiring | v1.0 | 2/2 | Complete | 2026-03-11 |
+| 4. Async Safety and Session Isolation | v1.0 | 1/1 | Complete | 2026-03-11 |
+| 5. Agent Review Middleware | v1.0 | 2/2 | Complete | 2026-03-12 |
+| 6. Wizard Injection | v1.0 | 1/1 | Complete | 2026-03-12 |
+| 7. Frontend Pipeline Tree | v1.0 | 3/3 | Complete | 2026-03-12 |
+| 8. YOLO Integration and Token Budget | v1.0 | 2/2 | Complete | 2026-03-12 |
+| 9. Data Foundation | v2.0 | 0/2 | Not started | - |
+| 10. Breakdown API | v2.0 | 0/2 | Not started | - |
+| 11. AI Extraction Service | v2.0 | 0/3 | Not started | - |
+| 12. Staleness Hooks | v2.0 | 0/2 | Not started | - |
+| 13. Breakdown Page | v2.0 | 0/3 | Not started | - |
+| 14. Reverse Sync | v2.0 | 0/2 | Not started | - |

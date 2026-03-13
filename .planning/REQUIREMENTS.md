@@ -3,7 +3,7 @@
 **Defined:** 2026-03-11
 **Updated:** 2026-03-13 (v2.0 Script Breakdown)
 
-## v1 Requirements (Agent Orchestration Pipeline) — COMPLETE
+## v1 Requirements (Agent Orchestration Pipeline) -- COMPLETE
 
 ### Pipeline Composition
 
@@ -29,7 +29,7 @@
 ### YOLO Integration
 
 - [x] **YOLO-01**: Agent reviews fire during YOLO auto-generation flow through same middleware path
-- [x] **YOLO-02**: Token budget controls — configurable max agents per step and relevance threshold
+- [x] **YOLO-02**: Token budget controls -- configurable max agents per step and relevance threshold
 
 ## v2 Requirements (Script Breakdown)
 
@@ -46,27 +46,27 @@
 
 - [ ] **EXTR-01**: AI extraction service analyzes screenplay content + character names to produce structured JSON of production elements across 5 categories (character, location, prop, wardrobe, vehicle)
 - [ ] **EXTR-02**: Extraction uses structured outputs (schema-enforced JSON) via upgraded OpenAI/Anthropic SDKs for guaranteed response shape
-- [ ] **EXTR-03**: Deduplication — same element described differently across scenes maps to one master list entry with canonical name
+- [ ] **EXTR-03**: Deduplication -- same element described differently across scenes maps to one master list entry with canonical name
 - [ ] **EXTR-04**: Low temperature (0.1-0.2) for extraction calls; only extract elements physically present on screen, not mentioned in dialogue or backstory
-- [ ] **EXTR-05**: Scene linking — each extracted element tracks which scenes it appears in by matching to scene ListItem records
+- [ ] **EXTR-05**: Scene linking -- each extracted element tracks which scenes it appears in by matching to scene ListItem records
 
 ### User Refinement & Sync
 
-- [ ] **SYNC-01**: Re-extraction preserves user modifications — elements with `user_modified=true` keep their user-edited name, description, and metadata
+- [ ] **SYNC-01**: Re-extraction preserves user modifications -- elements with `user_modified=true` keep their user-edited name, description, and metadata
 - [ ] **SYNC-02**: Soft-deleted elements (`is_deleted=true`) are not resurrected by re-extraction
-- [ ] **SYNC-03**: Staleness detection — saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
+- [ ] **SYNC-03**: Staleness detection -- saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
 - [ ] **SYNC-04**: Re-extraction clears the stale flag and creates a new `breakdown_runs` audit record
-- [ ] **SYNC-05**: Reverse sync is user-initiated — "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
+- [ ] **SYNC-05**: Reverse sync is user-initiated -- "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
 
 ### API
 
-- [ ] **API-01**: `POST /api/breakdown/extract/{project_id}` — trigger AI extraction, return run result
-- [ ] **API-02**: `GET /api/breakdown/elements/{project_id}` — list elements filtered by category, excluding soft-deleted by default
-- [ ] **API-03**: `PUT /api/breakdown/element/{element_id}` — update element, sets `user_modified=true`
-- [ ] **API-04**: `POST /api/breakdown/elements/{project_id}` — create element manually with `source='user'`
-- [ ] **API-05**: `DELETE /api/breakdown/element/{element_id}` — soft-delete element
-- [ ] **API-06**: `POST/DELETE /api/breakdown/element/{element_id}/scenes` — add/remove scene links
-- [ ] **API-07**: `GET /api/breakdown/summary/{project_id}` — breakdown summary with staleness, category counts, last run info
+- [ ] **API-01**: `POST /api/breakdown/extract/{project_id}` -- trigger AI extraction, return run result
+- [ ] **API-02**: `GET /api/breakdown/elements/{project_id}` -- list elements filtered by category, excluding soft-deleted by default
+- [ ] **API-03**: `PUT /api/breakdown/element/{element_id}` -- update element, sets `user_modified=true`
+- [ ] **API-04**: `POST /api/breakdown/elements/{project_id}` -- create element manually with `source='user'`
+- [ ] **API-05**: `DELETE /api/breakdown/element/{element_id}` -- soft-delete element
+- [ ] **API-06**: `POST/DELETE /api/breakdown/element/{element_id}/scenes` -- add/remove scene links
+- [ ] **API-07**: `GET /api/breakdown/summary/{project_id}` -- breakdown summary with staleness, category counts, last run info
 
 ### Frontend
 
@@ -97,21 +97,56 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| COMP-01 through COMP-04 | v1 Phases 1-3 | Complete |
-| REVW-01 through REVW-05 | v1 Phases 4-6 | Complete |
-| TREE-01 through TREE-03 | v1 Phase 7 | Complete |
-| YOLO-01, YOLO-02 | v1 Phase 8 | Complete |
-| BKDN-01 through BKDN-04 | — | Pending |
-| EXTR-01 through EXTR-05 | — | Pending |
-| SYNC-01 through SYNC-05 | — | Pending |
-| API-01 through API-07 | — | Pending |
-| UI-01 through UI-08 | — | Pending |
+| COMP-01 | Phase 2 | Complete |
+| COMP-02 | Phase 1 | Complete |
+| COMP-03 | Phase 2 | Complete |
+| COMP-04 | Phase 3 | Complete |
+| REVW-01 | Phase 5, Phase 6 | Complete |
+| REVW-02 | Phase 5 | Complete |
+| REVW-03 | Phase 5 | Complete |
+| REVW-04 | Phase 5 | Complete |
+| REVW-05 | Phase 4 | Complete |
+| TREE-01 | Phase 7 | Complete |
+| TREE-02 | Phase 7 | Complete |
+| TREE-03 | Phase 7 | Complete |
+| YOLO-01 | Phase 8 | Complete |
+| YOLO-02 | Phase 8 | Complete |
+| BKDN-01 | Phase 9 | Pending |
+| BKDN-02 | Phase 9 | Pending |
+| BKDN-03 | Phase 9 | Pending |
+| BKDN-04 | Phase 9 | Pending |
+| EXTR-01 | Phase 11 | Pending |
+| EXTR-02 | Phase 11 | Pending |
+| EXTR-03 | Phase 11 | Pending |
+| EXTR-04 | Phase 11 | Pending |
+| EXTR-05 | Phase 11 | Pending |
+| SYNC-01 | Phase 11 | Pending |
+| SYNC-02 | Phase 11 | Pending |
+| SYNC-03 | Phase 12 | Pending |
+| SYNC-04 | Phase 12 | Pending |
+| SYNC-05 | Phase 14 | Pending |
+| API-01 | Phase 10 | Pending |
+| API-02 | Phase 10 | Pending |
+| API-03 | Phase 10 | Pending |
+| API-04 | Phase 10 | Pending |
+| API-05 | Phase 10 | Pending |
+| API-06 | Phase 10 | Pending |
+| API-07 | Phase 10 | Pending |
+| UI-01 | Phase 13 | Pending |
+| UI-02 | Phase 13 | Pending |
+| UI-03 | Phase 13 | Pending |
+| UI-04 | Phase 13 | Pending |
+| UI-05 | Phase 13 | Pending |
+| UI-06 | Phase 13 | Pending |
+| UI-07 | Phase 13 | Pending |
+| UI-08 | Phase 13 | Pending |
 
 **Coverage:**
-- v1 requirements: 14 total — all complete
-- v2 requirements: 29 total — all pending
-- Unmapped: 29 (pending roadmap creation)
+- v1 requirements: 14 total -- all complete
+- v2 requirements: 29 total -- all mapped to phases
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-11*
 *v2 requirements added: 2026-03-13*
+*Traceability updated: 2026-03-13 (phases 9-14 assigned)*
