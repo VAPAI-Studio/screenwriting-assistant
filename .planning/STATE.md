@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: completed
-stopped_at: Completed 09-02-PLAN.md (Phase 9 complete)
-last_updated: "2026-03-13T12:51:14.543Z"
-last_activity: 2026-03-13 -- Completed Plan 09-02 (breakdown ORM models and Pydantic schemas)
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-03-13T14:46:02.731Z"
+last_activity: 2026-03-13 -- Completed Plan 10-01 (breakdown API CRUD endpoints)
 progress:
   total_phases: 6
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 57
+  total_plans: 4
+  completed_plans: 3
+  percent: 95
 ---
 
 # Project State
@@ -21,23 +21,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 9 - Data Foundation
+**Current focus:** Phase 10 - Breakdown API
 
 ## Current Position
 
-Phase: 9 of 14 (Data Foundation)
-Plan: 2 of 2 in current phase (phase complete)
-Status: Phase 9 complete
-Last activity: 2026-03-13 -- Completed Plan 09-02 (breakdown ORM models and Pydantic schemas)
+Phase: 10 of 14 (Breakdown API)
+Plan: 1 of 2 in current phase
+Status: Plan 10-01 complete
+Last activity: 2026-03-13 -- Completed Plan 10-01 (breakdown API CRUD endpoints)
 
-Progress: [████████████........] 57% (v2.0 Phase 9: 2/2 plans complete)
+Progress: [██████████] 95% (v2.0 Phase 10: 1/2 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 16 (v1.0)
-- v2.0 plans completed: 2
-- Total execution time: 4min
+- v2.0 plans completed: 3
+- Total execution time: 5min
 
 **By Phase:**
 
@@ -46,8 +46,9 @@ Progress: [████████████........] 57% (v2.0 Phase 9: 2/2 
 | v1.0 Phases 1-8 | 16/16 | -- | -- |
 | v2.0 Phase 9 Plan 01 | 1/14 | 1min | 1min |
 | v2.0 Phase 9 Plan 02 | 2/14 | 3min | 3min |
-| v2.0 Phases 9-14 | 2/14 | 4min | 2min |
+| v2.0 Phases 9-14 | 3/14 | 5min | ~2min |
 | Phase 09 P02 | 3min | 3 tasks | 3 files |
+| Phase 10 P01 | 1min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,9 @@ v2.0 decisions:
 - Python BreakdownCategory(str, enum.Enum) for code-level validation while keeping VARCHAR(50) in DB
 - metadata_ Column alias pattern (matching AIMessage) to avoid SQLAlchemy MetaData clash
 - No back_populates on ListItem for scene_links -- navigated via BreakdownElement.scene_links only
+- POST create checks for soft-deleted duplicates and restores them rather than erroring (Phase 10)
+- PUT update always sets user_modified=True regardless of which fields change (Phase 10)
+- Ownership verification follows two-helper pattern from list_items.py (Phase 10)
 
 ### Pending Todos
 
@@ -83,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T12:48:03.698Z
-Stopped at: Completed 09-02-PLAN.md (Phase 9 complete)
+Last session: 2026-03-13T14:46:02.729Z
+Stopped at: Completed 10-01-PLAN.md
 Resume file: None

@@ -61,10 +61,10 @@
 ### API
 
 - [ ] **API-01**: `POST /api/breakdown/extract/{project_id}` -- trigger AI extraction, return run result
-- [ ] **API-02**: `GET /api/breakdown/elements/{project_id}` -- list elements filtered by category, excluding soft-deleted by default
-- [ ] **API-03**: `PUT /api/breakdown/element/{element_id}` -- update element, sets `user_modified=true`
-- [ ] **API-04**: `POST /api/breakdown/elements/{project_id}` -- create element manually with `source='user'`
-- [ ] **API-05**: `DELETE /api/breakdown/element/{element_id}` -- soft-delete element
+- [x] **API-02**: `GET /api/breakdown/elements/{project_id}` -- list elements filtered by category, excluding soft-deleted by default
+- [x] **API-03**: `PUT /api/breakdown/element/{element_id}` -- update element, sets `user_modified=true`
+- [x] **API-04**: `POST /api/breakdown/elements/{project_id}` -- create element manually with `source='user'`
+- [x] **API-05**: `DELETE /api/breakdown/element/{element_id}` -- soft-delete element
 - [ ] **API-06**: `POST/DELETE /api/breakdown/element/{element_id}/scenes` -- add/remove scene links
 - [ ] **API-07**: `GET /api/breakdown/summary/{project_id}` -- breakdown summary with staleness, category counts, last run info
 
@@ -126,10 +126,10 @@
 | SYNC-04 | Phase 12 | Pending |
 | SYNC-05 | Phase 14 | Pending |
 | API-01 | Phase 10 | Pending |
-| API-02 | Phase 10 | Pending |
-| API-03 | Phase 10 | Pending |
-| API-04 | Phase 10 | Pending |
-| API-05 | Phase 10 | Pending |
+| API-02 | Phase 10 | Complete |
+| API-03 | Phase 10 | Complete |
+| API-04 | Phase 10 | Complete |
+| API-05 | Phase 10 | Complete |
 | API-06 | Phase 10 | Pending |
 | API-07 | Phase 10 | Pending |
 | UI-01 | Phase 13 | Pending |

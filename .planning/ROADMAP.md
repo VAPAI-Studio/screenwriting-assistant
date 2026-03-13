@@ -148,7 +148,7 @@ Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/
 | 7. Frontend Pipeline Tree | v1.0 | 3/3 | Complete | 2026-03-12 |
 | 8. YOLO Integration and Token Budget | v1.0 | 2/2 | Complete | 2026-03-12 |
 | 9. Data Foundation | v2.0 | 0/2 | Not started | - |
-| 10. Breakdown API | v2.0 | 0/2 | Not started | - |
+| 10. Breakdown API | 1/2 | In Progress|  | - |
 | 11. AI Extraction Service | v2.0 | 0/3 | Not started | - |
 | 12. Staleness Hooks | v2.0 | 0/2 | Not started | - |
 | 13. Breakdown Page | v2.0 | 0/3 | Not started | - |
