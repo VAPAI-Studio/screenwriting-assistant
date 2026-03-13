@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: in-progress
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-13T20:43:00Z"
-last_activity: 2026-03-13 -- Completed Plan 11-01 (AI extraction service foundation)
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-03-13T20:49:00Z"
+last_activity: 2026-03-13 -- Completed Plan 11-02 (extraction pipeline implementation)
 progress:
   total_phases: 6
   completed_phases: 2
   total_plans: 7
-  completed_plans: 5
+  completed_plans: 6
   percent: 71
 ---
 
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 ## Current Position
 
 Phase: 11 of 14 (AI Extraction Service)
-Plan: 1 of 3 in current phase
-Status: Plan 11-01 complete -- extraction service foundation built
-Last activity: 2026-03-13 -- Completed Plan 11-01 (AI extraction service foundation)
+Plan: 2 of 3 in current phase
+Status: Plan 11-02 complete -- extraction pipeline implemented and endpoint wired
+Last activity: 2026-03-13 -- Completed Plan 11-02 (extraction pipeline implementation)
 
-Progress: [███████---] 71% (v2.0 Phase 11: 1/3 plans complete)
+Progress: [█████████-] 86% (v2.0 Phase 11: 2/3 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 16 (v1.0)
-- v2.0 plans completed: 5
-- Total execution time: 18min
+- v2.0 plans completed: 6
+- Total execution time: 21min
 
 **By Phase:**
 
@@ -51,6 +51,7 @@ Progress: [███████---] 71% (v2.0 Phase 11: 1/3 plans complete)
 | Phase 10 P01 | 1min | 2 tasks | 2 files |
 | Phase 10 P02 | 10min | 2 tasks | 2 files |
 | Phase 11 P01 | 3min | 2 tasks | 3 files |
+| Phase 11 P02 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,9 @@ v2.0 decisions:
 - Use response_format JSON schema for Anthropic structured outputs (more robust than messages.parse() across SDK versions) (Phase 11)
 - OpenAI structured output tries stable API first, falls back to beta API for older SDK versions (Phase 11)
 - Scene indexing is 1-based in prompts so AI scene_index maps directly to position (Phase 11)
+- Single db.commit() at end of extract() pipeline; rollback on failure then record failed run in separate transaction (Phase 11)
+- User-modified elements included in element_map for scene linking even though description not overwritten (SYNC-01) (Phase 11)
+- AI scene links fully replaced on re-extraction (delete-all-ai then recreate) while user links always preserved (Phase 11)
 
 ### Pending Todos
 
@@ -96,6 +100,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T20:43:00Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-13T20:49:00Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None

@@ -48,12 +48,12 @@
 - [x] **EXTR-02**: Extraction uses structured outputs (schema-enforced JSON) via upgraded OpenAI/Anthropic SDKs for guaranteed response shape
 - [ ] **EXTR-03**: Deduplication -- same element described differently across scenes maps to one master list entry with canonical name
 - [x] **EXTR-04**: Low temperature (0.1-0.2) for extraction calls; only extract elements physically present on screen, not mentioned in dialogue or backstory
-- [ ] **EXTR-05**: Scene linking -- each extracted element tracks which scenes it appears in by matching to scene ListItem records
+- [x] **EXTR-05**: Scene linking -- each extracted element tracks which scenes it appears in by matching to scene ListItem records
 
 ### User Refinement & Sync
 
-- [ ] **SYNC-01**: Re-extraction preserves user modifications -- elements with `user_modified=true` keep their user-edited name, description, and metadata
-- [ ] **SYNC-02**: Soft-deleted elements (`is_deleted=true`) are not resurrected by re-extraction
+- [x] **SYNC-01**: Re-extraction preserves user modifications -- elements with `user_modified=true` keep their user-edited name, description, and metadata
+- [x] **SYNC-02**: Soft-deleted elements (`is_deleted=true`) are not resurrected by re-extraction
 - [ ] **SYNC-03**: Staleness detection -- saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
 - [ ] **SYNC-04**: Re-extraction clears the stale flag and creates a new `breakdown_runs` audit record
 - [ ] **SYNC-05**: Reverse sync is user-initiated -- "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
@@ -119,9 +119,9 @@
 | EXTR-02 | Phase 11 | Complete |
 | EXTR-03 | Phase 11 | Pending |
 | EXTR-04 | Phase 11 | Complete |
-| EXTR-05 | Phase 11 | Pending |
-| SYNC-01 | Phase 11 | Pending |
-| SYNC-02 | Phase 11 | Pending |
+| EXTR-05 | Phase 11 | Complete |
+| SYNC-01 | Phase 11 | Complete |
+| SYNC-02 | Phase 11 | Complete |
 | SYNC-03 | Phase 12 | Pending |
 | SYNC-04 | Phase 12 | Pending |
 | SYNC-05 | Phase 14 | Pending |
