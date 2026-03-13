@@ -10,6 +10,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ...models import schemas, database
+from ...services.breakdown_service import breakdown_service
 from ..dependencies import get_db, get_current_user
 
 logger = logging.getLogger(__name__)
@@ -160,7 +161,7 @@ async def delete_element(
 
 
 # ============================================================
-# Extraction trigger (API-01) -- stubbed until Phase 11
+# Extraction trigger (API-01) -- calls real BreakdownService
 # ============================================================
 
 @router.post("/extract/{project_id}", response_model=schemas.BreakdownRunResponse)
@@ -169,19 +170,18 @@ async def trigger_extraction(
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Trigger AI extraction. Extraction logic stubbed until Phase 11."""
+    """Trigger AI extraction of production elements from screenplay content."""
     _verify_project_ownership(db, project_id, current_user.id)
 
-    run = database.BreakdownRun(
-        project_id=project_id,
-        status="pending",
-        config={},
-        result_summary={"message": "Extraction not yet implemented"},
-    )
-    db.add(run)
-    db.commit()
-    db.refresh(run)
-    return run
+    try:
+        run = await breakdown_service.extract(db, project_id)
+        return run
+    except Exception as e:
+        logger.error(f"Extraction failed for project {project_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Extraction failed: {str(e)}"
+        )
 
 
 # ============================================================
