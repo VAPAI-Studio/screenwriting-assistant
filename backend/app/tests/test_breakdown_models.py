@@ -249,3 +249,130 @@ def test_element_soft_delete(db_session):
     db_session.refresh(elem)
     assert elem.is_deleted is True
     assert elem.user_modified is True
+
+
+# ============================================================
+# Pydantic schema validation tests
+# ============================================================
+
+from pydantic import ValidationError
+from app.models.schemas import (
+    BreakdownElementCreate,
+    BreakdownElementUpdate,
+    BreakdownElementResponse,
+    BreakdownRunResponse,
+    BreakdownSummaryResponse,
+    SceneLinkCreate,
+)
+
+
+def test_element_create_valid_category():
+    """BreakdownElementCreate accepts all 5 valid categories."""
+    for cat in ["character", "location", "prop", "wardrobe", "vehicle"]:
+        schema = BreakdownElementCreate(category=cat, name="Test Item")
+        assert schema.category == cat
+
+
+def test_element_create_invalid_category():
+    """BreakdownElementCreate rejects invalid category with ValidationError."""
+    with pytest.raises(ValidationError):
+        BreakdownElementCreate(category="invalid_category", name="Test Item")
+
+
+def test_element_create_name_required():
+    """BreakdownElementCreate rejects empty name."""
+    with pytest.raises(ValidationError):
+        BreakdownElementCreate(category="character", name="")
+
+
+def test_element_update_partial():
+    """BreakdownElementUpdate accepts partial fields (only name, only description)."""
+    update_name = BreakdownElementUpdate(name="New Name")
+    assert update_name.name == "New Name"
+    assert update_name.description is None
+
+    update_desc = BreakdownElementUpdate(description="New description")
+    assert update_desc.description == "New description"
+    assert update_desc.name is None
+
+    update_empty = BreakdownElementUpdate()
+    assert update_empty.name is None
+    assert update_empty.description is None
+    assert update_empty.metadata is None
+
+
+def test_element_response_from_orm(db_session):
+    """BreakdownElementResponse.model_validate(orm_element) produces correct fields including metadata alias."""
+    project = Project(id=uuid.uuid4(), owner_id=uuid.uuid4(), title="Schema Roundtrip")
+    db_session.add(project)
+    db_session.flush()
+
+    elem = BreakdownElement(
+        id=uuid.uuid4(),
+        project_id=project.id,
+        category="prop",
+        name="Revolver",
+        description="Smith & Wesson .38",
+        source="ai",
+    )
+    db_session.add(elem)
+    db_session.commit()
+    db_session.refresh(elem)
+
+    response = BreakdownElementResponse.model_validate(elem)
+    assert response.name == "Revolver"
+    assert response.category == "prop"
+    assert response.user_modified is False
+    assert response.is_deleted is False
+    assert isinstance(response.metadata, dict)
+    assert response.sort_order == 0
+
+
+def test_run_response_from_orm(db_session):
+    """BreakdownRunResponse.model_validate(orm_run) produces correct fields."""
+    project = Project(id=uuid.uuid4(), owner_id=uuid.uuid4(), title="Run Schema Test")
+    db_session.add(project)
+    db_session.flush()
+
+    run = BreakdownRun(
+        id=uuid.uuid4(),
+        project_id=project.id,
+        status="completed",
+        elements_created=10,
+        elements_updated=2,
+    )
+    db_session.add(run)
+    db_session.commit()
+    db_session.refresh(run)
+
+    response = BreakdownRunResponse.model_validate(run)
+    assert response.status == "completed"
+    assert response.elements_created == 10
+    assert response.elements_updated == 2
+    assert response.error_message is None
+
+
+def test_summary_response():
+    """BreakdownSummaryResponse validates with counts_by_category dict."""
+    summary = BreakdownSummaryResponse(
+        project_id=uuid.uuid4(),
+        is_stale=True,
+        total_elements=25,
+        counts_by_category={"character": 10, "location": 8, "prop": 7},
+    )
+    assert summary.is_stale is True
+    assert summary.total_elements == 25
+    assert summary.counts_by_category["character"] == 10
+    assert summary.last_run is None
+
+
+def test_scene_link_create():
+    """SceneLinkCreate accepts UUID scene_item_id and optional context."""
+    link = SceneLinkCreate(scene_item_id=uuid.uuid4())
+    assert link.context == ""
+
+    link_with_context = SceneLinkCreate(
+        scene_item_id=uuid.uuid4(),
+        context="Interior, night",
+    )
+    assert link_with_context.context == "Interior, night"
