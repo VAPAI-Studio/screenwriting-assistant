@@ -4,7 +4,8 @@ import logging
 from typing import List, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -19,8 +20,8 @@ router = APIRouter()
 def _verify_project_ownership(db: Session, project_id: UUID, user_id: UUID) -> database.Project:
     """Verify user owns the project. Returns project or raises 404."""
     project = db.query(database.Project).filter(
-        database.Project.id == project_id,
-        database.Project.owner_id == user_id
+        database.Project.id == str(project_id),
+        database.Project.owner_id == str(user_id)
     ).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
@@ -30,7 +31,7 @@ def _verify_project_ownership(db: Session, project_id: UUID, user_id: UUID) -> d
 def _verify_element_ownership(db: Session, element_id: UUID, user_id: UUID) -> database.BreakdownElement:
     """Verify user owns the project containing this breakdown element. Returns element or raises 404."""
     element = db.query(database.BreakdownElement).filter(
-        database.BreakdownElement.id == element_id
+        database.BreakdownElement.id == str(element_id)
     ).first()
     if not element:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Element not found")
@@ -51,7 +52,7 @@ async def list_elements(
     _verify_project_ownership(db, project_id, current_user.id)
 
     query = db.query(database.BreakdownElement).filter(
-        database.BreakdownElement.project_id == project_id
+        database.BreakdownElement.project_id == str(project_id)
     )
 
     if not include_deleted:
@@ -80,7 +81,7 @@ async def create_element(
 
     # Check for existing element with same (project_id, category, name) -- including soft-deleted
     existing = db.query(database.BreakdownElement).filter(
-        database.BreakdownElement.project_id == project_id,
+        database.BreakdownElement.project_id == str(project_id),
         database.BreakdownElement.category == body.category,
         database.BreakdownElement.name == body.name
     ).first()
@@ -199,18 +200,21 @@ async def add_scene_link(
 
     # Validate scene exists
     scene = db.query(database.ListItem).filter(
-        database.ListItem.id == body.scene_item_id
+        database.ListItem.id == str(body.scene_item_id)
     ).first()
     if not scene:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene not found")
 
     # Idempotent: check for existing link
     existing = db.query(database.ElementSceneLink).filter(
-        database.ElementSceneLink.element_id == element_id,
-        database.ElementSceneLink.scene_item_id == body.scene_item_id,
+        database.ElementSceneLink.element_id == str(element_id),
+        database.ElementSceneLink.scene_item_id == str(body.scene_item_id),
     ).first()
     if existing:
-        return {"message": "Scene link already exists", "id": str(existing.id)}
+        return JSONResponse(
+            status_code=status.HTTP_200_OK,
+            content={"message": "Scene link already exists", "id": str(existing.id)},
+        )
 
     link = database.ElementSceneLink(
         element_id=element_id,
@@ -235,8 +239,8 @@ async def remove_scene_link(
     _verify_element_ownership(db, element_id, current_user.id)
 
     link = db.query(database.ElementSceneLink).filter(
-        database.ElementSceneLink.element_id == element_id,
-        database.ElementSceneLink.scene_item_id == scene_item_id,
+        database.ElementSceneLink.element_id == str(element_id),
+        database.ElementSceneLink.scene_item_id == str(scene_item_id),
     ).first()
     if not link:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene link not found")
@@ -264,7 +268,7 @@ async def get_summary(
         database.BreakdownElement.category,
         func.count(database.BreakdownElement.id)
     ).filter(
-        database.BreakdownElement.project_id == project_id,
+        database.BreakdownElement.project_id == str(project_id),
         database.BreakdownElement.is_deleted == False,
     ).group_by(database.BreakdownElement.category).all()
 
@@ -273,7 +277,7 @@ async def get_summary(
 
     # Latest run
     last_run = db.query(database.BreakdownRun).filter(
-        database.BreakdownRun.project_id == project_id
+        database.BreakdownRun.project_id == str(project_id)
     ).order_by(database.BreakdownRun.created_at.desc()).first()
 
     return schemas.BreakdownSummaryResponse(
