@@ -1,75 +1,86 @@
-# Agent Orchestration Pipeline
+# Screenwriting Assistant
 
 ## What This Is
 
-A system that turns user-created AI agents from passive chat companions into active participants in screenplay generation. When a user creates an agent (e.g., a character development expert or a structure coach), an AI orchestrator automatically maps that agent to relevant pipeline steps. During generation — both manual and YOLO — mapped agents review and refine output at each step, making every agent's knowledge actively shape the screenplay.
+A full-stack screenwriting assistant that helps users create screenplays using story frameworks (Three-Act, Save the Cat, Hero's Journey) with AI-powered generation and review. Users create AI agents that actively participate in screenplay generation, and a production breakdown system automatically extracts and tracks all production elements from the script.
 
 ## Core Value
 
-Agents you create actually influence the screenplay you generate — they don't just sit idle waiting for you to chat with them.
+From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
+
+## Current Milestone: v2.0 Script Breakdown
+
+**Goal:** AI-powered script breakdown that extracts production elements (characters, locations, props, wardrobe, vehicles) into master lists linked to scenes, with full bidirectional sync between breakdown and script.
+
+**Target features:**
+- AI extraction of production elements from script + project data
+- Dedicated breakdown page with master lists per category
+- Each element tracks which scenes it appears in
+- User can refine AI-generated breakdown
+- Bidirectional sync: script changes update breakdown on save/generate, breakdown edits propagate back to script
 
 ## Requirements
 
 ### Validated
 
-- Existing multi-agent system with user-created agents (custom prompts, types, book associations)
-- Template-based project system with phases and subsections
-- Step-by-step generation pipeline (phase by phase) via `template_ai_service.py`
-- AI provider abstraction supporting OpenAI and Anthropic
-- RAG-based knowledge retrieval for agent context
-- SidebarChat for manual agent interaction
-- Book processing with concept extraction and embeddings
+- ✓ Template-based project system with phases and subsections — v1.0
+- ✓ Step-by-step generation pipeline (phase by phase) via `template_ai_service.py` — v1.0
+- ✓ AI provider abstraction supporting OpenAI and Anthropic — v1.0
+- ✓ Multi-agent system with user-created agents, pipeline mapping, and review middleware — v1.0
+- ✓ RAG-based knowledge retrieval for agent context — v1.0
+- ✓ Frontend pipeline tree with per-agent toggles — v1.0
+- ✓ YOLO auto-generation with agent reviews and token budgets — v1.0
+- ✓ Book processing with concept extraction and embeddings — v1.0
 
 ### Active
 
-- [ ] AI orchestrator that analyzes all agents and maps them to pipeline steps on agent create/edit
-- [ ] Pipeline mapping uses agent type as a hint but AI infers best fit from agent description/prompt
-- [ ] Collapsible tree view UI showing which agents activate at which pipeline steps
-- [ ] During generation, mapped agents review step output in parallel
-- [ ] AI merges parallel agent feedback into refined output before pipeline continues
-- [ ] Agent review loop works in both manual Generate Screenplay and YOLO auto-generation flows
-- [ ] Pipeline re-composes automatically when agents are created, edited, or deleted
+- [ ] AI analyzes script + project data to extract production elements
+- [ ] Dedicated breakdown page with master lists per category (Characters, Locations, Props, Wardrobe, Vehicles)
+- [ ] Each element links to the scenes where it appears
+- [ ] User can refine AI-generated breakdown (edit, add, remove elements)
+- [ ] Bidirectional sync between breakdown and script on save/generate
 
 ### Out of Scope
 
-- Agent-to-agent communication (agents review independently, don't talk to each other)
-- User approval gates for agent reviews (mapping is informational, reviews are automatic)
-- Custom pipeline step ordering by users (AI decides optimal placement)
-- Per-flow agent toggle (agents activate in both manual and YOLO equally)
+- Scheduling/calendar integration — deferred to future milestone
+- Budget line items and cost tracking — deferred to future milestone
+- Department assignments — deferred to future milestone
+- Day/Night and INT/EXT scene classification — deferred to future milestone
+- Real-time sync (changes propagate on save/generate, not as user types)
+- Export to industry formats (PDF breakdown sheets, Movie Magic) — deferred
 
 ## Context
 
 The existing codebase is a screenwriting assistant with a template-based workflow system. Projects use templates (e.g., `short_movie.json`) that define phases (Character, Structure, Scene Creation, etc.) with subsections. Each phase has AI generation capabilities via `template_ai_service.py`.
 
-Users can create AI agents with custom system prompts, types (character, structure, dialogue, etc.), and associate them with books for RAG context. Currently these agents only respond when directly chatted with via `SidebarChat`.
+v1.0 added an agent orchestration pipeline: AI maps user-created agents to generation steps, agents review output in parallel during generation, and a frontend tree view shows the mappings.
 
-The generation pipeline already works step-by-step through phases. The key change is injecting agent review passes into this existing pipeline — agents become quality gates that refine output before it's finalized.
+The script breakdown builds on this foundation — the generated screenplay content and all project phase data feed into an AI extraction service that identifies production elements and tracks them across scenes.
 
 Key existing files:
-- `backend/app/services/agent_service.py` — agent orchestration, knowledge graph
 - `backend/app/services/template_ai_service.py` — phase-based content generation
 - `backend/app/services/ai_provider.py` — provider abstraction (OpenAI/Anthropic)
-- `backend/app/models/database.py` — Agent model with system_prompt_template, type, books
-- `backend/app/api/endpoints/agents.py` — agent CRUD endpoints
+- `backend/app/models/database.py` — Project, Section, Agent, AgentPipelineMap models
 - `backend/app/api/endpoints/wizards.py` — wizard-driven generation
-- `frontend/src/components/Books/AgentManager.tsx` — agent creation UI
+- `frontend/src/components/Workspace/ProjectWorkspace.tsx` — main workspace layout
 
 ## Constraints
 
 - **AI Provider**: Must work with both OpenAI and Anthropic via existing `ai_provider.py`
-- **Performance**: Parallel agent reviews add latency — must be reasonable for UX
-- **Token Budget**: Each agent review is an additional API call; cost scales with agent count
+- **Performance**: Breakdown extraction from a full script may be token-heavy — consider chunked processing
 - **Existing Templates**: Must integrate with existing template phase system without breaking current workflows
+- **Data Model**: Breakdown elements need their own DB tables with foreign keys to projects and scenes
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Agent reviews run in parallel, not sequential | Reduces latency when multiple agents map to same step | -- Pending |
-| AI merges feedback rather than chaining | Avoids compounding bias from sequential review | -- Pending |
-| Pipeline re-composes on agent CRUD, not at generation time | Pre-computed mapping avoids generation-time overhead | -- Pending |
-| Agent type used as hint, not binding constraint | Gives AI flexibility to place agents optimally based on full prompt analysis | -- Pending |
-| Tree view is informational only | Reduces friction — users see the mapping but don't need to approve it | -- Pending |
+| Agent reviews run in parallel, not sequential | Reduces latency when multiple agents map to same step | ✓ Good |
+| AI merges feedback rather than chaining | Avoids compounding bias from sequential review | ✓ Good |
+| Pipeline re-composes on agent CRUD, not at generation time | Pre-computed mapping avoids generation-time overhead | ✓ Good |
+| Master list + scene links (not per-scene breakdown) | Gives production overview while preserving scene-level detail | — Pending |
+| Bidirectional sync on save/generate (not real-time) | Simpler to implement, avoids conflict resolution complexity | — Pending |
+| AI generates, user refines | Reduces manual work while keeping user in control | — Pending |
 
 ---
-*Last updated: 2026-03-11 after initialization*
+*Last updated: 2026-03-12 after v2.0 milestone start*
