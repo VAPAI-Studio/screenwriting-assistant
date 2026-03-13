@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
-status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-13T12:29:35.705Z"
-last_activity: 2026-03-13 -- Completed Plan 09-01 (breakdown tables SQL migration)
+status: completed
+stopped_at: Completed 09-02-PLAN.md (Phase 9 complete)
+last_updated: "2026-03-13T12:48:03.701Z"
+last_activity: 2026-03-13 -- Completed Plan 09-02 (breakdown ORM models and Pydantic schemas)
 progress:
   total_phases: 6
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
+  completed_plans: 2
   percent: 57
 ---
 
@@ -26,18 +26,18 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 ## Current Position
 
 Phase: 9 of 14 (Data Foundation)
-Plan: 1 of 2 in current phase
-Status: Executing
-Last activity: 2026-03-13 -- Completed Plan 09-01 (breakdown tables SQL migration)
+Plan: 2 of 2 in current phase (phase complete)
+Status: Phase 9 complete
+Last activity: 2026-03-13 -- Completed Plan 09-02 (breakdown ORM models and Pydantic schemas)
 
-Progress: [###########.........] 57% (v2.0 Phase 9: 1/2 plans complete)
+Progress: [████████████........] 57% (v2.0 Phase 9: 2/2 plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 - Total plans completed: 16 (v1.0)
-- v2.0 plans completed: 1
-- Total execution time: 1min
+- v2.0 plans completed: 2
+- Total execution time: 4min
 
 **By Phase:**
 
@@ -45,7 +45,9 @@ Progress: [###########.........] 57% (v2.0 Phase 9: 1/2 plans complete)
 |-------|-------|-------|----------|
 | v1.0 Phases 1-8 | 16/16 | -- | -- |
 | v2.0 Phase 9 Plan 01 | 1/14 | 1min | 1min |
-| v2.0 Phases 9-14 | 1/14 | 1min | 1min |
+| v2.0 Phase 9 Plan 02 | 2/14 | 3min | 3min |
+| v2.0 Phases 9-14 | 2/14 | 4min | 2min |
+| Phase 09 P02 | 3min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -66,6 +68,9 @@ v2.0 decisions:
 - AI extraction uses structured outputs (schema-enforced JSON) via upgraded SDKs
 - VARCHAR(50) for breakdown category (not PG ENUM) -- extensible without migration
 - Full UNIQUE constraint on (project_id, category, name) -- API handles soft-deleted duplicates via check-and-restore
+- Python BreakdownCategory(str, enum.Enum) for code-level validation while keeping VARCHAR(50) in DB
+- metadata_ Column alias pattern (matching AIMessage) to avoid SQLAlchemy MetaData clash
+- No back_populates on ListItem for scene_links -- navigated via BreakdownElement.scene_links only
 
 ### Pending Todos
 
@@ -78,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T12:29:35.703Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-13T12:48:03.698Z
+Stopped at: Completed 09-02-PLAN.md (Phase 9 complete)
 Resume file: None
