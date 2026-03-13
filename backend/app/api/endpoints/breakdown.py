@@ -5,6 +5,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ...models import schemas, database
@@ -155,3 +156,130 @@ async def delete_element(
     db.commit()
 
     return {"status": "success", "message": "Element soft-deleted"}
+
+
+# ============================================================
+# Extraction trigger (API-01) -- stubbed until Phase 11
+# ============================================================
+
+@router.post("/extract/{project_id}", response_model=schemas.BreakdownRunResponse)
+async def trigger_extraction(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Trigger AI extraction. Extraction logic stubbed until Phase 11."""
+    _verify_project_ownership(db, project_id, current_user.id)
+
+    run = database.BreakdownRun(
+        project_id=project_id,
+        status="pending",
+        config={},
+        result_summary={"message": "Extraction not yet implemented"},
+    )
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+    return run
+
+
+# ============================================================
+# Scene link add/remove (API-06)
+# ============================================================
+
+@router.post("/element/{element_id}/scenes", status_code=status.HTTP_201_CREATED)
+async def add_scene_link(
+    element_id: UUID,
+    body: schemas.SceneLinkCreate,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Link a breakdown element to a scene (ListItem). Idempotent: duplicate returns 200."""
+    _verify_element_ownership(db, element_id, current_user.id)
+
+    # Validate scene exists
+    scene = db.query(database.ListItem).filter(
+        database.ListItem.id == body.scene_item_id
+    ).first()
+    if not scene:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene not found")
+
+    # Idempotent: check for existing link
+    existing = db.query(database.ElementSceneLink).filter(
+        database.ElementSceneLink.element_id == element_id,
+        database.ElementSceneLink.scene_item_id == body.scene_item_id,
+    ).first()
+    if existing:
+        return {"message": "Scene link already exists", "id": str(existing.id)}
+
+    link = database.ElementSceneLink(
+        element_id=element_id,
+        scene_item_id=body.scene_item_id,
+        context=body.context,
+        source="user",
+    )
+    db.add(link)
+    db.commit()
+    db.refresh(link)
+    return {"message": "Scene linked", "id": str(link.id)}
+
+
+@router.delete("/element/{element_id}/scenes/{scene_item_id}")
+async def remove_scene_link(
+    element_id: UUID,
+    scene_item_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a scene link from a breakdown element. Hard-delete for junction table."""
+    _verify_element_ownership(db, element_id, current_user.id)
+
+    link = db.query(database.ElementSceneLink).filter(
+        database.ElementSceneLink.element_id == element_id,
+        database.ElementSceneLink.scene_item_id == scene_item_id,
+    ).first()
+    if not link:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scene link not found")
+
+    db.delete(link)
+    db.commit()
+    return {"status": "success", "message": "Scene link removed"}
+
+
+# ============================================================
+# Summary endpoint (API-07)
+# ============================================================
+
+@router.get("/summary/{project_id}", response_model=schemas.BreakdownSummaryResponse)
+async def get_summary(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get breakdown summary with category counts, staleness, and last run info."""
+    project = _verify_project_ownership(db, project_id, current_user.id)
+
+    # Single aggregation query (GROUP BY, not N+1)
+    counts = db.query(
+        database.BreakdownElement.category,
+        func.count(database.BreakdownElement.id)
+    ).filter(
+        database.BreakdownElement.project_id == project_id,
+        database.BreakdownElement.is_deleted == False,
+    ).group_by(database.BreakdownElement.category).all()
+
+    counts_dict = {cat: count for cat, count in counts}
+    total_elements = sum(counts_dict.values())
+
+    # Latest run
+    last_run = db.query(database.BreakdownRun).filter(
+        database.BreakdownRun.project_id == project_id
+    ).order_by(database.BreakdownRun.created_at.desc()).first()
+
+    return schemas.BreakdownSummaryResponse(
+        project_id=project_id,
+        is_stale=project.breakdown_stale or False,
+        total_elements=total_elements,
+        counts_by_category=counts_dict,
+        last_run=schemas.BreakdownRunResponse.model_validate(last_run) if last_run else None,
+    )
