@@ -1,158 +1,175 @@
 # Technology Stack
 
-**Project:** Agent Orchestration Pipeline — Screenwriting Assistant
-**Researched:** 2026-03-11
-**Confidence:** MEDIUM (training data only — external web tools unavailable during research session; codebase analysis is HIGH confidence)
+**Project:** v2.0 Script Breakdown -- AI-Powered Production Element Extraction
+**Researched:** 2026-03-12
+**Confidence:** HIGH (verified with current PyPI, npm, and official documentation)
 
 ---
 
-## Core Verdict: Build Custom, Not Framework
+## Core Verdict: AI Extraction with Structured Outputs, Custom Diff, No NLP Libraries
 
-**Do not adopt LangGraph, CrewAI, or AutoGen.** The existing codebase already has 80% of what is needed for the orchestration pipeline. The missing 20% is a pipeline mapping table, an orchestrator inference call, and wiring `asyncio.gather` into the generation path. Introducing a framework adds dependency weight, abstraction mismatch with the existing `ai_provider.py`, and a migration cost that exceeds the benefit for this specific use case.
+**Use the existing AI provider abstraction with Pydantic-defined schemas for structured extraction.** Do not add spaCy, NLTK, or any NLP library. The extraction task is not NER (Named Entity Recognition) in the traditional NLP sense -- it is domain-specific production element identification from screenplay text, which modern LLMs handle far better than rule-based NLP. The AI already understands screenplay conventions (slug lines, character cues, action lines) without preprocessing.
 
-**The use case is narrow and well-defined:**
-- One AI call maps agents to pipeline steps (on CRUD)
-- During generation, N agent review calls fire in parallel via `asyncio.gather`
-- One AI call merges the N reviews into refined output
-- Results are stored in PostgreSQL; tree view renders from stored mapping
+**Use DeepDiff for bidirectional sync diffing.** The bidirectional sync between script and breakdown requires detecting what changed between two versions of structured data. DeepDiff provides exactly this: deep comparison of nested Python dicts/lists with categorized change types (added, removed, changed). Rolling a custom diff is error-prone for nested structures.
 
-This is a fan-out/fan-in pattern with two AI calls per step. That is not a complex graph. LangGraph's value is in cyclical, conditional graphs with state machines. CrewAI's value is in autonomous role-based task decomposition. AutoGen's value is in multi-turn agent-to-agent conversation. None of these match what is being built.
+**Use TanStack Table for breakdown master lists.** The existing frontend has card-based and list-based patterns, but the breakdown page needs filtering, sorting, and column-based views across categories -- a table is the natural UI. TanStack Table is headless, integrates cleanly with Tailwind and Radix UI (both already in the stack), and is the standard React table library.
 
 ---
 
 ## Recommended Stack
 
-### Orchestration Core
+### Backend: AI Structured Extraction
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| Python `asyncio` | stdlib (3.11) | Parallel agent review calls | Already used in `agent_service.py` (`asyncio.gather`, `asyncio.wait_for`). Zero new dependencies. Correct primitive for I/O-bound parallel LLM calls. |
-| `asyncio.gather` with `return_exceptions=True` | stdlib | Fan-out N agent reviews per pipeline step | Pattern already proven in `AgentService.run_multi_agent_review()` and `_orchestrate_stream_prepare()`. Extend, don't replace. |
-| `asyncio.wait_for` with timeout | stdlib | Per-agent timeout guard | Already in `run_multi_agent_review()` with `settings.AGENT_REVIEW_TIMEOUT` (90s). Keep as-is. |
+| `openai` | `>=1.40.0` (upgrade from 1.12.0) | Structured outputs via `response_format: json_schema` | Current version (1.12.0) supports `json_mode=True` but not the newer `json_schema` structured outputs that guarantee schema compliance. Version 1.40+ adds `client.beta.chat.completions.parse()` which accepts Pydantic models directly and returns typed responses. The existing `ai_provider.py` wrapper already passes `response_format` -- the upgrade is backward-compatible. |
+| `anthropic` | `>=0.42.0` (upgrade from >=0.39.0) | Structured outputs via `output_format` + `json_schema` | Anthropic added structured outputs in the `structured-outputs-2025-11-13` beta. The SDK provides `client.beta.messages.parse()` accepting Pydantic models with guaranteed schema compliance. Current pinned version (>=0.39.0) likely needs a bump to get structured output support. |
+| Pydantic v2 | `>=2.10` (existing) | Define extraction schemas as Pydantic models | Both OpenAI and Anthropic SDKs natively accept Pydantic `BaseModel` subclasses for structured outputs. The same models serve as API request/response schemas, database serialization targets, and AI output definitions -- single source of truth. Already in the stack. |
 
-**Confidence:** HIGH — pattern already present and working in `backend/app/services/agent_service.py` lines 1027-1063.
+**Confidence:** HIGH -- verified OpenAI structured outputs docs, Anthropic structured outputs docs, and PyPI versions.
 
-### Pipeline Mapping Storage
+**Key upgrade in `ai_provider.py`:**
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| PostgreSQL 15 (existing) | 15 | Store agent-to-pipeline-step mapping | Mapping is pre-computed on agent CRUD. Persisting as a JSON column on a new `PipelineMapping` table avoids recomputing at generation time. Fits existing SQLAlchemy ORM pattern. |
-| SQLAlchemy 2.0.27 (existing) | 2.0.27 | ORM model for `PipelineMapping` table | Already the ORM in use. New table follows exact pattern of existing models (`Agent`, `PhaseData`). |
+The existing `chat_completion()` function uses `json_mode=True` which requests JSON but does not enforce a schema. For breakdown extraction, upgrade to schema-enforced structured outputs:
 
-**New table needed:** `pipeline_mappings` — one row per agent (or per owner, storing the full tree), with a `mapping` JSON column. See Architecture section below.
-
-**Confidence:** HIGH — fits existing data model patterns exactly.
-
-### Orchestrator Inference (Mapping Generation)
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| Existing `ai_provider.chat_completion()` | current | AI call that maps agents to pipeline steps | The existing provider abstraction already works with both OpenAI and Anthropic. The orchestrator mapping call is a single structured JSON-mode completion: given all agents + all template phases, return the mapping. No new AI client needed. |
-
-**The mapping prompt pattern:**
 ```python
-await chat_completion(
-    messages=[
-        {"role": "system", "content": ORCHESTRATOR_MAPPING_SYSTEM_PROMPT},
-        {"role": "user", "content": json.dumps({
-            "agents": [agent_summary for agent in agents],
-            "pipeline_steps": [step_summary for step in template_phases],
-        })}
-    ],
-    json_mode=True,
-    temperature=0.2,  # Low temp for deterministic mapping
-    max_tokens=2000,
-)
+# New method in ai_provider.py
+async def structured_completion(
+    messages: List[Dict[str, str]],
+    response_model: type[BaseModel],
+    temperature: float = 0.3,
+    max_tokens: int = 4000,
+    provider: Optional[str] = None,
+) -> BaseModel:
+    """Structured completion with guaranteed schema compliance.
+
+    Uses OpenAI's response_format json_schema or Anthropic's
+    output_format json_schema to ensure the response matches
+    the provided Pydantic model exactly.
+    """
+    provider = provider or settings.AI_PROVIDER
+    if provider == "anthropic":
+        return await _anthropic_structured(messages, response_model, temperature, max_tokens)
+    else:
+        return await _openai_structured(messages, response_model, temperature, max_tokens)
 ```
 
-**Confidence:** HIGH — `chat_completion` with `json_mode=True` is already used extensively in `template_ai_service.py`.
+This avoids fragile `json.loads()` + manual validation on AI output. The SDK handles schema enforcement and parsing.
 
-### Merge / Synthesis Call
-
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| Existing `ai_provider.chat_completion()` | current | Merge N agent reviews into refined output | Same provider abstraction. After `asyncio.gather` collects all agent reviews, one synthesis call combines them. This is already done conceptually in `_orchestrate` for chat — extend the same pattern to generation. |
-
-**Confidence:** HIGH.
-
-### Background Task Execution (Pipeline Re-composition on CRUD)
+### Backend: Bidirectional Sync
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| FastAPI `BackgroundTasks` | FastAPI 0.110.0 (existing) | Trigger pipeline re-mapping after agent create/edit/delete without blocking the HTTP response | Already available in the FastAPI version in use. No new dependency. Agent CRUD endpoints return immediately; mapping computation runs in background. |
+| `deepdiff` | `8.6.1` | Detect changes between script versions and breakdown states | DeepDiff compares nested Python dicts/lists and categorizes changes as `dictionary_item_added`, `dictionary_item_removed`, `values_changed`, `iterable_item_added`, etc. This maps directly to the sync use case: when a script is re-generated, diff the new extraction against the stored breakdown to find what was added, removed, or changed. The `Delta` class can also serialize diffs for audit trails. |
 
-**Rationale:** Pipeline re-mapping on agent CRUD takes 1-3 seconds (one AI call). The user should not wait for this on their create/edit request. `BackgroundTasks` is the correct FastAPI primitive — it runs after the response is sent, in the same worker process, with access to the DB session factory. This is appropriate for short tasks (< 30 seconds). Do not use Celery or a task queue for this scale.
+**Confidence:** HIGH -- verified PyPI version (8.6.1), MIT license, Python 3.9+ support, active maintenance.
 
-**Confidence:** HIGH — FastAPI `BackgroundTasks` is well-documented for exactly this pattern.
+**Why not custom diffing:** The breakdown data structure is a nested dict of categories, each containing lists of elements with properties. A naive `==` comparison would miss partial changes. DeepDiff handles: list item reordering (`ignore_order=True`), type coercion, and nested path tracking. Writing this correctly from scratch is a week of edge-case debugging.
 
-### Frontend Tree View
+**Why not `jsondiff` or `dictdiffer`:** DeepDiff is the most actively maintained (last release: Sep 2025), has the richest feature set (Delta serialization, deep search, hash-based comparison), and handles the widest range of Python types. `dictdiffer` has not been updated since 2021.
+
+### Backend: Token Management
 
 | Technology | Version | Purpose | Why |
 |------------|---------|---------|-----|
-| React 18.2 (existing) | 18.2 | Tree view component for pipeline mapping | No new UI library needed. The collapsible tree is a straightforward recursive component using existing Tailwind + Lucide icons. `ChevronDown`/`ChevronRight` from Lucide (already installed, 0.314) handle expand/collapse. |
-| React Query v5.20 (existing) | 5.20 | Fetch and cache the pipeline mapping | `useQuery` on `GET /api/pipeline/mapping` follows existing pattern. Invalidate on agent CRUD mutations. |
-| Tailwind CSS 3.4 (existing) | 3.4 | Tree styling | Indentation levels via `pl-4`, `pl-8` etc. No new CSS library needed. |
+| `tiktoken` | `0.7.0` (existing) | Count tokens in script content before sending to AI | Breakdown extraction of a full screenplay can be 15K-30K tokens. Token counting with tiktoken (already installed) is needed to decide whether to chunk the script or send it whole. Already used in the codebase for book processing. |
 
-**Confidence:** HIGH — all dependencies already installed.
+**Confidence:** HIGH -- already in requirements.txt and used in book processing.
+
+### Database: Breakdown Storage
+
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| PostgreSQL 15 (existing) | 15 | Store breakdown elements, categories, scene links | New tables needed but no new database technology. PostgreSQL JSONB handles element metadata flexibly. Foreign keys handle project and scene linkage. |
+| SQLAlchemy 2.0.27 (existing) | 2.0.27 | ORM models for `BreakdownElement`, `BreakdownCategory`, `ElementSceneLink` | Follows existing model patterns from `database.py`. Cascade deletes when project is deleted. |
+
+**Confidence:** HIGH -- exact patterns already established in the codebase.
+
+### Frontend: Breakdown Table UI
+
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| `@tanstack/react-table` | `^8.21.3` | Headless table logic for master list views | The breakdown page shows master lists per category (Characters, Locations, Props, Wardrobe, Vehicles) with columns for element name, description, scene count, and actions. TanStack Table provides sorting, filtering, column visibility, and row selection -- all needed for breakdown management. It is headless (no DOM opinions), so it integrates with existing Tailwind + Radix UI styling. 5.3M weekly npm downloads; the standard React table solution. |
+| `@radix-ui/react-tabs` | `^1.0.4` (existing) | Tab switching between breakdown categories | Already installed. The breakdown page uses tabs for Characters, Locations, Props, Wardrobe, Vehicles -- each tab renders a TanStack Table. |
+| `@radix-ui/react-dialog` | `^1.0.5` (existing) | Element edit/add modals | Already installed. User refinement of breakdown elements (edit name, description, add notes) uses the existing Dialog pattern. |
+| `lucide-react` | `^0.314.0` (existing) | Icons for element types, scene links, edit/delete actions | Already installed. Icons like `MapPin` (locations), `User` (characters), `Package` (props), `Shirt` (wardrobe), `Car` (vehicles) are available. |
+
+**Confidence:** HIGH -- TanStack Table version verified via npm; existing Radix/Lucide deps verified in package.json.
 
 ---
 
-## What NOT to Use
+## What NOT to Add
 
-### LangGraph
+### spaCy / NLTK / Hugging Face Transformers
 
-**Do not use.** LangGraph (LangChain's graph execution framework) is built for stateful, cyclical agent graphs — loops, conditional branching, human-in-the-loop checkpoints. This project's pipeline is:
+**Do not add.** These NLP libraries are designed for token-level linguistic analysis (POS tagging, dependency parsing, NER). The breakdown extraction task is:
 
-1. Mapping step: one LLM call, deterministic output stored in DB.
-2. Review step: N parallel LLM calls + one merge call.
+1. Read screenplay text (which has standardized formatting)
+2. Identify production elements by category (characters, locations, props, etc.)
+3. Return structured JSON
 
-Neither step requires a state machine. LangGraph would add `langgraph`, `langchain-core`, and `langchain-community` as dependencies — a large surface area that conflicts with the intentional `ai_provider.py` abstraction. The abstraction exists precisely to avoid LangChain lock-in.
+Modern LLMs (GPT-4, Claude) outperform rule-based NLP for this task because they understand screenplay conventions contextually. A character mentioned in action lines vs. a character in dialogue headers vs. a character reference in description -- the LLM disambiguates naturally. spaCy's NER would require custom training data and would still miss domain-specific elements like "picture vehicles" vs. transportation.
 
-**Confidence:** HIGH — LangGraph's own docs describe it as for "stateful, multi-actor applications with cycles." This use case has no cycles.
+Additionally, spaCy adds ~300MB to the Docker image (model downloads), plus numpy/scipy dependencies. Not worth it when the AI provider already handles this.
 
-### CrewAI
+**Confidence:** HIGH -- the project already uses LLMs for content understanding; NLP libraries would be a parallel, inferior system.
 
-**Do not use.** CrewAI abstracts agents as autonomous role-playing entities that decompose tasks and communicate with each other. The project spec explicitly states: "Agent-to-agent communication is out of scope — agents review independently, don't talk to each other." CrewAI's architecture is built around exactly this communication pattern. Using CrewAI here would mean adopting its agent execution model while suppressing its primary feature.
+### Instructor Library
 
-Additionally, CrewAI wraps OpenAI/Anthropic clients in its own way, which would conflict with `ai_provider.py`.
+**Do not add.** Instructor is a popular wrapper for structured LLM outputs that patches OpenAI/Anthropic clients. However, the project already has `ai_provider.py` as its abstraction layer. Adding Instructor would create two abstraction layers for the same thing. The OpenAI and Anthropic SDKs now have native structured output support (via `parse()` methods) that Instructor originally filled the gap for. Use the native SDK capabilities directly in `ai_provider.py`.
 
-**Confidence:** MEDIUM — based on training data understanding of CrewAI's design; unable to verify current CrewAI version docs.
+**Confidence:** HIGH -- the native SDK structured outputs make Instructor redundant for this use case.
 
-### AutoGen (Microsoft)
+### PydanticAI
 
-**Do not use.** AutoGen is designed for conversational multi-agent systems where agents send messages to each other over multiple turns. This is a review pipeline with no conversation between agents. AutoGen's overhead — its GroupChat, ConversableAgent, and runtime concepts — is architectural overkill.
-
-**Confidence:** MEDIUM — training data only; unable to verify against current AutoGen docs.
-
-### Celery / Redis / Task Queues
-
-**Do not use for this milestone.** Celery requires Redis or RabbitMQ as a broker, a separate worker process, and infrastructure changes to Docker Compose. For pipeline re-composition (one short AI call triggered on CRUD), FastAPI `BackgroundTasks` is sufficient. Celery becomes worth considering if background tasks exceed 60 seconds, need retry logic across process restarts, or need to scale to many concurrent users. None of those conditions apply to this milestone.
+**Do not add.** PydanticAI is a full agent framework built by the Pydantic team. It is a framework-level abstraction over LLM providers. The project already has its own provider abstraction (`ai_provider.py`) and agent system. PydanticAI would conflict with both.
 
 **Confidence:** HIGH.
 
-### Server-Sent Events (SSE) for Pipeline Mapping Progress
+### AG Grid / Material React Table / Other Pre-styled Table Libraries
 
-**Do not add.** Pipeline re-mapping is fast (1-3 seconds, one AI call). The frontend should poll `GET /api/pipeline/mapping` with React Query's `refetchInterval` for 5-10 seconds after a mutation, then stop. SSE adds streaming infrastructure for a sub-5-second operation.
+**Do not add.** AG Grid is enterprise-grade with a commercial license. Material React Table imposes Material UI styling that conflicts with the Tailwind + Radix UI design system. The project needs a headless table (logic only, no styling opinions) that integrates with the existing design system. TanStack Table is the correct choice.
 
 **Confidence:** HIGH.
+
+### Real-time Sync Libraries (Y.js, Automerge, ShareDB)
+
+**Do not add.** The PROJECT.md explicitly states: "Real-time sync (changes propagate on save/generate, not as user types)" is out of scope. These CRDT/OT libraries solve real-time collaborative editing conflicts. The breakdown syncs on discrete save/generate events, which is a simple request-response pattern.
+
+**Confidence:** HIGH -- explicitly out of scope per PROJECT.md.
+
+### Fountain Parser Libraries (Jouvence, screenplay-tools)
+
+**Do not add.** The script content in this app is generated by the AI service and stored as text/JSON in the database -- it is not in Fountain format (.fountain files). The screenplay content lives in `ScreenplayContent.content` (Text) and `ScreenplayContent.formatted_content` (JSON). Parsing from Fountain format is unnecessary since the app controls the data format end-to-end.
+
+If Fountain import is added in a future milestone, `screenplay-tools` (Python, actively maintained, supports Fountain + FDX) would be the choice. But do not add it now.
+
+**Confidence:** HIGH -- verified data model; content is stored in app-controlled format.
 
 ---
 
-## Supporting Libraries (New)
+## Supporting Libraries (New Additions Only)
 
-No new Python packages are needed for the backend orchestration logic. All required capabilities exist in the current stack.
+### Backend
 
-For the frontend, no new npm packages are needed. The tree view uses existing Lucide icons and Tailwind utilities.
+```bash
+# Upgrade existing packages
+pip install "openai>=1.40.0"      # Structured outputs support
+pip install "anthropic>=0.42.0"   # Structured outputs beta
 
-### Optional — If background tasks become unreliable
+# New package
+pip install deepdiff==8.6.1       # Bidirectional sync diffing
+```
 
-If `BackgroundTasks` proves insufficient (e.g., the mapping AI call starts timing out under load, or the server restarts mid-computation), the upgrade path is:
+### Frontend
 
-| Library | Version | Why then |
-|---------|---------|---------|
-| `anyio` task groups | stdlib via anyio (FastAPI already uses anyio internally) | Structured concurrency for background tasks without Celery |
+```bash
+npm install @tanstack/react-table@^8.21.3
+```
 
-Do not add this preemptively.
+**Total new dependencies: 1 backend (deepdiff), 1 frontend (@tanstack/react-table), plus 2 version upgrades.**
+
+This is intentionally minimal. The existing stack handles 90% of the work.
 
 ---
 
@@ -160,120 +177,118 @@ Do not add this preemptively.
 
 ### What Already Exists (Do Not Rewrite)
 
-| Existing Component | How It's Reused |
-|-------------------|-----------------|
-| `AgentService.run_multi_agent_review()` | Direct call — already does `asyncio.gather` over agents with timeout. Extend signature to accept `pipeline_step` context. |
-| `AgentService._orchestrate_stream_prepare()` | Pattern source — shows how to fan-out to agents and collect results. |
-| `ai_provider.chat_completion(json_mode=True)` | Used for both the mapping call and the synthesis/merge call. |
-| `Agent` SQLAlchemy model | Read-only in pipeline mapping — no changes to existing model needed. |
-| `PhaseData` + `ListItem` | Pipeline steps map to existing phases + subsection keys from template config. |
-| FastAPI `BackgroundTasks` | Wire into `POST /api/agents/` and `PATCH /api/agents/{id}` and `DELETE /api/agents/{id}`. |
-| React Query invalidation pattern | After agent CRUD mutation, invalidate `QUERY_KEYS.PIPELINE_MAPPING`. |
+| Existing Component | How It Is Reused for Breakdown |
+|-------------------|-------------------------------|
+| `ai_provider.chat_completion(json_mode=True)` | Fallback for providers/models that do not support structured outputs. The new `structured_completion()` method wraps this with schema enforcement when available. |
+| `ai_provider.py` provider abstraction | Extended with `structured_completion()` method. No changes to existing methods. |
+| `TemplateAIService._build_project_context()` | Called to gather all project phase data as context for the breakdown extraction prompt. The AI needs the full project context (characters defined in Idea phase, locations from Scene phase, etc.) to extract elements accurately. |
+| `ScreenplayContent` model | Source data for extraction. Query all `ScreenplayContent` rows for a project, concatenate content, and feed to the extraction AI call. |
+| `ListItem` model (scenes) | Scene identifiers for element-to-scene linking. Each breakdown element references which scenes it appears in by `ListItem.id`. |
+| `PhaseData` model | Additional context source. Character descriptions, location details, wardrobe notes from earlier phases inform element extraction. |
+| React Query patterns | `useQuery` for fetching breakdown data, `useMutation` for CRUD operations, `invalidateQueries` for cache updates. Exact patterns from SnippetManager and CardGridView. |
+| Radix UI Dialog + Tabs | Element edit modals (Dialog) and category tabs (Tabs) on the breakdown page. Already installed. |
+| Tailwind styling patterns | Table styling follows existing card/list patterns. No new CSS approach. |
 
 ### What Needs to Be Added
 
 | New Component | Location | Purpose |
 |--------------|----------|---------|
-| `PipelineMapping` SQLAlchemy model | `backend/app/models/database.py` | Persist the computed agent-to-step mapping |
-| `pipeline_mapping_service.py` | `backend/app/services/` | `compute_mapping(owner_id, db)` and `get_mapping(owner_id, db)` |
-| `GET/POST /api/pipeline/mapping` | `backend/app/api/endpoints/pipeline.py` | Expose mapping to frontend, trigger recompute |
-| `PipelineMappingTree.tsx` | `frontend/src/components/Workspace/` | Collapsible tree view for pipeline mapping |
-| Migration SQL | `backend/migrations/` | `pipeline_mappings` table |
+| `structured_completion()` in `ai_provider.py` | `backend/app/services/ai_provider.py` | Schema-enforced AI completion returning typed Pydantic models |
+| Breakdown Pydantic schemas | `backend/app/models/breakdown_schemas.py` | `BreakdownResult`, `BreakdownElement`, `ElementCategory` -- serve as both AI output schema and API response schema |
+| `BreakdownElement` SQLAlchemy model | `backend/app/models/database.py` | Persist extracted elements with category, name, description, metadata |
+| `ElementSceneLink` SQLAlchemy model | `backend/app/models/database.py` | Many-to-many: element <-> scene (ListItem) with optional notes |
+| `breakdown_service.py` | `backend/app/services/` | `extract_breakdown()`, `sync_breakdown()`, `get_breakdown()`, `update_element()` |
+| `breakdown_sync_service.py` | `backend/app/services/` | DeepDiff-based sync logic: compare old extraction vs. new, merge with user edits |
+| `GET/POST/PATCH/DELETE /api/breakdown/` | `backend/app/api/endpoints/breakdown.py` | CRUD endpoints for breakdown elements + extraction trigger |
+| Migration SQL | `backend/migrations/` | `breakdown_elements`, `element_scene_links` tables |
+| `BreakdownPage.tsx` | `frontend/src/components/Breakdown/` | Main breakdown page with category tabs and master list tables |
+| `BreakdownTable.tsx` | `frontend/src/components/Breakdown/` | TanStack Table wrapper for one category's element list |
+| `ElementEditDialog.tsx` | `frontend/src/components/Breakdown/` | Radix Dialog for editing/adding elements |
+| `SceneLinkBadges.tsx` | `frontend/src/components/Breakdown/` | Scene reference badges shown on each element row |
 
 ---
 
-## Data Schema Recommendation
+## Structured Output Schema Design
 
-### `pipeline_mappings` Table
+The extraction schema is the single most important design decision. It serves triple duty:
 
-```sql
-CREATE TABLE pipeline_mappings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    owner_id UUID NOT NULL,
-    template_id VARCHAR(100) NOT NULL,
-    mapping JSONB NOT NULL DEFAULT '{}',
-    computed_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-    UNIQUE (owner_id, template_id)
-);
-```
-
-**`mapping` JSON shape:**
-```json
-{
-  "phases": {
-    "idea": {
-      "subsections": {
-        "idea_overview": {
-          "agents": [
-            {
-              "agent_id": "uuid",
-              "agent_name": "Story Structure Coach",
-              "agent_color": "#6366f1",
-              "rationale": "Matches because agent's prompt focuses on story concept development"
-            }
-          ]
-        }
-      }
-    },
-    "story": {
-      "subsections": {
-        "beats": {
-          "agents": [...]
-        }
-      }
-    }
-  }
-}
-```
-
-This shape mirrors the existing template phase/subsection hierarchy, making tree rendering trivial — iterate `mapping.phases`, then `subsections`, then `agents`.
-
----
-
-## Generation Integration Pattern
-
-The pipeline review injection into `template_ai_service.py` generation follows this pattern:
+1. **AI output format** -- the LLM returns data matching this schema
+2. **API response format** -- the frontend receives this shape
+3. **Database serialization target** -- elements are unpacked from this into DB rows
 
 ```python
-# In TemplateAIService (or a new PipelineAwareGenerationService)
+from pydantic import BaseModel, Field
+from typing import List, Optional
+from enum import Enum
 
-async def generate_with_agent_review(
-    self,
-    step_output: str,
-    phase: str,
-    subsection_key: str,
-    owner_id: UUID,
-    db: Session,
-) -> str:
-    """Inject agent reviews after a generation step."""
-    # 1. Get mapped agents for this step
-    mapping = pipeline_mapping_service.get_mapping(owner_id, db)
-    agents = mapping.get_agents_for_step(phase, subsection_key)
+class ElementCategory(str, Enum):
+    CHARACTER = "character"
+    LOCATION = "location"
+    PROP = "prop"
+    WARDROBE = "wardrobe"
+    VEHICLE = "vehicle"
 
-    if not agents:
-        return step_output  # No agents mapped — pass through unchanged
+class SceneReference(BaseModel):
+    scene_identifier: str = Field(description="Scene heading or number from the script")
+    context: str = Field(description="Brief note on how the element appears in this scene")
 
-    # 2. Fan-out: run all mapped agents in parallel
-    tasks = [
-        asyncio.wait_for(
-            self._run_agent_review(agent, step_output, phase, subsection_key, db),
-            timeout=settings.AGENT_REVIEW_TIMEOUT,
-        )
-        for agent in agents
-    ]
-    reviews = await asyncio.gather(*tasks, return_exceptions=True)
+class BreakdownElement(BaseModel):
+    category: ElementCategory
+    name: str = Field(description="Element name, e.g., 'DETECTIVE SARAH' or 'Vintage Revolver'")
+    description: str = Field(description="Brief production-relevant description")
+    scenes: List[SceneReference] = Field(description="Scenes where this element appears")
+    notes: Optional[str] = Field(default=None, description="Additional production notes")
 
-    # 3. Filter out errors
-    valid_reviews = [r for r in reviews if not isinstance(r, Exception)]
-    if not valid_reviews:
-        return step_output
-
-    # 4. Fan-in: one synthesis call to merge feedback
-    refined = await self._merge_reviews(step_output, valid_reviews)
-    return refined
+class BreakdownResult(BaseModel):
+    elements: List[BreakdownElement] = Field(description="All extracted production elements")
+    extraction_notes: str = Field(description="Any ambiguities or assumptions made during extraction")
 ```
 
-This keeps `TemplateAIService` as the generation coordinator. No new service class needed — extend the existing one.
+**Why this shape:** Flat list of elements with embedded scene references. This is simpler to diff than a nested category-first structure, and the frontend groups by category client-side (or via a DB query). The AI returns one pass over all categories rather than N separate calls per category -- more efficient and catches cross-category relationships (a character's wardrobe in a specific scene).
+
+---
+
+## Bidirectional Sync Pattern
+
+The sync problem has three states to reconcile:
+
+1. **Previous AI extraction** (stored in DB)
+2. **New AI extraction** (from updated script)
+3. **User edits** (modifications to the previous extraction)
+
+The sync algorithm using DeepDiff:
+
+```python
+from deepdiff import DeepDiff
+
+def sync_breakdown(
+    previous_extraction: dict,
+    new_extraction: dict,
+    user_edits: dict,
+) -> dict:
+    """
+    Three-way merge: keep user edits, apply AI changes from script updates.
+
+    - User-added elements: KEEP (not in any AI extraction)
+    - User-edited elements: KEEP user version unless element was removed from script
+    - AI-added elements (new in script): ADD
+    - AI-removed elements (no longer in script): MARK for review, do not auto-delete
+    """
+    # What changed in the AI extraction?
+    ai_diff = DeepDiff(previous_extraction, new_extraction, ignore_order=True)
+
+    # What did the user change?
+    user_diff = DeepDiff(previous_extraction, user_edits, ignore_order=True)
+
+    # Apply AI additions that don't conflict with user edits
+    # Flag AI removals for user review
+    # Preserve all user additions and modifications
+    ...
+```
+
+**Key principle:** Never auto-delete user-edited elements. If the AI extraction no longer finds an element but the user has edited it, flag it for review rather than removing it. This respects user intent.
+
+**Confidence:** HIGH on DeepDiff suitability. MEDIUM on the exact sync algorithm -- will need refinement during implementation as edge cases emerge.
 
 ---
 
@@ -281,11 +296,59 @@ This keeps `TemplateAIService` as the generation coordinator. No new service cla
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| Orchestration approach | Custom `asyncio.gather` | LangGraph | No graph cycles needed; adds LangChain dependency surface; conflicts with `ai_provider.py` abstraction |
-| Orchestration approach | Custom `asyncio.gather` | CrewAI | Designed for agent-to-agent comms which is explicitly out of scope; own AI client wrapping conflicts |
-| Background tasks | FastAPI `BackgroundTasks` | Celery + Redis | Requires broker infrastructure; overkill for 1-3 second tasks |
-| Mapping storage | PostgreSQL JSONB column | Separate graph database (Neo4j) | The mapping is a simple tree, not a property graph; Neo4j is unjustified complexity |
-| Tree view | Custom Tailwind component | react-arborist or react-d3-tree | Small component; adding a tree library for a collapsible list is excess dependency |
+| AI extraction approach | Structured outputs (schema-enforced) | `json_mode=True` (current) | `json_mode` requests JSON but does not enforce schema -- the AI can return valid JSON that does not match the expected shape. Structured outputs guarantee the shape. |
+| AI extraction approach | Structured outputs (schema-enforced) | Instructor library | Instructor wraps the SDK clients. Since OpenAI and Anthropic now have native structured output support, Instructor adds an unnecessary abstraction layer on top of `ai_provider.py`. |
+| NLP preprocessing | None (direct LLM extraction) | spaCy NER | LLMs outperform spaCy for domain-specific extraction from semi-structured text. spaCy adds 300MB+ to Docker image. Would need custom training data for screenplay elements. |
+| Diff library | DeepDiff | Custom dict comparison | Nested structure diffing is surprisingly complex (list reordering, type coercion, path tracking). DeepDiff handles all edge cases. |
+| Diff library | DeepDiff | `dictdiffer` | Last updated 2021. DeepDiff is actively maintained (Sep 2025) with more features (Delta, DeepSearch). |
+| Frontend table | TanStack Table (headless) | AG Grid | AG Grid is enterprise-licensed. Imposes its own styling. Overkill for the breakdown use case. |
+| Frontend table | TanStack Table (headless) | Material React Table | Imposes Material UI styling that conflicts with Tailwind + Radix UI design system. |
+| Frontend table | TanStack Table (headless) | Custom HTML tables | Would need to re-implement sorting, filtering, column resizing. TanStack Table provides this out of the box with zero styling opinions. |
+| Sync approach | DeepDiff three-way merge on save | Real-time CRDT (Y.js) | Explicitly out of scope per PROJECT.md constraints. |
+
+---
+
+## Version Upgrade Details
+
+### OpenAI SDK Upgrade: 1.12.0 -> >=1.40.0
+
+**Why upgrade:** Version 1.12.0 (current) supports `json_mode=True` but not the `response_format: {type: "json_schema", json_schema: {...}}` parameter that guarantees schema compliance. The `parse()` method for Pydantic model outputs was added in later versions. The latest stable is 2.26.0 but pinning to `>=1.40.0` ensures structured output support while allowing flexibility.
+
+**Breaking changes:** None for the existing usage. The `chat.completions.create()` API is backward-compatible. The `json_mode=True` codepath in `ai_provider.py` continues to work unchanged. The new `structured_completion()` method uses the newer API surface alongside the existing one.
+
+**Recommendation:** Pin to `>=1.40.0,<3.0.0` for safety.
+
+### Anthropic SDK Upgrade: >=0.39.0 -> >=0.42.0
+
+**Why upgrade:** Structured outputs were added in the `structured-outputs-2025-11-13` beta. The `client.beta.messages.parse()` method and `output_format` parameter require a recent SDK version. The latest stable is 0.84.0.
+
+**Breaking changes:** None for existing usage. The `messages.create()` API is backward-compatible. The structured output feature is accessed through the `beta` namespace.
+
+**Recommendation:** Pin to `>=0.42.0,<1.0.0`. The structured outputs feature is still in beta -- the beta namespace isolates it from the stable API.
+
+**Confidence:** MEDIUM on exact minimum versions for structured output support. The important thing is that both SDKs now support it natively; the exact version floor needs verification during implementation.
+
+---
+
+## Installation
+
+### Backend
+
+```bash
+# Updated requirements.txt additions/changes:
+# Upgrade existing:
+openai>=1.40.0,<3.0.0           # Was: openai==1.12.0
+anthropic>=0.42.0,<1.0.0        # Was: anthropic>=0.39.0
+
+# New:
+deepdiff==8.6.1                 # Bidirectional sync diffing
+```
+
+### Frontend
+
+```bash
+npm install @tanstack/react-table@^8.21.3
+```
 
 ---
 
@@ -293,41 +356,34 @@ This keeps `TemplateAIService` as the generation coordinator. No new service cla
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Build custom vs. frameworks | HIGH | Codebase analysis is conclusive — existing patterns already cover the core need |
-| `asyncio.gather` fan-out pattern | HIGH | Already in production use in `agent_service.py` lines 649-653 and 843-847 |
-| FastAPI `BackgroundTasks` suitability | HIGH | Standard FastAPI pattern, well-documented |
-| LangGraph unsuitability | HIGH | Design mismatch is structural, not opinion |
-| CrewAI unsuitability | MEDIUM | Training data only; could not verify current CrewAI API surface |
-| AutoGen unsuitability | MEDIUM | Training data only; could not verify current AutoGen API surface |
-| `PipelineMapping` JSONB schema | MEDIUM | Logical fit with existing models; schema may need adjustment once template structure is fully enumerated |
-| Library versions (frameworks) | LOW | Could not fetch current PyPI versions — verify before pinning |
-
----
-
-## Installation
-
-No new Python packages are required for this milestone. The full stack is already installed.
-
-If you later choose to add structured retry logic:
-
-```bash
-# Only if needed — do not add preemptively
-pip install tenacity==8.2.3
-```
-
-`tenacity` provides `@retry` decorators for AI call retries with exponential backoff. Useful if agent review calls show transient failures in production. Do not pin it now.
+| No NLP libraries needed | HIGH | LLMs outperform traditional NLP for domain-specific extraction; verified by industry practice |
+| OpenAI structured outputs | HIGH | Verified via official docs and PyPI; feature is GA |
+| Anthropic structured outputs | HIGH | Verified via official docs; feature is in public beta since Nov 2025 |
+| SDK version requirements | MEDIUM | Exact minimum versions for structured output support need verification during implementation; latest versions definitely support it |
+| DeepDiff for sync | HIGH | Verified PyPI version, feature set, and active maintenance |
+| TanStack Table for breakdown UI | HIGH | Verified npm version, weekly downloads, Tailwind/Radix compatibility |
+| Pydantic as schema bridge | HIGH | Natively supported by both OpenAI and Anthropic SDKs |
+| Three-way sync algorithm | MEDIUM | Concept is sound; implementation details will need refinement during development |
+| No Fountain parser needed | HIGH | Verified data model; content is in app-controlled format |
 
 ---
 
 ## Sources
 
-- Codebase analysis: `backend/app/services/agent_service.py` (lines 1027-1063, 649-653, 843-847) — HIGH confidence
-- Codebase analysis: `backend/app/services/ai_provider.py` — HIGH confidence
-- Codebase analysis: `backend/app/models/database.py` (Agent, PhaseData models) — HIGH confidence
-- Codebase analysis: `backend/requirements.txt` — HIGH confidence
-- FastAPI BackgroundTasks documentation (training data, pattern is stable) — HIGH confidence
-- LangGraph design rationale (training data, cyclical graph focus) — MEDIUM confidence
-- CrewAI design rationale (training data) — MEDIUM confidence
-- AutoGen design rationale (training data) — MEDIUM confidence
+- [OpenAI Structured Outputs Guide](https://developers.openai.com/api/docs/guides/structured-outputs/) -- HIGH confidence
+- [Anthropic Structured Outputs Docs](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) -- HIGH confidence
+- [OpenAI Python SDK on PyPI](https://pypi.org/project/openai/) -- version 2.26.0 verified -- HIGH confidence
+- [Anthropic Python SDK on PyPI](https://pypi.org/project/anthropic/) -- version 0.84.0 verified -- HIGH confidence
+- [DeepDiff on PyPI](https://pypi.org/project/deepdiff/) -- version 8.6.1 verified -- HIGH confidence
+- [DeepDiff Documentation](https://zepworks.com/deepdiff/current/) -- HIGH confidence
+- [TanStack Table on npm](https://www.npmjs.com/package/@tanstack/react-table) -- version 8.21.3 verified -- HIGH confidence
+- [TanStack Table Docs](https://tanstack.com/table/latest/docs/introduction) -- HIGH confidence
+- [Pydantic LLM Integration Guide](https://pydantic.dev/articles/llm-intro) -- MEDIUM confidence
+- [StudioBinder Script Breakdown Elements Guide](https://www.studiobinder.com/blog/the-complete-guide-to-mastering-script-breakdown-elements/) -- domain knowledge -- HIGH confidence
+- [Script Breakdown Wikipedia](https://en.wikipedia.org/wiki/Script_breakdown) -- domain knowledge -- HIGH confidence
+- Codebase analysis: `backend/app/services/ai_provider.py` -- HIGH confidence
+- Codebase analysis: `backend/app/models/database.py` (ScreenplayContent, ListItem, PhaseData) -- HIGH confidence
+- Codebase analysis: `backend/requirements.txt` -- HIGH confidence
+- Codebase analysis: `frontend/package.json` -- HIGH confidence
 
-*Stack research: 2026-03-11*
+*Stack research: 2026-03-12*
