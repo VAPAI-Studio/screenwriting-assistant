@@ -1,6 +1,7 @@
 // frontend/src/lib/constants.ts
 
 import { SectionType, Framework } from '../types';
+import type { BreakdownCategory } from '../types';
 
 // API Configuration
 export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -179,6 +180,8 @@ export const QUERY_KEYS = {
   AI_MESSAGES: (sessionId: string) => ['ai-messages', sessionId],
   WIZARD_RUN: (id: string) => ['wizard-run', id],
   PIPELINE_MAP: 'pipeline-map',
+  BREAKDOWN_SUMMARY: (projectId: string) => ['breakdown-summary', projectId] as const,
+  BREAKDOWN_ELEMENTS: (projectId: string, category?: string) => ['breakdown-elements', projectId, category] as const,
 } as const;
 
 // Theme Configuration
@@ -246,8 +249,17 @@ export const ROUTES = {
   LOGIN: '/login',
   SIGNUP: '/signup',
   FORGOT_PASSWORD: '/forgot-password',
-  RESET_PASSWORD: '/reset-password'
+  RESET_PASSWORD: '/reset-password',
+  PROJECT_BREAKDOWN: (id: string) => `/projects/${id}/breakdown`,
 } as const;
+
+export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: string }> = [
+  { value: 'character', label: 'Characters' },
+  { value: 'location', label: 'Locations' },
+  { value: 'prop', label: 'Props' },
+  { value: 'wardrobe', label: 'Wardrobe' },
+  { value: 'vehicle', label: 'Vehicles' },
+];
 
 export const ORCHESTRATOR_PROMPT_TEMPLATE = `You are {name}, an orchestrator agent that coordinates multiple specialized screenwriting consultants. You synthesize insights from book-based and tag-based agents to provide comprehensive, well-rounded guidance.
 

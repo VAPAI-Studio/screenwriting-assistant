@@ -237,3 +237,64 @@ export interface SnippetListResponse {
   pages: number;
   book_status: string;
 }
+
+// ============================================================
+// Breakdown types (v2.0 — Phase 13)
+// ============================================================
+
+export type BreakdownCategory = 'character' | 'location' | 'prop' | 'wardrobe' | 'vehicle';
+
+export interface SceneLink {
+  id: string;
+  scene_item_id: string;
+  context: string;
+  source: 'ai' | 'user';
+}
+
+export interface BreakdownElement {
+  id: string;
+  project_id: string;
+  category: BreakdownCategory;
+  name: string;
+  description: string;
+  metadata: Record<string, unknown>;
+  source: 'ai' | 'user';
+  user_modified: boolean;
+  is_deleted: boolean;
+  sort_order: number;
+  scene_links: SceneLink[];
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface BreakdownRun {
+  id: string;
+  project_id: string;
+  status: string;
+  config: Record<string, unknown>;
+  result_summary: Record<string, unknown>;
+  elements_created: number;
+  elements_updated: number;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface BreakdownSummary {
+  project_id: string;
+  is_stale: boolean;
+  total_elements: number;
+  counts_by_category: Record<BreakdownCategory, number>;
+  last_run: BreakdownRun | null;
+}
+
+export interface BreakdownElementCreate {
+  category: BreakdownCategory;
+  name: string;
+  description: string;
+}
+
+export interface BreakdownElementUpdate {
+  name?: string;
+  description?: string;
+}

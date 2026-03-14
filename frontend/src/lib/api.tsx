@@ -797,6 +797,64 @@ export const api = {
   // YOLO Auto-Fill
   // ============================================================
 
+  // ============================================================
+  // Breakdown (v2.0 — Phase 13)
+  // ============================================================
+
+  async getBreakdownSummary(projectId: string): Promise<import('../types').BreakdownSummary> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/breakdown/summary/${projectId}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch breakdown summary');
+    return response.json();
+  },
+
+  async getBreakdownElements(projectId: string, category?: string): Promise<import('../types').BreakdownElement[]> {
+    const url = category
+      ? `${API_BASE_URL}/breakdown/elements/${projectId}?category=${category}`
+      : `${API_BASE_URL}/breakdown/elements/${projectId}`;
+    const response = await fetchWithTimeout(url, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch breakdown elements');
+    return response.json();
+  },
+
+  async createBreakdownElement(projectId: string, data: import('../types').BreakdownElementCreate): Promise<import('../types').BreakdownElement> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/breakdown/elements/${projectId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create breakdown element');
+    return response.json();
+  },
+
+  async updateBreakdownElement(elementId: string, data: import('../types').BreakdownElementUpdate): Promise<import('../types').BreakdownElement> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/breakdown/element/${elementId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update breakdown element');
+    return response.json();
+  },
+
+  async deleteBreakdownElement(elementId: string): Promise<void> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/breakdown/element/${elementId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete breakdown element');
+  },
+
+  async triggerBreakdownExtraction(projectId: string): Promise<import('../types').BreakdownRun> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/breakdown/extract/${projectId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to trigger extraction');
+    return response.json();
+  },
+
   async yoloFill(
     projectId: string,
     onEvent: (event: YoloEvent) => void,
