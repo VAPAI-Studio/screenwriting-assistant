@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: verifying
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-14T13:53:59.443Z"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-03-14T13:58:24.642Z"
 last_activity: 2026-03-13 -- Completed Plan 11-03 (integration tests and deduplication)
 progress:
   total_phases: 6
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 9
-  completed_plans: 8
+  completed_plans: 9
   percent: 100
 ---
 
@@ -54,6 +54,7 @@ Progress: [██████████] 100% (v2.0 Phase 11: 3/3 plans comple
 | Phase 11 P02 | 3min | 2 tasks | 2 files |
 | Phase 11 P03 | 3min | 2 tasks | 4 files |
 | Phase 12-staleness-hooks P01 | 20 | 2 tasks | 4 files |
+| Phase 12-staleness-hooks P02 | 2 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,8 @@ v2.0 decisions:
 - [Phase 12-01]: Helper does NOT commit; caller's existing commit covers breakdown_stale change (one-commit rule)
 - [Phase 12-01]: str() cast on all UUID filter params in phase_data.py and list_items.py for SQLite/PostgreSQL compat
 - [Phase 12-01]: _is_scene_item returns PhaseData object so callers have project_id for _mark_breakdown_stale
+- [Phase 12-staleness-hooks]: breakdown_stale=False cleared atomically in extract() success path between _record_run() and db.commit() -- no second commit needed (SYNC-04)
+- [Phase 12-staleness-hooks]: Failure path in extract() deliberately untouched -- failed extraction must not clear stale flag
 
 ### Pending Todos
 
@@ -108,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:53:59.440Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-03-14T13:58:24.639Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None
