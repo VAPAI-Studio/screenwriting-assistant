@@ -10,6 +10,7 @@ from ..dependencies import get_db, get_current_user
 from ...services.template_ai_service import template_ai_service
 from ...db import SessionLocal
 from ...services.agent_review_middleware import agent_review_middleware
+from .phase_data import _mark_breakdown_stale
 
 router = APIRouter()
 
@@ -240,6 +241,7 @@ def apply_wizard_result_to_db(db: Session, project, phase: str, wizard_type: str
             )
             db.add(sc)
 
+        _mark_breakdown_stale(db, project.id)
         db.commit()
         return {"status": "success", "items_created": len(screenplays)}
 

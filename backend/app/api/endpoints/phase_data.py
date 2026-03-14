@@ -7,17 +7,39 @@ from typing import List, Dict
 from uuid import UUID
 
 from ...models import schemas, database
+from ...models.database import BreakdownElement
 from ..dependencies import get_db, get_current_user
 from ...templates import get_template
 
 router = APIRouter()
 
+# Phases that trigger breakdown_stale when their content is updated.
+BREAKDOWN_SENSITIVE_PHASES = {"write", "scenes"}
+
+
+def _mark_breakdown_stale(db: Session, project_id) -> None:
+    """Set breakdown_stale=True if a breakdown exists for this project.
+
+    Does not commit -- caller's existing commit covers the change.
+    Only marks stale when at least one non-deleted BreakdownElement exists.
+    """
+    has_breakdown = db.query(BreakdownElement).filter(
+        BreakdownElement.project_id == str(project_id),
+        BreakdownElement.is_deleted == False,  # noqa: E712
+    ).first() is not None
+    if has_breakdown:
+        project = db.query(database.Project).filter(
+            database.Project.id == str(project_id)
+        ).first()
+        if project:
+            project.breakdown_stale = True
+
 
 def _verify_project_ownership(db: Session, project_id: UUID, user_id: UUID) -> database.Project:
     """Verify user owns the project and return it."""
     project = db.query(database.Project).filter(
-        database.Project.id == project_id,
-        database.Project.owner_id == user_id
+        database.Project.id == str(project_id),
+        database.Project.owner_id == str(user_id)
     ).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
@@ -160,7 +182,7 @@ async def update_subsection_data(
     _verify_project_ownership(db, project_id, current_user.id)
 
     data = db.query(database.PhaseData).filter(
-        database.PhaseData.project_id == project_id,
+        database.PhaseData.project_id == str(project_id),
         database.PhaseData.phase == phase,
         database.PhaseData.subsection_key == subsection_key
     ).first()
@@ -173,6 +195,9 @@ async def update_subsection_data(
     existing.update(update.content)
     data.content = existing
     flag_modified(data, "content")
+
+    if phase in BREAKDOWN_SENSITIVE_PHASES:
+        _mark_breakdown_stale(db, project_id)
 
     db.commit()
     db.refresh(data)
