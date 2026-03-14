@@ -10,16 +10,21 @@ Tests verify that breakdown_stale=True is set on a Project when:
 And that breakdown_stale is NOT set when no BreakdownElement exists.
 """
 
+import asyncio
 import uuid
 
 import pytest
+from unittest.mock import patch, AsyncMock
 from app.models.database import (
     BreakdownElement,
+    BreakdownRun,
     ListItem,
     PhaseData,
     Project,
+    ScreenplayContent,
 )
 from app.api.endpoints.wizards import apply_wizard_result_to_db
+from app.services.breakdown_service import breakdown_service, ExtractionResponse
 
 MOCK_USER_ID = "12345678-1234-5678-1234-567812345678"
 
@@ -250,6 +255,85 @@ class TestStalenessHooks:
 
         project = _get_project(db_session, project_id)
         assert project.breakdown_stale is True
+
+    # ----------------------------------------------------------------
+    # SYNC-04: Extraction clears the stale flag atomically
+    # ----------------------------------------------------------------
+    def test_extraction_clears_stale(self, db_session):
+        """Successful extraction clears breakdown_stale=False atomically with the extraction commit."""
+        project_id = str(uuid.uuid4())
+        project = Project(
+            id=project_id,
+            owner_id=MOCK_USER_ID,
+            title="Stale Clear Test",
+            breakdown_stale=True,
+        )
+        db_session.add(project)
+        db_session.flush()
+
+        # Add screenplay content so the extraction pipeline doesn't short-circuit
+        sc = ScreenplayContent(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            content="INT. ROOM - DAY\nA character walks in.",
+        )
+        db_session.add(sc)
+        db_session.commit()
+
+        # Mock the AI call to return an empty extraction (sufficient for this test)
+        with patch(
+            "app.services.breakdown_service.breakdown_service._call_ai_extraction",
+            new_callable=AsyncMock,
+            return_value=ExtractionResponse(elements=[]),
+        ):
+            run = asyncio.run(breakdown_service.extract(db_session, project_id))
+
+        # Re-query the project to see the committed state
+        db_session.expire_all()
+        refreshed = db_session.query(Project).filter(Project.id == project_id).first()
+        assert refreshed.breakdown_stale is False
+
+        # Confirm a BreakdownRun with status="completed" was recorded
+        breakdown_run = db_session.query(BreakdownRun).filter(
+            BreakdownRun.project_id == project_id,
+            BreakdownRun.status == "completed",
+        ).first()
+        assert breakdown_run is not None
+
+    def test_failed_extraction_does_not_clear_stale(self, db_session):
+        """A failed extraction does NOT clear breakdown_stale; the flag remains True."""
+        project_id = str(uuid.uuid4())
+        project = Project(
+            id=project_id,
+            owner_id=MOCK_USER_ID,
+            title="Stale Failure Test",
+            breakdown_stale=True,
+        )
+        db_session.add(project)
+        db_session.flush()
+
+        # Add screenplay content so the pipeline reaches the AI call
+        sc = ScreenplayContent(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            content="INT. ROOM - DAY\nSome content.",
+        )
+        db_session.add(sc)
+        db_session.commit()
+
+        # Mock the AI call to raise an error
+        with patch(
+            "app.services.breakdown_service.breakdown_service._call_ai_extraction",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("AI failed"),
+        ):
+            with pytest.raises(RuntimeError, match="AI failed"):
+                asyncio.run(breakdown_service.extract(db_session, project_id))
+
+        # Re-query the project; stale flag must still be True
+        db_session.expire_all()
+        refreshed = db_session.query(Project).filter(Project.id == project_id).first()
+        assert refreshed.breakdown_stale is True
 
     # ----------------------------------------------------------------
     # 8. No breakdown element = no stale set
