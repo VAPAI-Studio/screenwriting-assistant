@@ -465,6 +465,13 @@ class BreakdownService:
                 updated=result["updated"],
             )
 
+            # 6b. Clear staleness flag (SYNC-04)
+            stale_project = db.query(database.Project).filter(
+                database.Project.id == str(project_id)
+            ).first()
+            if stale_project:
+                stale_project.breakdown_stale = False
+
             # 7. Single commit
             db.commit()
             return run
