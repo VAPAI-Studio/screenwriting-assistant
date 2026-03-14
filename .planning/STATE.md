@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: verifying
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-14T14:01:15.939Z"
-last_activity: 2026-03-13 -- Completed Plan 11-03 (integration tests and deduplication)
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-03-14T14:55:19.803Z"
+last_activity: 2026-03-14 -- Completed Plan 13-01 (breakdown page contracts)
 progress:
   total_phases: 6
   completed_phases: 4
-  total_plans: 9
-  completed_plans: 9
+  total_plans: 12
+  completed_plans: 10
   percent: 100
 ---
 
@@ -25,12 +25,12 @@ See: .planning/PROJECT.md (updated 2026-03-12)
 
 ## Current Position
 
-Phase: 11 of 14 (AI Extraction Service)
-Plan: 3 of 3 in current phase (COMPLETE)
-Status: Phase 11 complete -- all 3 plans executed, all 7 requirements verified
-Last activity: 2026-03-13 -- Completed Plan 11-03 (integration tests and deduplication)
+Phase: 13 of 14 (Breakdown Page)
+Plan: 1 of 3 in current phase
+Status: Phase 13 in progress -- Plan 01 complete (contracts, types, API client, route, nav tab)
+Last activity: 2026-03-14 -- Completed Plan 13-01 (SceneLinkResponse, TypeScript types, App route, PhaseNavigation Breakdown tab)
 
-Progress: [██████████] 100% (v2.0 Phase 11: 3/3 plans complete)
+Progress: [█████████░] 93% (v2.0 Phase 13: 1/3 plans complete)
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100% (v2.0 Phase 11: 3/3 plans comple
 | Phase 11 P03 | 3min | 2 tasks | 4 files |
 | Phase 12-staleness-hooks P01 | 20 | 2 tasks | 4 files |
 | Phase 12-staleness-hooks P02 | 2 | 1 tasks | 2 files |
+| Phase 13-breakdown-page P01 | 5min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ v2.0 decisions:
 - [Phase 12-01]: _is_scene_item returns PhaseData object so callers have project_id for _mark_breakdown_stale
 - [Phase 12-staleness-hooks]: breakdown_stale=False cleared atomically in extract() success path between _record_run() and db.commit() -- no second commit needed (SYNC-04)
 - [Phase 12-staleness-hooks]: Failure path in extract() deliberately untouched -- failed extraction must not clear stale flag
+- [Phase 13-breakdown-page]: selectinload on scene_links in all element-returning endpoints to avoid lazy-load errors outside session context
+- [Phase 13-breakdown-page]: [Phase 13-01]: Breakdown route placed BEFORE /:phase wildcard in App.tsx to prevent route collision
 
 ### Pending Todos
 
@@ -111,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T13:58:24.639Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-14T14:55:19.801Z
+Stopped at: Completed 13-01-PLAN.md
 Resume file: None

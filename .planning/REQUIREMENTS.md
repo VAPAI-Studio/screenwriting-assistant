@@ -70,9 +70,9 @@
 
 ### Frontend
 
-- [ ] **UI-01**: Dedicated Breakdown page accessible from project workspace navigation (not a template phase)
-- [ ] **UI-02**: Category tabs (Characters, Locations, Props, Wardrobe, Vehicles) with count badges
-- [ ] **UI-03**: Master list per category with element name, description, scene count, source badge (AI/User), user-modified indicator
+- [x] **UI-01**: Dedicated Breakdown page accessible from project workspace navigation (not a template phase)
+- [x] **UI-02**: Category tabs (Characters, Locations, Props, Wardrobe, Vehicles) with count badges
+- [x] **UI-03**: Master list per category with element name, description, scene count, source badge (AI/User), user-modified indicator
 - [ ] **UI-04**: Inline editing of element names and descriptions; expand/collapse for details
 - [ ] **UI-05**: Scene chips on each element showing linked scenes; clickable to navigate to scene
 - [ ] **UI-06**: "Extract Breakdown" button for first extraction; "Refresh" button with staleness banner when breakdown is outdated
@@ -132,9 +132,9 @@
 | API-05 | Phase 10 | Complete |
 | API-06 | Phase 10 | Complete |
 | API-07 | Phase 10 | Complete |
-| UI-01 | Phase 13 | Pending |
-| UI-02 | Phase 13 | Pending |
-| UI-03 | Phase 13 | Pending |
+| UI-01 | Phase 13 | Complete |
+| UI-02 | Phase 13 | Complete |
+| UI-03 | Phase 13 | Complete |
 | UI-04 | Phase 13 | Pending |
 | UI-05 | Phase 13 | Pending |
 | UI-06 | Phase 13 | Pending |
