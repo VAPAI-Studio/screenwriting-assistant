@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { STORAGE_KEYS } from '../../lib/constants';
 import { PhaseNavigation } from './PhaseNavigation';
+import type { YoloProgress } from './PhaseNavigation';
 import { SubsectionSidebar } from './SubsectionSidebar';
 import { ContentArea } from './ContentArea';
 import { SidebarChat } from '../Shared/SidebarChat';
-import type { PhaseConfig, SubsectionConfig } from '../../types/template';
+import type { PhaseConfig, SubsectionConfig, YoloEvent } from '../../types/template';
 
 export function ProjectWorkspace() {
   const { projectId, phase, subsectionKey, itemId } = useParams<{
@@ -18,8 +20,23 @@ export function ProjectWorkspace() {
   }>();
   const navigate = useNavigate();
 
-  const [selectedPhase, setSelectedPhase] = useState<string>(phase || 'idea');
-  const [selectedSubsection, setSelectedSubsection] = useState<string>(subsectionKey || '');
+  const queryClient = useQueryClient();
+  const [selectedPhase, setSelectedPhase] = useState<string>(() => {
+    if (phase) return phase;
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.LAST_PHASE) || '{}');
+      return stored[projectId!] || 'idea';
+    } catch { return 'idea'; }
+  });
+  const [selectedSubsection, setSelectedSubsection] = useState<string>(() => {
+    if (subsectionKey) return subsectionKey;
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.LAST_SUBSECTION) || '{}');
+      return stored[projectId!] || '';
+    } catch { return ''; }
+  });
+  const [isYoloRunning, setIsYoloRunning] = useState(false);
+  const [yoloProgress, setYoloProgress] = useState<YoloProgress | null>(null);
 
   const { data: project, isLoading: projectLoading } = useQuery<any>({
     queryKey: ['project-v2', projectId],
@@ -43,9 +60,15 @@ export function ProjectWorkspace() {
 
   useEffect(() => {
     if (currentPhase && currentPhase.subsections.length > 0 && !selectedSubsection) {
-      setSelectedSubsection(currentPhase.subsections[0].key);
+      const firstKey = currentPhase.subsections[0].key;
+      setSelectedSubsection(firstKey);
+      try {
+        const subs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LAST_SUBSECTION) || '{}');
+        subs[projectId!] = firstKey;
+        localStorage.setItem(STORAGE_KEYS.LAST_SUBSECTION, JSON.stringify(subs));
+      } catch {}
     }
-  }, [currentPhase, selectedSubsection]);
+  }, [currentPhase, selectedSubsection, projectId]);
 
   useEffect(() => {
     if (phase && phase !== selectedPhase) setSelectedPhase(phase);
@@ -56,12 +79,59 @@ export function ProjectWorkspace() {
     setSelectedPhase(phaseId);
     setSelectedSubsection('');
     navigate(`/projects/${projectId}/${phaseId}`);
+    try {
+      const phases = JSON.parse(localStorage.getItem(STORAGE_KEYS.LAST_PHASE) || '{}');
+      phases[projectId!] = phaseId;
+      localStorage.setItem(STORAGE_KEYS.LAST_PHASE, JSON.stringify(phases));
+    } catch {}
   };
 
   const handleSubsectionChange = (key: string) => {
     setSelectedSubsection(key);
     navigate(`/projects/${projectId}/${selectedPhase}/${key}`);
+    try {
+      const subs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LAST_SUBSECTION) || '{}');
+      subs[projectId!] = key;
+      localStorage.setItem(STORAGE_KEYS.LAST_SUBSECTION, JSON.stringify(subs));
+    } catch {}
   };
+
+  const handleYoloFill = useCallback(async () => {
+    if (!projectId || isYoloRunning) return;
+    setIsYoloRunning(true);
+    setYoloProgress(null);
+
+    try {
+      await api.yoloFill(projectId, (event: YoloEvent) => {
+        if (event.type === 'start') {
+          setYoloProgress({ total: event.total || 0, completed: 0, currentName: 'Starting...' });
+        } else if (event.type === 'progress') {
+          if (event.status === 'running') {
+            setYoloProgress(prev => prev ? { ...prev, currentName: event.name || event.key || '' } : null);
+          } else if (event.status === 'done' || event.status === 'skipped' || event.status === 'error') {
+            setYoloProgress(prev => prev ? { ...prev, completed: (event.index ?? prev.completed) + 1 } : null);
+            if (event.status === 'done') {
+              queryClient.invalidateQueries({ queryKey: ['subsection-data'] });
+              queryClient.invalidateQueries({ queryKey: ['list-items'] });
+              queryClient.invalidateQueries({ queryKey: ['phase-data'] });
+            }
+          }
+        } else if (event.type === 'done') {
+          setYoloProgress(null);
+        }
+      });
+
+      // Invalidate all data queries for this phase so UI refreshes
+      queryClient.invalidateQueries({ queryKey: ['subsection-data'] });
+      queryClient.invalidateQueries({ queryKey: ['list-items'] });
+      queryClient.invalidateQueries({ queryKey: ['phase-data'] });
+    } catch (err) {
+      console.error('YOLO fill failed:', err);
+    } finally {
+      setIsYoloRunning(false);
+      setYoloProgress(null);
+    }
+  }, [projectId, isYoloRunning, queryClient]);
 
   if (projectLoading || templateLoading) {
     return (
@@ -85,6 +155,8 @@ export function ProjectWorkspace() {
     );
   }
 
+  const isBreakdownActive = false; // ProjectWorkspace is never the breakdown page
+
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]">
       {/* Phase Navigation */}
@@ -93,6 +165,11 @@ export function ProjectWorkspace() {
         currentPhase={selectedPhase}
         onPhaseChange={handlePhaseChange}
         projectTitle={project.title}
+        onYoloFill={handleYoloFill}
+        isYoloRunning={isYoloRunning}
+        yoloProgress={yoloProgress}
+        onBreakdownClick={() => navigate(`/projects/${projectId}/breakdown`)}
+        isBreakdownActive={isBreakdownActive}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -129,6 +206,7 @@ export function ProjectWorkspace() {
             phase={selectedPhase}
             subsectionKey={selectedSubsection}
             contextItemId={itemId}
+            subsection={currentSubsection}
           />
         )}
       </div>

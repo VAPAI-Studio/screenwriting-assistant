@@ -1,4 +1,4 @@
-import { Lightbulb, BookOpen, Clapperboard, PenTool } from 'lucide-react';
+import { Lightbulb, BookOpen, Clapperboard, PenTool, Zap, Loader2, ListChecks } from 'lucide-react';
 import type { PhaseConfig } from '../../types/template';
 
 const PHASE_ICONS: Record<string, typeof Lightbulb> = {
@@ -15,14 +15,25 @@ const PHASE_COLORS: Record<string, { active: string; dot: string }> = {
   write: { active: 'text-emerald-400 border-emerald-400', dot: 'bg-emerald-400' },
 };
 
+export interface YoloProgress {
+  total: number;
+  completed: number;
+  currentName: string;
+}
+
 interface PhaseNavigationProps {
   phases: PhaseConfig[];
   currentPhase: string;
   onPhaseChange: (phaseId: string) => void;
   projectTitle?: string;
+  onYoloFill?: () => void;
+  isYoloRunning?: boolean;
+  yoloProgress?: YoloProgress | null;
+  onBreakdownClick?: () => void;
+  isBreakdownActive?: boolean;
 }
 
-export function PhaseNavigation({ phases, currentPhase, onPhaseChange, projectTitle }: PhaseNavigationProps) {
+export function PhaseNavigation({ phases, currentPhase, onPhaseChange, projectTitle, onYoloFill, isYoloRunning, yoloProgress, onBreakdownClick, isBreakdownActive }: PhaseNavigationProps) {
   return (
     <div className="border-b border-border bg-card/50 backdrop-blur-sm flex-shrink-0">
       <div className="flex items-center px-5 gap-6">
@@ -70,6 +81,60 @@ export function PhaseNavigation({ phases, currentPhase, onPhaseChange, projectTi
             );
           })}
         </nav>
+
+        {/* Breakdown tab — separated by vertical divider */}
+        {onBreakdownClick && (
+          <>
+            <div className="w-px h-4 bg-border mx-2 flex-shrink-0" />
+            <button
+              onClick={onBreakdownClick}
+              className={`
+                flex items-center gap-2 px-4 py-3 text-xs font-semibold uppercase tracking-wider
+                transition-all duration-200 border-b-2 -mb-px flex-shrink-0
+                ${isBreakdownActive
+                  ? 'text-amber-400 border-amber-400'
+                  : 'border-transparent text-muted-foreground/40 hover:text-muted-foreground/70'
+                }
+              `}
+            >
+              <ListChecks className="h-3.5 w-3.5" />
+              <span>Breakdown</span>
+            </button>
+          </>
+        )}
+
+        {/* YOLO button */}
+        {onYoloFill && (
+          <div className="ml-auto">
+            <button
+              onClick={onYoloFill}
+              disabled={isYoloRunning}
+              className={`
+                flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold
+                transition-all duration-200
+                ${isYoloRunning
+                  ? 'bg-amber-500/10 text-amber-400 cursor-wait'
+                  : 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 hover:text-amber-300 border border-amber-500/20 hover:border-amber-500/40'
+                }
+              `}
+            >
+              {isYoloRunning ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span className="truncate max-w-[140px]">{yoloProgress?.currentName || 'Working...'}</span>
+                  {yoloProgress && (
+                    <span className="text-amber-400/60">({yoloProgress.completed}/{yoloProgress.total})</span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Zap className="h-3.5 w-3.5" />
+                  <span>YOLO</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
