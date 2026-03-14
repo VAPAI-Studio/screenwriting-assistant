@@ -7,6 +7,7 @@ from uuid import UUID
 
 from ...models import schemas, database
 from ..dependencies import get_db, get_current_user
+from .phase_data import _mark_breakdown_stale
 
 router = APIRouter()
 
@@ -14,14 +15,14 @@ router = APIRouter()
 def _verify_phase_data_ownership(db: Session, phase_data_id: UUID, user_id: UUID) -> database.PhaseData:
     """Verify user owns the project containing this phase_data."""
     phase_data = db.query(database.PhaseData).filter(
-        database.PhaseData.id == phase_data_id
+        database.PhaseData.id == str(phase_data_id)
     ).first()
     if not phase_data:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phase data not found")
 
     project = db.query(database.Project).filter(
-        database.Project.id == phase_data.project_id,
-        database.Project.owner_id == user_id
+        database.Project.id == str(phase_data.project_id),
+        database.Project.owner_id == str(user_id)
     ).first()
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
@@ -31,12 +32,25 @@ def _verify_phase_data_ownership(db: Session, phase_data_id: UUID, user_id: UUID
 
 def _verify_item_ownership(db: Session, item_id: UUID, user_id: UUID) -> database.ListItem:
     """Verify user owns the project containing this list item."""
-    item = db.query(database.ListItem).filter(database.ListItem.id == item_id).first()
+    item = db.query(database.ListItem).filter(database.ListItem.id == str(item_id)).first()
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
 
     _verify_phase_data_ownership(db, item.phase_data_id, user_id)
     return item
+
+
+def _is_scene_item(db: Session, phase_data_id) -> database.PhaseData | None:
+    """Return PhaseData if it represents the scenes/scene_list subsection, else None.
+
+    Only scene_list items in the 'scenes' phase trigger breakdown staleness.
+    """
+    pd = db.query(database.PhaseData).filter(
+        database.PhaseData.id == str(phase_data_id)
+    ).first()
+    if pd and str(pd.phase) == "scenes" and pd.subsection_key == "scene_list":
+        return pd
+    return None
 
 
 @router.get("/{phase_data_id}", response_model=List[schemas.ListItemResponse])
@@ -94,6 +108,12 @@ async def create_list_item(
     db.add(db_item)
     db.commit()
     db.refresh(db_item)
+
+    scene_pd = _is_scene_item(db, phase_data_id)
+    if scene_pd:
+        _mark_breakdown_stale(db, scene_pd.project_id)
+        db.commit()
+
     return db_item
 
 
@@ -118,6 +138,12 @@ async def update_list_item(
 
     db.commit()
     db.refresh(item)
+
+    scene_pd = _is_scene_item(db, item.phase_data_id)
+    if scene_pd:
+        _mark_breakdown_stale(db, scene_pd.project_id)
+        db.commit()
+
     return item
 
 
@@ -129,8 +155,16 @@ async def delete_list_item(
 ):
     """Delete a list item."""
     item = _verify_item_ownership(db, item_id, current_user.id)
+    # Capture phase_data_id before deletion so we can check scene_list membership after
+    phase_data_id = item.phase_data_id
     db.delete(item)
     db.commit()
+
+    scene_pd = _is_scene_item(db, phase_data_id)
+    if scene_pd:
+        _mark_breakdown_stale(db, scene_pd.project_id)
+        db.commit()
+
     return {"status": "success", "message": "Item deleted"}
 
 
