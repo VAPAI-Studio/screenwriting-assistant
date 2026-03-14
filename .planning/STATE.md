@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
-status: verifying
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-03-14T14:55:19.803Z"
-last_activity: 2026-03-14 -- Completed Plan 13-01 (breakdown page contracts)
+status: executing
+stopped_at: Completed 13-02-PLAN.md (awaiting Task 3 human-verify checkpoint)
+last_updated: "2026-03-14T15:00:43.039Z"
+last_activity: 2026-03-14 -- Completed Plan 13-01 (SceneLinkResponse, TypeScript types, App route, PhaseNavigation Breakdown tab)
 progress:
   total_phases: 6
   completed_phases: 4
   total_plans: 12
-  completed_plans: 10
-  percent: 100
+  completed_plans: 11
+  percent: 93
 ---
 
 # Project State
@@ -102,6 +102,10 @@ v2.0 decisions:
 - [Phase 12-staleness-hooks]: Failure path in extract() deliberately untouched -- failed extraction must not clear stale flag
 - [Phase 13-breakdown-page]: selectinload on scene_links in all element-returning endpoints to avoid lazy-load errors outside session context
 - [Phase 13-breakdown-page]: [Phase 13-01]: Breakdown route placed BEFORE /:phase wildcard in App.tsx to prevent route collision
+- [Phase 13-breakdown-page]: StalenessBar only renders when is_stale=true AND total_elements > 0 to avoid showing banner on empty breakdown
+- [Phase 13-breakdown-page]: ElementList enabled only when isActive to prevent 5 parallel API calls on Breakdown page mount
+- [Phase 13-breakdown-page]: Scene chips use link.scene_item_id (not element.id) for navigation to correct scene in workspace
+- [Phase 13-breakdown-page]: onSettled invalidates both BREAKDOWN_ELEMENTS and BREAKDOWN_SUMMARY after PUT to keep counts in sync
 
 ### Pending Todos
 
@@ -114,6 +118,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T14:55:19.801Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-03-14T15:00:37.532Z
+Stopped at: Completed 13-02-PLAN.md (awaiting Task 3 human-verify checkpoint)
 Resume file: None
