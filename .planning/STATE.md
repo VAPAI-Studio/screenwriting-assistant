@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: verifying
-stopped_at: Completed 11-03-PLAN.md
-last_updated: "2026-03-13T21:38:20.140Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-14T13:53:59.443Z"
 last_activity: 2026-03-13 -- Completed Plan 11-03 (integration tests and deduplication)
 progress:
   total_phases: 6
   completed_phases: 3
-  total_plans: 7
-  completed_plans: 7
+  total_plans: 9
+  completed_plans: 8
   percent: 100
 ---
 
@@ -53,6 +53,7 @@ Progress: [██████████] 100% (v2.0 Phase 11: 3/3 plans comple
 | Phase 11 P01 | 3min | 2 tasks | 3 files |
 | Phase 11 P02 | 3min | 2 tasks | 2 files |
 | Phase 11 P03 | 3min | 2 tasks | 4 files |
+| Phase 12-staleness-hooks P01 | 20 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -92,6 +93,9 @@ v2.0 decisions:
 - Deduplication uses (category, canonical_name.lower()) as merge key, keeping first description and merging scene appearances (Phase 11)
 - Integration tests mock chat_completion_structured at module level for precision (Phase 11)
 - Conftest UUID default patching uses name/module check instead of identity check for robust SQLite compat (Phase 11)
+- [Phase 12-01]: Helper does NOT commit; caller's existing commit covers breakdown_stale change (one-commit rule)
+- [Phase 12-01]: str() cast on all UUID filter params in phase_data.py and list_items.py for SQLite/PostgreSQL compat
+- [Phase 12-01]: _is_scene_item returns PhaseData object so callers have project_id for _mark_breakdown_stale
 
 ### Pending Todos
 
@@ -104,6 +108,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-13T21:32:00Z
-Stopped at: Completed 11-03-PLAN.md
+Last session: 2026-03-14T13:53:59.440Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None

@@ -54,7 +54,7 @@
 
 - [x] **SYNC-01**: Re-extraction preserves user modifications -- elements with `user_modified=true` keep their user-edited name, description, and metadata
 - [x] **SYNC-02**: Soft-deleted elements (`is_deleted=true`) are not resurrected by re-extraction
-- [ ] **SYNC-03**: Staleness detection -- saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
+- [x] **SYNC-03**: Staleness detection -- saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
 - [ ] **SYNC-04**: Re-extraction clears the stale flag and creates a new `breakdown_runs` audit record
 - [ ] **SYNC-05**: Reverse sync is user-initiated -- "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
 
@@ -122,7 +122,7 @@
 | EXTR-05 | Phase 11 | Complete |
 | SYNC-01 | Phase 11 | Complete |
 | SYNC-02 | Phase 11 | Complete |
-| SYNC-03 | Phase 12 | Pending |
+| SYNC-03 | Phase 12 | Complete |
 | SYNC-04 | Phase 12 | Pending |
 | SYNC-05 | Phase 14 | Pending |
 | API-01 | Phase 10 | Complete |
