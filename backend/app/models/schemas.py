@@ -661,6 +661,15 @@ class BreakdownElementUpdate(BaseModel):
     metadata: Optional[Dict] = None
 
 
+class SceneLinkResponse(BaseModel):
+    id: UUID
+    scene_item_id: UUID
+    context: str = ""
+    source: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class BreakdownElementResponse(BaseModel):
     id: UUID
     project_id: UUID
@@ -674,6 +683,7 @@ class BreakdownElementResponse(BaseModel):
     sort_order: int
     created_at: datetime
     updated_at: Optional[datetime] = None
+    scene_links: List[SceneLinkResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 

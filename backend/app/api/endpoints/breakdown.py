@@ -7,7 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from ...models import schemas, database
 from ...services.breakdown_service import breakdown_service
@@ -67,7 +67,8 @@ async def list_elements(
         database.BreakdownElement.created_at
     )
 
-    return query.all()
+    elements = query.options(selectinload(database.BreakdownElement.scene_links)).all()
+    return elements
 
 
 @router.post("/elements/{project_id}", response_model=schemas.BreakdownElementResponse, status_code=status.HTTP_201_CREATED)
@@ -97,6 +98,9 @@ async def create_element(
             existing.user_modified = True
             db.commit()
             db.refresh(existing)
+            db.query(database.BreakdownElement).options(
+                selectinload(database.BreakdownElement.scene_links)
+            ).filter(database.BreakdownElement.id == str(existing.id)).first()
             return existing
         else:
             raise HTTPException(
@@ -115,6 +119,9 @@ async def create_element(
     db.add(db_element)
     db.commit()
     db.refresh(db_element)
+    db.query(database.BreakdownElement).options(
+        selectinload(database.BreakdownElement.scene_links)
+    ).filter(database.BreakdownElement.id == str(db_element.id)).first()
     return db_element
 
 
@@ -142,6 +149,9 @@ async def update_element(
 
     db.commit()
     db.refresh(element)
+    db.query(database.BreakdownElement).options(
+        selectinload(database.BreakdownElement.scene_links)
+    ).filter(database.BreakdownElement.id == str(element.id)).first()
     return element
 
 

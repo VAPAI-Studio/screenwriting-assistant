@@ -511,3 +511,32 @@ class TestCrossCutting:
         fake_id = str(uuid.uuid4())
         resp = client.get(f"/api/breakdown/elements/{fake_id}")
         assert resp.status_code in (401, 403)
+
+
+# ============================================================
+# scene_links field on BreakdownElementResponse (Plan 13-01)
+# ============================================================
+
+def test_element_response_includes_scene_links(client, mock_auth_headers, db_session):
+    """BreakdownElementResponse must include scene_links field (list, possibly empty)."""
+    project_id = _create_project_via_api(client, mock_auth_headers)
+    # create one element via API so owner relationship is correct
+    resp = client.post(
+        f"/api/breakdown/elements/{project_id}",
+        json={"category": "prop", "name": "TestProp", "description": ""},
+        headers=mock_auth_headers,
+    )
+    assert resp.status_code == 201
+    element_id = resp.json()["id"]
+
+    list_resp = client.get(f"/api/breakdown/elements/{project_id}", headers=mock_auth_headers)
+    assert list_resp.status_code == 200
+    elements = list_resp.json()
+    assert len(elements) >= 1
+    for elem in elements:
+        assert "scene_links" in elem, f"scene_links missing from element {elem.get('id')}"
+        assert isinstance(elem["scene_links"], list)
+
+    # Verify the specific element also has scene_links (empty for manually created)
+    target = next(e for e in elements if e["id"] == element_id)
+    assert target["scene_links"] == []
