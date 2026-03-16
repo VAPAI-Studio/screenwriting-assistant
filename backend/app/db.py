@@ -17,12 +17,6 @@ def get_db():
         db.close()
 
 def init_db():
-    """Initialize the database connection.
-
-    Table creation is handled by the SQL migration at
-    backend/migrations/init_db.sql, which is the single source of truth
-    for the database schema. For future improvements, consider adopting
-    Alembic for migration management.
-    """
-    with engine.connect() as conn:
-        conn.execute(text("SELECT 1")) 
+    """Initialize the database connection and apply any pending migrations."""
+    from .services.db_migrator import run_migrations
+    run_migrations(engine)
