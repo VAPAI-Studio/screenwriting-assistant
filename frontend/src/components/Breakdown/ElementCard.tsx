@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Pencil } from 'lucide-react';
+import { Pencil, Trash2, X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, ROUTES } from '../../lib/constants';
 import type { BreakdownElement } from '../../types';
@@ -19,6 +19,8 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(element.name);
   const [editDescription, setEditDescription] = useState(element.description);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const deleteConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -49,6 +51,45 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BREAKDOWN_SUMMARY(projectId) });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (elementId: string) => api.deleteBreakdownElement(elementId),
+    onMutate: async (elementId) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId, category) });
+      const previous = queryClient.getQueryData(QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId, category));
+      queryClient.setQueryData(
+        QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId, category),
+        (old: BreakdownElement[] | undefined) => (old ?? []).filter(el => el.id !== elementId)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId, category), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId, category) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BREAKDOWN_SUMMARY(projectId) });
+    },
+  });
+
+  const handleDeleteClick = () => {
+    setDeleteConfirm(true);
+    if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+    deleteConfirmTimerRef.current = setTimeout(() => setDeleteConfirm(false), 3000);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+    setDeleteConfirm(false);
+    deleteMutation.mutate(element.id);
+  };
+
+  const handleDeleteCancel = () => {
+    if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
+    setDeleteConfirm(false);
+  };
 
   const saveEdit = useCallback(() => {
     setIsEditing(false);
@@ -150,6 +191,38 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
               </span>
               {/* Edit icon on hover */}
               <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              {/* Delete controls */}
+              <div
+                className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                onClick={e => e.stopPropagation()}
+              >
+                {deleteConfirm ? (
+                  <>
+                    <button
+                      onClick={handleDeleteConfirm}
+                      className="text-xs text-red-400 hover:text-red-300 font-semibold px-2 py-1
+                        rounded hover:bg-red-500/10 transition-colors"
+                    >
+                      Delete?
+                    </button>
+                    <button
+                      onClick={handleDeleteCancel}
+                      className="text-muted-foreground hover:text-foreground p-1 rounded transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={handleDeleteClick}
+                    disabled={deleteMutation.isPending}
+                    className="text-muted-foreground/40 hover:text-red-400 p-1 rounded transition-colors
+                      disabled:opacity-30"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
