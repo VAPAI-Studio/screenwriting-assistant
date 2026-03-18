@@ -514,6 +514,76 @@ class TestCrossCutting:
 
 
 # ============================================================
+# synced_to_characters field on list_elements (Plan 14-01 Task 1)
+# ============================================================
+
+class TestSyncedToCharacters:
+    def test_synced_to_characters_false_when_no_phase_data(self, client, db_session, mock_auth_headers):
+        """GET elements returns synced_to_characters=false when story.characters PhaseData does not exist."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        _make_element(db_session, project_id, category="character", name="Hero")
+        db_session.commit()
+
+        resp = client.get(
+            f"/api/breakdown/elements/{project_id}",
+            params={"category": "character"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["synced_to_characters"] is False
+
+    def test_synced_to_characters_true_when_name_matches(self, client, db_session, mock_auth_headers):
+        """GET elements returns synced_to_characters=true for element whose name matches a ListItem in story.characters."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="Hero")
+        # Create story.characters PhaseData and a ListItem with matching name
+        chars_pd = _make_phase_data(db_session, project_id, phase="story", subsection_key="characters")
+        item = ListItem(
+            id=str(uuid.uuid4()),
+            phase_data_id=chars_pd.id,
+            item_type="supporting",
+            content={"name": "Hero"},
+        )
+        db_session.add(item)
+        db_session.commit()
+
+        resp = client.get(
+            f"/api/breakdown/elements/{project_id}",
+            params={"category": "character"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 1
+        assert data[0]["synced_to_characters"] is True
+
+    def test_synced_to_characters_case_insensitive(self, client, db_session, mock_auth_headers):
+        """synced_to_characters match is case-insensitive."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        _make_element(db_session, project_id, category="character", name="HERO")
+        chars_pd = _make_phase_data(db_session, project_id, phase="story", subsection_key="characters")
+        item = ListItem(
+            id=str(uuid.uuid4()),
+            phase_data_id=chars_pd.id,
+            item_type="supporting",
+            content={"name": "hero"},
+        )
+        db_session.add(item)
+        db_session.commit()
+
+        resp = client.get(
+            f"/api/breakdown/elements/{project_id}",
+            params={"category": "character"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data[0]["synced_to_characters"] is True
+
+
+# ============================================================
 # scene_links field on BreakdownElementResponse (Plan 13-01)
 # ============================================================
 

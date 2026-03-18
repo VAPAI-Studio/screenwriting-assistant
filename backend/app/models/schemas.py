@@ -684,6 +684,7 @@ class BreakdownElementResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime] = None
     scene_links: List[SceneLinkResponse] = Field(default_factory=list)
+    synced_to_characters: bool = False
 
     model_config = ConfigDict(from_attributes=True)
 

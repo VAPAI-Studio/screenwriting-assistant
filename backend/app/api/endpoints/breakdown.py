@@ -18,6 +18,31 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _get_synced_character_names(db: Session, project_id) -> set:
+    """Return a set of lowercased character names already synced to story.characters ListItems.
+
+    Returns an empty set if the story.characters PhaseData does not exist.
+    Uses Python-side name extraction (not SQL JSON functions) for SQLite/PostgreSQL compat.
+    """
+    chars_pd = db.query(database.PhaseData).filter(
+        database.PhaseData.project_id == str(project_id),
+        database.PhaseData.phase == "story",
+        database.PhaseData.subsection_key == "characters",
+    ).first()
+    if not chars_pd:
+        return set()
+
+    items = db.query(database.ListItem).filter(
+        database.ListItem.phase_data_id == str(chars_pd.id)
+    ).all()
+
+    return {
+        (item.content.get("name") or "").lower()
+        for item in items
+        if item.content.get("name")
+    }
+
+
 def _verify_project_ownership(db: Session, project_id: UUID, user_id: UUID) -> database.Project:
     """Verify user owns the project. Returns project or raises 404."""
     project = db.query(database.Project).filter(
@@ -68,7 +93,18 @@ async def list_elements(
     )
 
     elements = query.options(selectinload(database.BreakdownElement.scene_links)).all()
-    return elements
+
+    # Compute synced character names once (no N+1) — only needed for character category
+    synced_names: set = set()
+    if not category or category == "character":
+        synced_names = _get_synced_character_names(db, project_id)
+
+    result = []
+    for elem in elements:
+        resp = schemas.BreakdownElementResponse.model_validate(elem)
+        resp.synced_to_characters = elem.name.lower() in synced_names
+        result.append(resp)
+    return result
 
 
 @router.post("/elements/{project_id}", response_model=schemas.BreakdownElementResponse, status_code=status.HTTP_201_CREATED)
