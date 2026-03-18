@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: executing
-stopped_at: Completed 14-reverse-sync/14-01-PLAN.md
-last_updated: "2026-03-18T01:29:32.091Z"
+stopped_at: "Checkpoint: 14-02 tasks 1-2 complete, awaiting human-verify for end-to-end sync flow"
+last_updated: "2026-03-18T01:32:53.856Z"
 last_activity: 2026-03-14 -- Completed Plan 13-01 (SceneLinkResponse, TypeScript types, App route, PhaseNavigation Breakdown tab)
 progress:
   total_phases: 6
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 14
-  completed_plans: 13
+  completed_plans: 14
   percent: 93
 ---
 
@@ -57,6 +57,7 @@ Progress: [█████████░] 93% (v2.0 Phase 13: 1/3 plans complet
 | Phase 12-staleness-hooks P02 | 2 | 1 tasks | 2 files |
 | Phase 13-breakdown-page P01 | 5min | 3 tasks | 10 files |
 | Phase 14-reverse-sync P01 | 2min | 2 tasks | 3 files |
+| Phase 14-reverse-sync P02 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,9 @@ v2.0 decisions:
 - [Phase 14-reverse-sync]: synced_to_characters is non-stored computed field with False default so model_validate from ORM never fails (Phase 14-01)
 - [Phase 14-reverse-sync]: db.flush() (not db.commit()) when creating PhaseData on demand so single atomic commit covers both PhaseData and ListItem (Phase 14-01)
 - [Phase 14-reverse-sync]: Duplicate detection uses Python .lower() (not SQL JSON operators) for SQLite/PostgreSQL compat (Phase 14-01)
+- [Phase 14-02]: syncMutation.isSuccess used for instant visual feedback covering both created and already_exists response paths (both return 200)
+- [Phase 14-02]: No BREAKDOWN_SUMMARY invalidation in syncMutation.onSettled — sync does not change element counts
+- [Phase 14-02]: No optimistic update on sync mutation — let onSettled re-fetch so synced_to_characters reflects actual DB state
 
 ### Pending Todos
 
@@ -122,6 +126,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T01:29:32.088Z
-Stopped at: Completed 14-reverse-sync/14-01-PLAN.md
+Last session: 2026-03-18T01:32:53.853Z
+Stopped at: Checkpoint: 14-02 tasks 1-2 complete, awaiting human-verify for end-to-end sync flow
 Resume file: None
