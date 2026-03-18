@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: executing
-stopped_at: Completed 14-02-PLAN.md (Phase 14 Reverse Sync — frontend sync button human-verified)
-last_updated: "2026-03-18T01:45:59.476Z"
+stopped_at: Completed 15-01-PLAN.md (Phase 13 documentation closure and UI-05 route fix)
+last_updated: "2026-03-18T18:20:59.607Z"
 last_activity: 2026-03-14 -- Completed Plan 13-01 (SceneLinkResponse, TypeScript types, App route, PhaseNavigation Breakdown tab)
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 8
+  completed_phases: 7
+  total_plans: 15
+  completed_plans: 15
   percent: 93
 ---
 
@@ -60,6 +60,7 @@ Progress: [█████████░] 93% (v2.0 Phase 13: 1/3 plans complet
 | Phase 14-reverse-sync P02 | 2 | 2 tasks | 3 files |
 | Phase 14-reverse-sync P02 | -170min | 3 tasks | 3 files |
 | Phase 14-reverse-sync P02 | 2min | 3 tasks | 3 files |
+| Phase 15 P01 | 3min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,8 @@ v2.0 decisions:
 - [Phase 14-02]: syncMutation.isSuccess used for instant visual feedback covering both created and already_exists response paths (both return 200)
 - [Phase 14-02]: No BREAKDOWN_SUMMARY invalidation in syncMutation.onSettled — sync does not change element counts
 - [Phase 14-02]: No optimistic update on sync mutation — let onSettled re-fetch so synced_to_characters reflects actual DB state
+- [Phase 15]: Phase 15 closes documentation gaps only; UI-07/UI-08 implementation credit stays with Phase 13 per 3-source completeness matrix
+- [Phase 15]: UI-05 route fix: ElementCard.tsx scene chip changed from write/scenes to scenes/scene_list — one-line fix for non-existent URL bug
 
 ### Pending Todos
 
@@ -128,6 +131,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T01:39:58.836Z
-Stopped at: Completed 14-02-PLAN.md (Phase 14 Reverse Sync — frontend sync button human-verified)
+Last session: 2026-03-18T18:20:59.604Z
+Stopped at: Completed 15-01-PLAN.md (Phase 13 documentation closure and UI-05 route fix)
 Resume file: None
