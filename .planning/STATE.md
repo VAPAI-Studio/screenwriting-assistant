@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
 status: executing
-stopped_at: Completed 15-01-PLAN.md (Phase 13 documentation closure and UI-05 route fix)
-last_updated: "2026-03-18T19:46:58.464Z"
+stopped_at: Completed 16-01-PLAN.md (scene_wizard staleness fix and breakdown migration delta)
+last_updated: "2026-03-18T20:02:59.374Z"
 last_activity: 2026-03-14 -- Completed Plan 13-01 (SceneLinkResponse, TypeScript types, App route, PhaseNavigation Breakdown tab)
 progress:
   total_phases: 8
-  completed_phases: 7
-  total_plans: 15
-  completed_plans: 15
+  completed_phases: 8
+  total_plans: 16
+  completed_plans: 16
   percent: 93
 ---
 
@@ -61,6 +61,7 @@ Progress: [█████████░] 93% (v2.0 Phase 13: 1/3 plans complet
 | Phase 14-reverse-sync P02 | -170min | 3 tasks | 3 files |
 | Phase 14-reverse-sync P02 | 2min | 3 tasks | 3 files |
 | Phase 15 P01 | 3min | 3 tasks | 4 files |
+| Phase 16-staleness-bug-and-migration-upgrade-path P01 | 3 | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,9 @@ v2.0 decisions:
 - [Phase 14-02]: No optimistic update on sync mutation — let onSettled re-fetch so synced_to_characters reflects actual DB state
 - [Phase 15]: Phase 15 closes documentation gaps only; UI-07/UI-08 implementation credit stays with Phase 13 per 3-source completeness matrix
 - [Phase 15]: UI-05 route fix: ElementCard.tsx scene chip changed from write/scenes to scenes/scene_list — one-line fix for non-existent URL bug
+- [Phase 16-01]: scene_wizard _mark_breakdown_stale placed AFTER ListItem loop and BEFORE db.commit() — one-commit rule preserved; mirrors script_writer_wizard pattern exactly
+- [Phase 16-01]: delta/001_breakdown_tables.sql is verbatim copy of 009 — fully idempotent, no modifications needed since 009 already uses CREATE TABLE IF NOT EXISTS throughout
+- [Phase 16-01]: SYNC-03 traceability: Phase 12 covered write/scenes PATCH and script_writer_wizard; Phase 16 completes scene_wizard gap
 
 ### Pending Todos
 
@@ -131,6 +135,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T18:20:59.604Z
-Stopped at: Completed 15-01-PLAN.md (Phase 13 documentation closure and UI-05 route fix)
+Last session: 2026-03-18T20:02:59.371Z
+Stopped at: Completed 16-01-PLAN.md (scene_wizard staleness fix and breakdown migration delta)
 Resume file: None

@@ -32,7 +32,7 @@
 - [ ] **Phase 13: Breakdown Page** - Dedicated frontend page with category tabs, master lists, inline editing, and scene chips
 - [x] **Phase 14: Reverse Sync** - User-initiated actions to push breakdown elements back to project data (e.g., "Add to Characters") (completed 2026-03-18)
 - [x] **Phase 15: Phase 13 Documentation Closure & UI-05 Fix** - Create Phase 13 VERIFICATION.md, document UI-07/UI-08 in REQUIREMENTS.md and SUMMARY frontmatter, fix scene chip navigation route (completed 2026-03-18)
-- [ ] **Phase 16: Staleness Bug & Migration Upgrade Path** - Fix scene_wizard branch missing _mark_breakdown_stale call; copy breakdown migration into delta/ for automatic upgrade
+- [x] **Phase 16: Staleness Bug & Migration Upgrade Path** - Fix scene_wizard branch missing _mark_breakdown_stale call; copy breakdown migration into delta/ for automatic upgrade (completed 2026-03-18)
 
 ## Phase Details
 
@@ -185,4 +185,4 @@ Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/
 | 13. Breakdown Page | 2/3 | In Progress|  | - |
 | 14. Reverse Sync | 2/2 | Complete    | 2026-03-18 | - |
 | 15. Phase 13 Documentation Closure & UI-05 Fix | 1/1 | Complete    | 2026-03-18 | - |
-| 16. Staleness Bug & Migration Upgrade Path | v2.0 | 0/1 | Not started | - |
+| 16. Staleness Bug & Migration Upgrade Path | 1/1 | Complete   | 2026-03-18 | - |
