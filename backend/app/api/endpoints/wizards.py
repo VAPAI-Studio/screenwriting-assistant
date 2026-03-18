@@ -1,6 +1,7 @@
 # backend/app/api/endpoints/wizards.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import logging
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from uuid import UUID
@@ -12,6 +13,7 @@ from ...db import SessionLocal
 from ...services.agent_review_middleware import agent_review_middleware
 from .phase_data import _mark_breakdown_stale
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -54,13 +56,68 @@ def _get_character_data(db: Session, project_id) -> list:
     return [{"item_type": li.item_type, **(li.content or {})} for li in items]
 
 
+async def _run_wizard_background(
+    run_id, project_id, template_id: str,
+    wizard_type: str, config: dict, phase: str, owner_id: str
+):
+    """Background task: run wizard generation and update the WizardRun record."""
+    db = SessionLocal()
+    wizard_run = None
+    try:
+        wizard_run = db.query(database.WizardRun).filter(
+            database.WizardRun.id == run_id
+        ).first()
+        project = db.query(database.Project).filter(
+            database.Project.id == project_id
+        ).first()
+
+        wizard_run.status = "running"
+        db.commit()
+
+        project_context = _get_project_context(db, project)
+
+        result = await template_ai_service.wizard_generate(
+            wizard_type=wizard_type,
+            config=config,
+            project_context=project_context,
+            template_id=template_id,
+        )
+
+        review_result = await agent_review_middleware.review_step_output(
+            phase=phase,
+            subsection_key=wizard_type,
+            raw_output=result,
+            owner_id=owner_id,
+            session_factory=SessionLocal,
+            wizard_type=wizard_type,
+        )
+        result = review_result["output"]
+
+        if "_meta" not in result:
+            result["_meta"] = {}
+        result["_meta"]["agents_consulted"] = review_result["agents_consulted"]
+        result["_meta"]["review_applied"] = review_result["review_applied"]
+
+        wizard_run.result = result
+        wizard_run.status = "completed"
+    except Exception as e:
+        logger.error(f"Wizard background task failed ({wizard_type}): {e}")
+        if wizard_run:
+            wizard_run.status = "failed"
+            wizard_run.error_message = str(e)
+    finally:
+        db.commit()
+        db.close()
+
+
 @router.post("/run", response_model=schemas.WizardRunResponse)
 async def run_wizard(
     request: schemas.WizardRunRequest,
+    background_tasks: BackgroundTasks,
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Start a wizard run (beat, episode, scene, or script generation)."""
+    """Start a wizard run. Returns immediately; generation runs in the background."""
     project = db.query(database.Project).filter(
         database.Project.id == request.project_id,
         database.Project.owner_id == current_user.id
@@ -70,60 +127,33 @@ async def run_wizard(
     if not project.template:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project has no template")
 
-    # Create wizard run record
+    # Inject character data for scene wizard before handing off to background
+    config = dict(request.config)
+    if request.wizard_type == "scene_wizard":
+        config["_characters"] = _get_character_data(db, project.id)
+
     wizard_run = database.WizardRun(
         project_id=project.id,
         wizard_type=request.wizard_type,
         phase=request.phase,
         config=request.config,
-        status="running"
+        status="pending",
     )
     db.add(wizard_run)
     db.commit()
     db.refresh(wizard_run)
 
-    # Build project context and run wizard
-    project_context = _get_project_context(db, project)
-    template_id = project.template.value
+    background_tasks.add_task(
+        _run_wizard_background,
+        run_id=wizard_run.id,
+        project_id=project.id,
+        template_id=project.template.value,
+        wizard_type=request.wizard_type,
+        config=config,
+        phase=request.phase,
+        owner_id=str(current_user.id),
+    )
 
-    # Inject character data for scene wizard
-    config = dict(request.config)
-    if request.wizard_type == "scene_wizard":
-        config["_characters"] = _get_character_data(db, project.id)
-
-    try:
-        result = await template_ai_service.wizard_generate(
-            wizard_type=request.wizard_type,
-            config=config,
-            project_context=project_context,
-            template_id=template_id
-        )
-
-        # REVW-01: Route through agent review middleware
-        review_result = await agent_review_middleware.review_step_output(
-            phase=request.phase,
-            subsection_key=request.wizard_type,
-            raw_output=result,
-            owner_id=str(current_user.id),
-            session_factory=SessionLocal,
-            wizard_type=request.wizard_type,
-        )
-        result = review_result["output"]
-
-        # Embed review metadata in result JSON
-        if "_meta" not in result:
-            result["_meta"] = {}
-        result["_meta"]["agents_consulted"] = review_result["agents_consulted"]
-        result["_meta"]["review_applied"] = review_result["review_applied"]
-
-        wizard_run.result = result
-        wizard_run.status = "completed"
-    except Exception as e:
-        wizard_run.status = "failed"
-        wizard_run.error_message = str(e)
-
-    db.commit()
-    db.refresh(wizard_run)
     return wizard_run
 
 
@@ -284,5 +314,6 @@ def apply_wizard_result_to_db(db: Session, project, phase: str, wizard_type: str
         db.add(db_item)
         items_created += 1
 
+    _mark_breakdown_stale(db, project.id)
     db.commit()
     return {"status": "success", "items_created": items_created}
