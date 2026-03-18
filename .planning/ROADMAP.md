@@ -31,6 +31,8 @@
 - [x] **Phase 12: Staleness Hooks** - Wire save/generate paths to set breakdown_stale flag and clear it on re-extraction (completed 2026-03-14)
 - [ ] **Phase 13: Breakdown Page** - Dedicated frontend page with category tabs, master lists, inline editing, and scene chips
 - [x] **Phase 14: Reverse Sync** - User-initiated actions to push breakdown elements back to project data (e.g., "Add to Characters") (completed 2026-03-18)
+- [ ] **Phase 15: Phase 13 Documentation Closure & UI-05 Fix** - Create Phase 13 VERIFICATION.md, document UI-07/UI-08 in REQUIREMENTS.md and SUMMARY frontmatter, fix scene chip navigation route
+- [ ] **Phase 16: Staleness Bug & Migration Upgrade Path** - Fix scene_wizard branch missing _mark_breakdown_stale call; copy breakdown migration into delta/ for automatic upgrade
 
 ## Phase Details
 
@@ -130,12 +132,41 @@ Plans:
 - [ ] 14-01-PLAN.md -- Backend endpoint for reverse sync (character element to ListItem creation) with duplicate detection
 - [ ] 14-02-PLAN.md -- Frontend "Add to Characters" button, synced indicator, and integration with existing characters phase
 
+### Phase 15: Phase 13 Documentation Closure & UI-05 Fix
+**Goal**: All Phase 13 UI requirements are formally verified, UI-07 and UI-08 are fully documented in REQUIREMENTS.md and SUMMARY frontmatter, and the scene chip navigation route is corrected
+**Depends on**: Phase 13
+**Requirements**: UI-01, UI-02, UI-03, UI-04, UI-05, UI-06, UI-07, UI-08
+**Gap Closure**: Closes Phase 13 requirement gaps from v2.0 audit
+
+**Success Criteria** (what must be TRUE):
+  1. Phase 13 VERIFICATION.md exists and formally verifies observable truths for UI-01 through UI-08
+  2. UI-07 (AddElementDialog) and UI-08 (empty state) are checked `[x]` in REQUIREMENTS.md
+  3. 13-03-SUMMARY.md `requirements-completed` frontmatter includes UI-07 and UI-08
+  4. ElementCard.tsx scene chip navigation uses correct subsection key (`'scene_list'` or the valid write-phase key, not `'scenes'`)
+
+Plans:
+- [ ] 15-01-PLAN.md -- Fix UI-05 route key in ElementCard.tsx, update UI-07/UI-08 in REQUIREMENTS.md and 13-03-SUMMARY frontmatter, create Phase 13 VERIFICATION.md
+
+### Phase 16: Staleness Bug & Migration Upgrade Path
+**Goal**: Scene wizard apply correctly marks breakdown as stale, and existing Docker deployments can apply the v2.0 migration without a volume wipe
+**Depends on**: Phase 12
+**Requirements**: SYNC-03
+**Gap Closure**: Closes SYNC-03-scene-wizard and migration-upgrade-path integration gaps from v2.0 audit
+
+**Success Criteria** (what must be TRUE):
+  1. Running the scene_wizard sets `project.breakdown_stale = true` — the staleness banner appears after scene generation
+  2. `009_breakdown_tables.sql` (or equivalent) exists in `backend/migrations/delta/` so `db_migrator.py` applies it on startup for existing databases
+  3. SYNC-03 is fully satisfied (no partial status)
+
+Plans:
+- [ ] 16-01-PLAN.md -- Add _mark_breakdown_stale call in wizards.py scene_wizard branch; copy migration to delta/; update REQUIREMENTS.md SYNC-03 status
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14
+Phases execute in numeric order: 9 -> 10 -> 11 -> 12 -> 13 -> 14 -> 15 -> 16
 
-Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/types work (Plan 13-01) can begin once Phase 10 is complete.
+Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/types work (Plan 13-01) can begin once Phase 10 is complete. Phases 15-16 are gap-closure phases that can run in parallel.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -153,3 +184,5 @@ Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/
 | 12. Staleness Hooks | 2/2 | Complete    | 2026-03-14 | - |
 | 13. Breakdown Page | 2/3 | In Progress|  | - |
 | 14. Reverse Sync | 2/2 | Complete    | 2026-03-18 | - |
+| 15. Phase 13 Documentation Closure & UI-05 Fix | v2.0 | 0/1 | Not started | - |
+| 16. Staleness Bug & Migration Upgrade Path | v2.0 | 0/1 | Not started | - |

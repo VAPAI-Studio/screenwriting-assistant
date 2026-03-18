@@ -54,7 +54,7 @@
 
 - [x] **SYNC-01**: Re-extraction preserves user modifications -- elements with `user_modified=true` keep their user-edited name, description, and metadata
 - [x] **SYNC-02**: Soft-deleted elements (`is_deleted=true`) are not resurrected by re-extraction
-- [x] **SYNC-03**: Staleness detection -- saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
+- [ ] **SYNC-03**: Staleness detection -- saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
 - [x] **SYNC-04**: Re-extraction clears the stale flag and creates a new `breakdown_runs` audit record
 - [x] **SYNC-05**: Reverse sync is user-initiated -- "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
 
@@ -122,7 +122,7 @@
 | EXTR-05 | Phase 11 | Complete |
 | SYNC-01 | Phase 11 | Complete |
 | SYNC-02 | Phase 11 | Complete |
-| SYNC-03 | Phase 12 | Complete |
+| SYNC-03 | Phase 16 | Pending |
 | SYNC-04 | Phase 12 | Complete |
 | SYNC-05 | Phase 14 | Complete |
 | API-01 | Phase 10 | Complete |
@@ -138,12 +138,12 @@
 | UI-04 | Phase 13 | Complete |
 | UI-05 | Phase 13 | Complete |
 | UI-06 | Phase 13 | Complete |
-| UI-07 | Phase 13 | Pending |
-| UI-08 | Phase 13 | Pending |
+| UI-07 | Phase 15 | Pending |
+| UI-08 | Phase 15 | Pending |
 
 **Coverage:**
 - v1 requirements: 14 total -- all complete
-- v2 requirements: 29 total -- all mapped to phases
+- v2 requirements: 29 total -- all mapped to phases (UI-07, UI-08 → Phase 15; SYNC-03 → Phase 16)
 - Unmapped: 0
 
 ---
