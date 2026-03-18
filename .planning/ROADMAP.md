@@ -184,5 +184,5 @@ Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/
 | 12. Staleness Hooks | 2/2 | Complete    | 2026-03-14 | - |
 | 13. Breakdown Page | 2/3 | In Progress|  | - |
 | 14. Reverse Sync | 2/2 | Complete    | 2026-03-18 | - |
-| 15. Phase 13 Documentation Closure & UI-05 Fix | 1/1 | Complete   | 2026-03-18 | - |
+| 15. Phase 13 Documentation Closure & UI-05 Fix | 1/1 | Complete    | 2026-03-18 | - |
 | 16. Staleness Bug & Migration Upgrade Path | v2.0 | 0/1 | Not started | - |
