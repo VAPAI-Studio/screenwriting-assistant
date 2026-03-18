@@ -179,6 +179,53 @@ class TestStalenessHooks:
         assert project.breakdown_stale is True
 
     # ----------------------------------------------------------------
+    # 5-scene. scene_wizard sets stale
+    # ----------------------------------------------------------------
+    def test_scene_wizard_sets_stale(self, db_session):
+        """apply_wizard_result_to_db() for scene_wizard sets breakdown_stale=True."""
+        project_id = str(uuid.uuid4())
+        project = Project(
+            id=project_id,
+            owner_id=MOCK_USER_ID,
+            title="Scene Wizard Stale Test",
+            breakdown_stale=False,
+        )
+        db_session.add(project)
+        db_session.flush()
+
+        # Pre-create PhaseData for scenes/scene_list to keep the test simple
+        phase_data = PhaseData(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            phase="scenes",
+            subsection_key="scene_list",
+            content={},
+        )
+        db_session.add(phase_data)
+
+        element = BreakdownElement(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            category="character",
+            name="Test Character",
+            is_deleted=False,
+        )
+        db_session.add(element)
+        db_session.commit()
+
+        result = {
+            "scenes": [
+                {"title": "Scene 1", "description": "Opening scene"}
+            ]
+        }
+        apply_wizard_result_to_db(
+            db_session, project, "scenes", "scene_wizard", result
+        )
+
+        db_session.refresh(project)
+        assert project.breakdown_stale is True
+
+    # ----------------------------------------------------------------
     # 5. Creating a scene list item sets stale
     # ----------------------------------------------------------------
     def test_create_scene_sets_stale(self, client, db_session, mock_auth_headers):
