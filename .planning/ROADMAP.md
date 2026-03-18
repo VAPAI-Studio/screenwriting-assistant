@@ -152,4 +152,4 @@ Note: Phase 13 (Frontend) depends on Phases 10, 11, and 12. Frontend API client/
 | 11. AI Extraction Service | 3/3 | Complete    | 2026-03-13 | - |
 | 12. Staleness Hooks | 2/2 | Complete    | 2026-03-14 | - |
 | 13. Breakdown Page | 2/3 | In Progress|  | - |
-| 14. Reverse Sync | 2/2 | Complete   | 2026-03-18 | - |
+| 14. Reverse Sync | 2/2 | Complete    | 2026-03-18 | - |
