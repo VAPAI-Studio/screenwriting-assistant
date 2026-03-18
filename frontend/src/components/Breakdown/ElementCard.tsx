@@ -250,7 +250,7 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
                   key={link.id}
                   onClick={e => {
                     e.stopPropagation();
-                    navigate(ROUTES.PROJECT_WORKSPACE(projectId, 'write', 'scenes', link.scene_item_id));
+                    navigate(ROUTES.PROJECT_WORKSPACE(projectId, 'scenes', 'scene_list', link.scene_item_id));
                   }}
                   className="text-[10px] px-2 py-0.5 rounded-full bg-muted/40 text-muted-foreground
                     hover:bg-muted/70 hover:text-foreground transition-colors border border-border/40"
