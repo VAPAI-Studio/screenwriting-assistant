@@ -846,6 +846,20 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete breakdown element');
   },
 
+  async syncBreakdownElementToCharacters(
+    elementId: string
+  ): Promise<{ status: 'created' | 'already_exists'; list_item_id: string }> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/breakdown/element/${elementId}/sync-to-project`,
+      {
+        method: 'POST',
+        headers: getHeaders(),
+      }
+    );
+    if (!response.ok) throw new Error('Failed to sync element to characters');
+    return response.json();
+  },
+
   async triggerBreakdownExtraction(projectId: string): Promise<import('../types').BreakdownRun> {
     const response = await fetchWithTimeout(`${API_BASE_URL}/breakdown/extract/${projectId}`, {
       method: 'POST',

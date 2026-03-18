@@ -263,6 +263,7 @@ export interface BreakdownElement {
   is_deleted: boolean;
   sort_order: number;
   scene_links: SceneLink[];
+  synced_to_characters: boolean;
   created_at: string;
   updated_at: string | null;
 }
