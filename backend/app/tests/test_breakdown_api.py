@@ -584,6 +584,153 @@ class TestSyncedToCharacters:
 
 
 # ============================================================
+# sync-to-project endpoint (Plan 14-01 Task 2)
+# ============================================================
+
+class TestSyncToProject:
+    def test_sync_creates_list_item(self, client, db_session, mock_auth_headers):
+        """POST sync-to-project creates a ListItem in story.characters with correct fields (200, status=created)."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="John")
+        elem.description = "A seasoned detective"
+        db_session.commit()
+
+        resp = client.post(
+            f"/api/breakdown/element/{elem.id}/sync-to-project",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "created"
+        assert "list_item_id" in data
+
+        # Verify item was created in DB
+        list_item_id = data["list_item_id"]
+        item = db_session.query(ListItem).filter(ListItem.id == list_item_id).first()
+        assert item is not None
+        assert item.item_type == "supporting"
+        assert item.status == "draft"
+        assert item.content["name"] == "John"
+        assert item.content["role"] == "A seasoned detective"
+        assert item.content["dialogue_style"] == ""
+
+    def test_sync_idempotent_returns_already_exists(self, client, db_session, mock_auth_headers):
+        """Calling sync-to-project twice returns already_exists with same list_item_id (200)."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="Alice")
+        db_session.commit()
+
+        resp1 = client.post(
+            f"/api/breakdown/element/{elem.id}/sync-to-project",
+            headers=mock_auth_headers,
+        )
+        assert resp1.status_code == 200
+        assert resp1.json()["status"] == "created"
+        first_id = resp1.json()["list_item_id"]
+
+        resp2 = client.post(
+            f"/api/breakdown/element/{elem.id}/sync-to-project",
+            headers=mock_auth_headers,
+        )
+        assert resp2.status_code == 200
+        data2 = resp2.json()
+        assert data2["status"] == "already_exists"
+        assert data2["list_item_id"] == first_id
+
+        # Only one ListItem in DB
+        chars_pd = db_session.query(PhaseData).filter(
+            PhaseData.project_id == project_id,
+            PhaseData.phase == "story",
+            PhaseData.subsection_key == "characters",
+        ).first()
+        items = db_session.query(ListItem).filter(ListItem.phase_data_id == chars_pd.id).all()
+        assert len(items) == 1
+
+    def test_sync_case_insensitive_duplicate(self, client, db_session, mock_auth_headers):
+        """Case-insensitive duplicate: element name=JOHN with existing ListItem name=john returns already_exists."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="JOHN")
+        # Pre-create story.characters PhaseData and ListItem with lowercase name
+        chars_pd = _make_phase_data(db_session, project_id, phase="story", subsection_key="characters")
+        existing_item = ListItem(
+            id=str(uuid.uuid4()),
+            phase_data_id=chars_pd.id,
+            item_type="supporting",
+            content={"name": "john"},
+            status="draft",
+        )
+        db_session.add(existing_item)
+        db_session.commit()
+
+        resp = client.post(
+            f"/api/breakdown/element/{elem.id}/sync-to-project",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "already_exists"
+        assert data["list_item_id"] == str(existing_item.id)
+
+    def test_sync_creates_phase_data_on_demand(self, client, db_session, mock_auth_headers):
+        """When story.characters PhaseData does not exist, endpoint creates it and the ListItem."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="Bob")
+        db_session.commit()
+
+        # Verify no story.characters PhaseData exists yet
+        pd_before = db_session.query(PhaseData).filter(
+            PhaseData.project_id == project_id,
+            PhaseData.phase == "story",
+            PhaseData.subsection_key == "characters",
+        ).first()
+        assert pd_before is None
+
+        resp = client.post(
+            f"/api/breakdown/element/{elem.id}/sync-to-project",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "created"
+
+        # PhaseData was created
+        pd_after = db_session.query(PhaseData).filter(
+            PhaseData.project_id == project_id,
+            PhaseData.phase == "story",
+            PhaseData.subsection_key == "characters",
+        ).first()
+        assert pd_after is not None
+
+    def test_sync_then_list_shows_synced_true(self, client, db_session, mock_auth_headers):
+        """After sync, GET elements returns synced_to_characters=true for that element."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="Carol")
+        db_session.commit()
+
+        # Before sync
+        list_before = client.get(
+            f"/api/breakdown/elements/{project_id}",
+            params={"category": "character"},
+            headers=mock_auth_headers,
+        )
+        assert list_before.json()[0]["synced_to_characters"] is False
+
+        # Sync
+        sync_resp = client.post(
+            f"/api/breakdown/element/{elem.id}/sync-to-project",
+            headers=mock_auth_headers,
+        )
+        assert sync_resp.json()["status"] == "created"
+
+        # After sync
+        list_after = client.get(
+            f"/api/breakdown/elements/{project_id}",
+            params={"category": "character"},
+            headers=mock_auth_headers,
+        )
+        assert list_after.json()[0]["synced_to_characters"] is True
+
+
+# ============================================================
 # scene_links field on BreakdownElementResponse (Plan 13-01)
 # ============================================================
 

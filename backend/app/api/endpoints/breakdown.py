@@ -274,6 +274,72 @@ async def add_scene_link(
     return {"message": "Scene linked", "id": str(link.id)}
 
 
+@router.post("/element/{element_id}/sync-to-project")
+async def sync_element_to_project(
+    element_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Sync a character breakdown element to story.characters as a supporting ListItem.
+
+    Idempotent: duplicate name (case-insensitive) returns already_exists with HTTP 200.
+    Creates story.characters PhaseData on demand if absent.
+    """
+    element = _verify_element_ownership(db, element_id, current_user.id)
+
+    # Look up (or create) story.characters PhaseData
+    chars_pd = db.query(database.PhaseData).filter(
+        database.PhaseData.project_id == str(element.project_id),
+        database.PhaseData.phase == "story",
+        database.PhaseData.subsection_key == "characters",
+    ).first()
+
+    if not chars_pd:
+        chars_pd = database.PhaseData(
+            project_id=element.project_id,
+            phase="story",
+            subsection_key="characters",
+            content={},
+            sort_order=0,
+        )
+        db.add(chars_pd)
+        db.flush()  # Get id without committing
+
+    # Load existing ListItems for duplicate detection
+    existing_items = db.query(database.ListItem).filter(
+        database.ListItem.phase_data_id == str(chars_pd.id)
+    ).all()
+
+    # Case-insensitive duplicate check (Python-side for SQLite/PostgreSQL compat)
+    for item in existing_items:
+        if (item.content.get("name") or "").lower() == element.name.lower():
+            return JSONResponse(
+                status_code=status.HTTP_200_OK,
+                content={"status": "already_exists", "list_item_id": str(item.id)},
+            )
+
+    # Create new supporting ListItem
+    new_item = database.ListItem(
+        phase_data_id=chars_pd.id,
+        item_type="supporting",
+        content={
+            "name": element.name,
+            "role": element.description or "",
+            "dialogue_style": "",
+        },
+        status="draft",
+        sort_order=len(existing_items),
+    )
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"status": "created", "list_item_id": str(new_item.id)},
+    )
+
+
 @router.delete("/element/{element_id}/scenes/{scene_item_id}")
 async def remove_scene_link(
     element_id: UUID,
