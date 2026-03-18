@@ -8,6 +8,19 @@ A full-stack screenwriting assistant that helps users create screenplays using s
 
 From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
 
+## Current Milestone: v3.0 Shotlist & Production Breakdown
+
+**Goal:** Add interactive shotlist creation from script, media uploads for pre-production assets, and restructure the app into two distinct modes (Screenwriting / Script Breakdown).
+
+**Target features:**
+- Two-mode app with top-level toggle: Screenwriting vs Script Breakdown (distinct visual identity)
+- Read-only script view with text selection → "Add Shot" interaction
+- Shotlist table/panel with freeform fields (characters, environment, props, dialogue, action, sound, camera, etc.)
+- Left panel toggle between script view and assets view (existing breakdown elements + uploaded media)
+- Image and audio uploads attachable to assets (characters, locations, props) as pre-production references
+- AI chat sidebar in Breakdown mode — aware of shotlist data, can create/modify shots
+- Bidirectional sync following existing staleness pattern (script changes mark shotlist stale)
+
 ## Requirements
 
 ### Validated
@@ -29,7 +42,12 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ### Active
 
-(None — planning next milestone)
+- [ ] Two-mode UI: Screenwriting / Script Breakdown with distinct visual identity
+- [ ] Interactive shotlist: highlight script text → Add Shot → freeform field entry
+- [ ] Shotlist data model and CRUD API
+- [ ] Media uploads: image and audio attachments for pre-production assets
+- [ ] AI chat in Breakdown mode with shotlist awareness and modification capability
+- [ ] Bidirectional sync between screenplay and shotlist (staleness pattern)
 
 ### Out of Scope
 
@@ -43,7 +61,7 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ## Context
 
-Shipped v1.0 (agent orchestration, 2026-03-12) and v2.0 (script breakdown, 2026-03-18).
+Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18). Starting v3.0 (shotlist & production breakdown, 2026-03-18).
 
 **Current codebase:**
 - ~16,267 Python LOC (backend/app), ~8,667 TypeScript LOC (frontend/src)
@@ -90,4 +108,4 @@ Shipped v1.0 (agent orchestration, 2026-03-12) and v2.0 (script breakdown, 2026-
 | `delta/` directory for incremental migrations | Existing Docker volumes auto-upgrade on restart without volume wipe | ✓ Good |
 
 ---
-*Last updated: 2026-03-18 after v2.0 milestone*
+*Last updated: 2026-03-18 after v3.0 milestone start*
