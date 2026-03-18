@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Trash2, X } from 'lucide-react';
+import { Pencil, Trash2, X, UserCheck } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, ROUTES } from '../../lib/constants';
 import type { BreakdownElement } from '../../types';
@@ -71,6 +71,15 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId, category) });
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BREAKDOWN_SUMMARY(projectId) });
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: () => api.syncBreakdownElementToCharacters(element.id),
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId, category),
+      });
     },
   });
 
@@ -249,6 +258,27 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
                   Scene {index + 1}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Add to Characters button (character elements only) */}
+          {category === 'character' && !isEditing && (
+            <div className="mt-2 flex items-center" onClick={e => e.stopPropagation()}>
+              {element.synced_to_characters || syncMutation.isSuccess ? (
+                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60">
+                  <UserCheck className="h-3 w-3" />
+                  Synced
+                </span>
+              ) : (
+                <button
+                  onClick={() => syncMutation.mutate()}
+                  disabled={syncMutation.isPending}
+                  className="text-[10px] text-emerald-400/80 hover:text-emerald-400
+                    disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {syncMutation.isPending ? 'Adding...' : '+ Add to Characters'}
+                </button>
+              )}
             </div>
           )}
         </div>
