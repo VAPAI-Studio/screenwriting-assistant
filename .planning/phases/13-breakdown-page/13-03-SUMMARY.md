@@ -2,6 +2,9 @@
 phase: 13-breakdown-page
 plan: "03"
 status: completed
+requirements-completed:
+  - UI-07
+  - UI-08
 ---
 
 ## What was built

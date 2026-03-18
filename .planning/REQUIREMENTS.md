@@ -76,8 +76,8 @@
 - [x] **UI-04**: Inline editing of element names and descriptions; expand/collapse for details
 - [x] **UI-05**: Scene chips on each element showing linked scenes; clickable to navigate to scene
 - [x] **UI-06**: "Extract Breakdown" button for first extraction; "Refresh" button with staleness banner when breakdown is outdated
-- [ ] **UI-07**: Add element dialog for manually creating new elements
-- [ ] **UI-08**: Empty state with clear CTA when no breakdown exists yet
+- [x] **UI-07**: Add element dialog for manually creating new elements
+- [x] **UI-08**: Empty state with clear CTA when no breakdown exists yet
 
 ## Out of Scope (v2)
 
@@ -138,8 +138,8 @@
 | UI-04 | Phase 13 | Complete |
 | UI-05 | Phase 13 | Complete |
 | UI-06 | Phase 13 | Complete |
-| UI-07 | Phase 15 | Pending |
-| UI-08 | Phase 15 | Pending |
+| UI-07 | Phase 13 | Complete |
+| UI-08 | Phase 13 | Complete |
 
 **Coverage:**
 - v1 requirements: 14 total -- all complete
