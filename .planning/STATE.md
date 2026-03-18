@@ -2,33 +2,32 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Script Breakdown
-status: executing
-stopped_at: Completed 16-01-PLAN.md (scene_wizard staleness fix and breakdown migration delta)
-last_updated: "2026-03-18T20:07:15.325Z"
-last_activity: 2026-03-14 -- Completed Plan 13-01 (SceneLinkResponse, TypeScript types, App route, PhaseNavigation Breakdown tab)
+status: milestone_complete
+stopped_at: v2.0 milestone archived — ready for next milestone
+last_updated: "2026-03-18T00:00:00.000Z"
+last_activity: 2026-03-18 -- v2.0 Script Breakdown shipped and archived
 progress:
   total_phases: 8
   completed_phases: 8
   total_plans: 16
   completed_plans: 16
-  percent: 93
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-12)
+See: .planning/PROJECT.md (updated 2026-03-18)
 
-**Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 11 complete - AI Extraction Service
+**Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 13 of 14 (Breakdown Page)
-Plan: 1 of 3 in current phase
-Status: Phase 13 in progress -- Plan 01 complete (contracts, types, API client, route, nav tab)
-Last activity: 2026-03-14 -- Completed Plan 13-01 (SceneLinkResponse, TypeScript types, App route, PhaseNavigation Breakdown tab)
+Phase: v2.0 complete (all 16 phases shipped)
+Status: Milestone archived — ready for next milestone definition
+Last activity: 2026-03-18 — v2.0 Script Breakdown shipped, archived to .planning/milestones/
 
 Progress: [█████████░] 93% (v2.0 Phase 13: 1/3 plans complete)
 
