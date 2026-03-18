@@ -56,7 +56,7 @@
 - [x] **SYNC-02**: Soft-deleted elements (`is_deleted=true`) are not resurrected by re-extraction
 - [x] **SYNC-03**: Staleness detection -- saving screenplay content or regenerating scenes sets `breakdown_stale=true` on the project
 - [x] **SYNC-04**: Re-extraction clears the stale flag and creates a new `breakdown_runs` audit record
-- [ ] **SYNC-05**: Reverse sync is user-initiated -- "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
+- [x] **SYNC-05**: Reverse sync is user-initiated -- "Add to Characters" action from breakdown creates a ListItem in the characters phase, not automatic script modification
 
 ### API
 
@@ -73,9 +73,9 @@
 - [x] **UI-01**: Dedicated Breakdown page accessible from project workspace navigation (not a template phase)
 - [x] **UI-02**: Category tabs (Characters, Locations, Props, Wardrobe, Vehicles) with count badges
 - [x] **UI-03**: Master list per category with element name, description, scene count, source badge (AI/User), user-modified indicator
-- [ ] **UI-04**: Inline editing of element names and descriptions; expand/collapse for details
-- [ ] **UI-05**: Scene chips on each element showing linked scenes; clickable to navigate to scene
-- [ ] **UI-06**: "Extract Breakdown" button for first extraction; "Refresh" button with staleness banner when breakdown is outdated
+- [x] **UI-04**: Inline editing of element names and descriptions; expand/collapse for details
+- [x] **UI-05**: Scene chips on each element showing linked scenes; clickable to navigate to scene
+- [x] **UI-06**: "Extract Breakdown" button for first extraction; "Refresh" button with staleness banner when breakdown is outdated
 - [ ] **UI-07**: Add element dialog for manually creating new elements
 - [ ] **UI-08**: Empty state with clear CTA when no breakdown exists yet
 
@@ -124,7 +124,7 @@
 | SYNC-02 | Phase 11 | Complete |
 | SYNC-03 | Phase 12 | Complete |
 | SYNC-04 | Phase 12 | Complete |
-| SYNC-05 | Phase 14 | Pending |
+| SYNC-05 | Phase 14 | Complete |
 | API-01 | Phase 10 | Complete |
 | API-02 | Phase 10 | Complete |
 | API-03 | Phase 10 | Complete |
@@ -135,9 +135,9 @@
 | UI-01 | Phase 13 | Complete |
 | UI-02 | Phase 13 | Complete |
 | UI-03 | Phase 13 | Complete |
-| UI-04 | Phase 13 | Pending |
-| UI-05 | Phase 13 | Pending |
-| UI-06 | Phase 13 | Pending |
+| UI-04 | Phase 13 | Complete |
+| UI-05 | Phase 13 | Complete |
+| UI-06 | Phase 13 | Complete |
 | UI-07 | Phase 13 | Pending |
 | UI-08 | Phase 13 | Pending |
 
