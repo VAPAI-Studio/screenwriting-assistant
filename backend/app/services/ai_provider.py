@@ -211,28 +211,36 @@ async def _anthropic_structured(
     if not chat_messages or chat_messages[0]["role"] != "user":
         chat_messages.insert(0, {"role": "user", "content": "Begin."})
 
+    # Append JSON schema instruction to system prompt (Anthropic has no response_format)
+    import json
+    json_schema = response_model.model_json_schema()
+    schema_instruction = (
+        f"\n\nYou MUST respond with ONLY valid JSON that matches this schema exactly. "
+        f"No markdown, no code fences, no extra text.\n\nSchema:\n{json.dumps(json_schema, indent=2)}"
+    )
+    full_system = (system_prompt or "") + schema_instruction
+
     kwargs = {
         "model": settings.ANTHROPIC_MODEL,
         "messages": chat_messages,
         "temperature": temperature,
         "max_tokens": max_tokens,
-    }
-    if system_prompt:
-        kwargs["system"] = system_prompt
-
-    # Use response_format with JSON schema for structured output
-    json_schema = response_model.model_json_schema()
-    kwargs["response_format"] = {
-        "type": "json_schema",
-        "json_schema": {
-            "name": response_model.__name__,
-            "schema": json_schema,
-        },
+        "system": full_system,
     }
 
     response = await client.messages.create(**kwargs)
-    # Parse the text response into the Pydantic model
-    return response_model.model_validate_json(response.content[0].text)
+    text = response.content[0].text
+
+    # Strip markdown code fences if present
+    if text.startswith("```"):
+        lines = text.split("\n")
+        if lines[-1].strip() == "```":
+            lines = lines[1:-1]
+        elif lines[0].startswith("```"):
+            lines = lines[1:]
+        text = "\n".join(lines)
+
+    return response_model.model_validate_json(text)
 
 
 async def chat_completion_stream(

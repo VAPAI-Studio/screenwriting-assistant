@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Check, AlertCircle, Wand2, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, DEBOUNCE_DELAY } from '../../lib/constants';
 import { FieldRenderer } from '../Shared/FieldRenderer';
-import { AIActionBar } from '../Shared/AIActionBar';
 import type { SubsectionConfig, PhaseDataResponse, TemplateConfig, ListItemResponse } from '../../types/template';
 
 interface IndividualEditorViewProps {
@@ -22,6 +21,7 @@ export function IndividualEditorView({ subsection, projectId, phase, phaseData, 
   const navigate = useNavigate();
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [fillingKey, setFillingKey] = useState<string | null>(null);
 
   const editorConfig = subsection.editor_config;
   const fields = editorConfig?.fields || subsection.fields || [];
@@ -54,6 +54,19 @@ export function IndividualEditorView({ subsection, projectId, phase, phaseData, 
     },
   });
 
+  const autofillMutation = useMutation({
+    mutationFn: (fieldKey: string) =>
+      api.fillBlanks({ project_id: projectId, phase, subsection_key: subsection.key, item_id: itemId, field_key: fieldKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LIST_ITEM(itemId!) });
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LIST_ITEMS(phaseData?.id || '') });
+      setFillingKey(null);
+    },
+    onError: () => {
+      setFillingKey(null);
+    },
+  });
+
   const handleFieldChange = useCallback((key: string, value: string) => {
     setFormData(prev => {
       const updated = { ...prev, [key]: value };
@@ -65,6 +78,11 @@ export function IndividualEditorView({ subsection, projectId, phase, phaseData, 
       return updated;
     });
   }, [saveTimer, saveMutation, itemId]);
+
+  const handleAutofill = useCallback((fieldKey: string) => {
+    setFillingKey(fieldKey);
+    autofillMutation.mutate(fieldKey);
+  }, [autofillMutation]);
 
   const currentIndex = allItems.findIndex((i) => i.id === itemId);
   const prevItem = currentIndex > 0 ? allItems[currentIndex - 1] : null;
@@ -97,6 +115,35 @@ export function IndividualEditorView({ subsection, projectId, phase, phaseData, 
       </div>
     );
   }
+
+  const renderField = (field: any) => {
+    const isFilling = fillingKey === field.key;
+    return (
+      <div key={field.key} className="group/field relative">
+        <div className="flex items-start gap-2">
+          <div className="flex-1">
+            <FieldRenderer
+              field={field}
+              value={formData[field.key] || ''}
+              onChange={handleFieldChange}
+            />
+          </div>
+          <button
+            onClick={() => handleAutofill(field.key)}
+            disabled={isFilling}
+            title="Autofill with AI"
+            className="mt-6 p-1.5 rounded-md text-muted-foreground/50 hover:text-amber-400 hover:bg-amber-500/10 transition-colors opacity-0 group-hover/field:opacity-100 disabled:opacity-100 flex-shrink-0"
+          >
+            {isFilling ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
+            ) : (
+              <Wand2 className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="p-8 max-w-3xl mx-auto animate-fade-in">
@@ -138,42 +185,18 @@ export function IndividualEditorView({ subsection, projectId, phase, phaseData, 
         </h2>
       </div>
 
-      {/* AI Actions */}
-      {subsection.ai_actions && subsection.ai_actions.length > 0 && (
-        <div className="mb-8">
-          <AIActionBar
-            actions={subsection.ai_actions}
-            projectId={projectId}
-            phase={phase}
-            subsectionKey={subsection.key}
-            itemId={itemId}
-          />
-        </div>
-      )}
-
       {/* Fields */}
       {layout === 'two_column' ? (
         <div className="grid grid-cols-2 gap-5">
           {fields.map((field) => (
-            <div key={field.key} className={field.column === 2 ? 'col-start-2' : ''}>
-              <FieldRenderer
-                field={field}
-                value={formData[field.key] || ''}
-                onChange={handleFieldChange}
-              />
+            <div key={field.key} className={field.full_width ? 'col-span-full' : ''}>
+              {renderField(field)}
             </div>
           ))}
         </div>
       ) : (
         <div className="space-y-5">
-          {fields.map((field) => (
-            <FieldRenderer
-              key={field.key}
-              field={field}
-              value={formData[field.key] || ''}
-              onChange={handleFieldChange}
-            />
-          ))}
+          {fields.map((field) => renderField(field))}
         </div>
       )}
 

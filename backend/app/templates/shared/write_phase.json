@@ -6,31 +6,22 @@
     {
       "key": "script_writer_wizard",
       "name": "Script Writer Wizard",
-      "description": "Generate your episodes here, then view and edit them in the Screenplay Editor.",
+      "description": "Generate screenplays from your scenes, then view and edit them in the Screenplay Editor.",
       "ui_pattern": "wizard",
       "wizard_config": {
         "item_label": "Screenplay",
         "item_label_plural": "Screenplays",
         "default_count": null,
         "count_selector": false,
-        "duration_selector": true,
-        "duration_options": [
-          {"value": 60, "label": "60 seconds (~1 page / ~200 Words)"},
-          {"value": 120, "label": "120 seconds (~2 pages / ~400 Words)"},
-          {"value": 180, "label": "180 seconds (~3 pages / ~600 Words)"},
-          {"value": 300, "label": "5 minutes (~5 pages / ~1000 Words)"},
-          {"value": 600, "label": "10 minutes (~10 pages / ~2000 Words)"}
-        ],
-        "duration_description": "Choose how long each episode should run. The writer will tailor pacing, structure, and beat density to match this runtime.",
         "episode_selector": true,
         "episode_selector_max": 10,
         "readiness_checks": [
-          {"source": "scenes", "label": "Episodes", "count_items": true, "item_type": "episode"},
-          {"source": "story.core", "label": "Core Story Elements", "count_fields": ["series_premise", "story_engine"]},
+          {"source": "scenes", "label": "Scenes", "count_items": true},
+          {"source": "story.core", "label": "Core Story Elements", "count_fields": ["logline", "theme", "protagonist"]},
           {"source": "story.characters", "label": "Characters", "count_items": true}
         ],
         "custom_guidance": true,
-        "generate_button": "Select Episodes to Generate"
+        "generate_button": "Generate Screenplays"
       }
     },
     {

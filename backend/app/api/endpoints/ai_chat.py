@@ -915,7 +915,6 @@ async def _yolo_run_wizard(db: Session, project, phase: str, sub_config: dict, p
         for list_key in ("episode_list", "scene_list"):
             list_pd = db.query(database.PhaseData).filter(
                 database.PhaseData.project_id == project.id,
-                database.PhaseData.phase == phase,
                 database.PhaseData.subsection_key == list_key,
             ).first()
             if list_pd:

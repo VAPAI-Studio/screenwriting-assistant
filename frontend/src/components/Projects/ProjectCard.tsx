@@ -3,12 +3,10 @@ import { Project } from '../../types';
 import { FRAMEWORK_LABELS } from '../../lib/section-config';
 
 const TEMPLATE_NAMES: Record<string, string> = {
-  micro_drama: 'Micro-Drama Series',
   short_movie: 'Short Movie',
 };
 
 const TEMPLATE_COLORS: Record<string, string> = {
-  micro_drama: 'from-violet-500/20 to-blue-500/20 border-violet-500/20',
   short_movie: 'from-amber-500/20 to-orange-500/20 border-amber-500/20',
 };
 

@@ -1,30 +1,33 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Wand2, CheckCircle2, AlertCircle, Sparkles, Check } from 'lucide-react';
+import { Loader2, Wand2, CheckCircle2, AlertCircle, Sparkles, Check, CheckSquare, Square, Info } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, DEBOUNCE_DELAY } from '../../lib/constants';
 import { FieldRenderer } from '../Shared/FieldRenderer';
-import type { SubsectionConfig } from '../../types/template';
+import type { SubsectionConfig, TemplateConfig, ListItemResponse } from '../../types/template';
 
 interface WizardViewProps {
   subsection: SubsectionConfig;
   projectId: string;
   phase: string;
   phaseData: any;
-  templateConfig: any;
+  templateConfig: TemplateConfig;
   withChat?: boolean;
   isImport?: boolean;
+  onApplySuccess?: (key: string) => void;
 }
 
-export function WizardView({ subsection, projectId, phase, phaseData, withChat, isImport }: WizardViewProps) {
+export function WizardView({ subsection, projectId, phase, phaseData, templateConfig, withChat, isImport, onApplySuccess }: WizardViewProps) {
   const queryClient = useQueryClient();
   const wizardConfig = subsection.wizard_config;
   const approaches = wizardConfig?.approaches || [];
   const countOptions = wizardConfig?.count_options || [];
   const readinessChecks = wizardConfig?.readiness_checks || [];
+  const maxSelectable = wizardConfig?.episode_selector_max || 10;
 
   const [selectedApproach, setSelectedApproach] = useState(approaches[0]?.key || '');
-  const [selectedCount, setSelectedCount] = useState(wizardConfig?.default_count || countOptions[0] || 0);
+  const [selectedCount, setSelectedCount] = useState<string | number>(wizardConfig?.default_count || countOptions[0]?.value || '');
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [customGuidance, setCustomGuidance] = useState('');
   const [wizardRunId, setWizardRunId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
@@ -73,20 +76,112 @@ export function WizardView({ subsection, projectId, phase, phaseData, withChat, 
     },
   });
 
+  // ── Fetch Idea phase runtime_target ──────────────────────────────────
+  const ideaSubsectionKey = useMemo(() => {
+    if (!templateConfig) return null;
+    for (const p of templateConfig.phases) {
+      if (p.id === 'idea') {
+        for (const sub of p.subsections) {
+          if (sub.key === 'idea_wizard') return { phase: p.id, key: sub.key };
+        }
+      }
+    }
+    return null;
+  }, [templateConfig]);
+
+  const { data: ideaPhaseData } = useQuery({
+    queryKey: QUERY_KEYS.SUBSECTION_DATA(projectId, ideaSubsectionKey?.phase || '', ideaSubsectionKey?.key || ''),
+    queryFn: () => api.getSubsectionData(projectId, ideaSubsectionKey!.phase, ideaSubsectionKey!.key),
+    enabled: !!ideaSubsectionKey,
+  });
+
+  const runtimeTarget = (ideaPhaseData?.content as Record<string, string>)?.runtime_target || '';
+
+  // ── Episode/Scene selector: find source list ──────────────────────────
+  const sourceList = useMemo(() => {
+    if (!wizardConfig?.episode_selector || !templateConfig) return null;
+    // Search all phases for an ordered_list subsection
+    for (const p of templateConfig.phases) {
+      for (const sub of p.subsections) {
+        if (sub.ui_pattern === 'ordered_list') {
+          return { phase: p.id, subsectionKey: sub.key, itemLabel: sub.list_config?.item_type || 'item' };
+        }
+      }
+    }
+    return null;
+  }, [wizardConfig?.episode_selector, templateConfig]);
+
+  // Fetch the PhaseData record for the source list (to get its id)
+  const { data: sourcePhaseData } = useQuery({
+    queryKey: QUERY_KEYS.SUBSECTION_DATA(projectId, sourceList?.phase || '', sourceList?.subsectionKey || ''),
+    queryFn: () => api.getSubsectionData(projectId, sourceList!.phase, sourceList!.subsectionKey),
+    enabled: !!sourceList,
+  });
+
+  // Fetch the actual list items
+  const { data: sourceItems = [], isLoading: itemsLoading } = useQuery({
+    queryKey: QUERY_KEYS.LIST_ITEMS(sourcePhaseData?.id || ''),
+    queryFn: () => api.getListItems(sourcePhaseData!.id),
+    enabled: !!sourcePhaseData?.id,
+  });
+
+  const toggleItem = (id: string) => {
+    setSelectedItemIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else if (next.size < maxSelectable) {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedItemIds.size === sourceItems.length) {
+      setSelectedItemIds(new Set());
+    } else {
+      setSelectedItemIds(new Set(sourceItems.slice(0, maxSelectable).map(i => i.id)));
+    }
+  };
+
+  // ── Mutations ─────────────────────────────────────────────────────────
+  const [runError, setRunError] = useState<string | null>(null);
+
   const runMutation = useMutation({
-    mutationFn: () => api.runWizard({
-      project_id: projectId,
-      wizard_type: subsection.key,
-      phase,
-      config: {
-        approach: selectedApproach,
-        count: selectedCount,
-        custom_guidance: customGuidance,
-        ...formData,
-      },
-    }),
+    mutationFn: () => {
+      // Build episodes array from selected items
+      const selectedEpisodes = sourceItems
+        .filter(item => selectedItemIds.has(item.id))
+        .map(item => item.content);
+
+      const payload = {
+        project_id: projectId,
+        wizard_type: subsection.key,
+        phase,
+        config: {
+          approach: selectedApproach,
+          count: selectedCount,
+          episodes: selectedEpisodes,
+          runtime_target: runtimeTarget,
+          custom_guidance: customGuidance,
+          ...formData,
+        },
+      };
+      console.log('[WizardView] runWizard payload:', JSON.stringify(payload, null, 2));
+      return api.runWizard(payload);
+    },
     onSuccess: (data) => {
+      console.log('[WizardView] runWizard SUCCESS:', JSON.stringify(data, null, 2));
+      setRunError(null);
       setWizardRunId(data.id);
+    },
+    onError: (err: Error) => {
+      console.error('[WizardView] runWizard ERROR:', err.message, err);
+      setRunError(err.message === 'Request timeout'
+        ? 'Generation timed out. Try again — generating multiple screenplays may take up to 5 minutes.'
+        : `Generation failed: ${err.message}`
+      );
     },
   });
 
@@ -94,12 +189,20 @@ export function WizardView({ subsection, projectId, phase, phaseData, withChat, 
     mutationFn: () => api.applyWizardResults(wizardRunId!),
     onSuccess: () => {
       setWizardRunId(null);
+      if (subsection.key === 'script_writer_wizard') {
+        onApplySuccess?.('screenplay_editor');
+      }
     },
   });
 
   const isRunning = wizardRun?.status === 'pending' || wizardRun?.status === 'running';
   const isCompleted = wizardRun?.status === 'completed';
   const isFailed = wizardRun?.status === 'failed';
+
+  // Disable generate if episode selector is active but nothing selected
+  const needsEpisodes = wizardConfig?.episode_selector && sourceList;
+  const canGenerate = !needsEpisodes || selectedItemIds.size > 0;
+  const generateLabel = wizardConfig?.generate_button || 'Generate';
 
   return (
     <div className="p-8 max-w-2xl mx-auto animate-fade-in">
@@ -198,24 +301,111 @@ export function WizardView({ subsection, projectId, phase, phaseData, withChat, 
       {/* Count Selector */}
       {countOptions.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Count</h3>
-          <div className="flex gap-2">
-            {countOptions.map((count) => (
-              <button
-                key={count}
-                onClick={() => setSelectedCount(count)}
-                className={`
-                  px-4 py-2 text-sm font-mono rounded-lg transition-all duration-200
-                  ${selectedCount === count
-                    ? 'bg-amber-500 text-amber-950 font-semibold shadow-md shadow-amber-900/20'
-                    : 'bg-card text-muted-foreground border border-border hover:border-muted-foreground/30 hover:text-foreground'
-                  }
-                `}
-              >
-                {count}
-              </button>
-            ))}
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Scene Count</h3>
+          <div className="flex gap-2 flex-wrap">
+            {countOptions.map((option) => {
+              const optionValue = typeof option === 'object' ? option.value : option;
+              const optionLabel = typeof option === 'object' ? option.label : option;
+              return (
+                <button
+                  key={optionValue}
+                  onClick={() => setSelectedCount(optionValue)}
+                  className={`
+                    px-4 py-2 text-sm rounded-lg transition-all duration-200
+                    ${selectedCount === optionValue
+                      ? 'bg-amber-500 text-amber-950 font-semibold shadow-md shadow-amber-900/20'
+                      : 'bg-card text-muted-foreground border border-border hover:border-muted-foreground/30 hover:text-foreground'
+                    }
+                  `}
+                >
+                  {optionLabel}
+                </button>
+              );
+            })}
           </div>
+        </div>
+      )}
+
+      {/* Runtime Target from Idea Phase */}
+      {runtimeTarget && (
+        <div className="mb-6 bg-card border border-amber-500/15 rounded-xl p-4 flex items-start gap-3">
+          <Info className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              Target Runtime
+              <span className="text-muted-foreground/60 font-normal normal-case tracking-normal ml-1">(from Idea)</span>
+            </h3>
+            <p className="text-sm text-foreground">{runtimeTarget}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Episode/Scene Selector with per-scene durations */}
+      {needsEpisodes && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Select {sourceList.itemLabel.replace('_', ' ')}s
+              {selectedItemIds.size > 0 && (
+                <span className="ml-2 text-amber-400 normal-case tracking-normal">
+                  ({selectedItemIds.size}/{Math.min(sourceItems.length, maxSelectable)})
+                </span>
+              )}
+            </h3>
+            {sourceItems.length > 0 && (
+              <button
+                onClick={toggleAll}
+                className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                {selectedItemIds.size === sourceItems.length ? 'Deselect All' : 'Select All'}
+              </button>
+            )}
+          </div>
+
+          {itemsLoading ? (
+            <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading items...
+            </div>
+          ) : sourceItems.length === 0 ? (
+            <div className="border border-dashed border-border rounded-xl p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                No {sourceList.itemLabel.replace('_', ' ')}s found. Create them first using the{' '}
+                {sourceList.itemLabel === 'scene' ? 'Scene' : 'Episode'} Wizard.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1 max-h-80 overflow-y-auto rounded-xl border border-border">
+              {sourceItems.map((item: ListItemResponse, index: number) => {
+                const isSelected = selectedItemIds.has(item.id);
+                const summary = (item.content as Record<string, string>).summary || `${sourceList.itemLabel} ${index + 1}`;
+                const atLimit = selectedItemIds.size >= maxSelectable && !isSelected;
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleItem(item.id)}
+                    disabled={atLimit}
+                    className={`
+                      w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
+                      ${isSelected
+                        ? 'bg-amber-500/10 text-foreground'
+                        : atLimit
+                          ? 'opacity-40 cursor-not-allowed text-muted-foreground'
+                          : 'hover:bg-muted/30 text-muted-foreground hover:text-foreground'
+                      }
+                    `}
+                  >
+                    {isSelected
+                      ? <CheckSquare className="h-4 w-4 text-amber-400 flex-shrink-0" />
+                      : <Square className="h-4 w-4 flex-shrink-0" />
+                    }
+                    <span className="text-xs font-mono text-muted-foreground/60 w-5">{index + 1}</span>
+                    <span className="truncate">{summary}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
@@ -262,29 +452,41 @@ export function WizardView({ subsection, projectId, phase, phaseData, withChat, 
         </div>
       )}
 
-      {/* Generate Button */}
-      <button
-        onClick={() => runMutation.mutate()}
-        disabled={runMutation.isPending || isRunning}
-        className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 text-amber-950 font-semibold rounded-xl shadow-lg shadow-amber-900/20 hover:from-amber-400 hover:to-amber-500 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
-      >
-        {runMutation.isPending || isRunning ? (
-          <span className="flex items-center justify-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Generating...
+      {/* Generate Button - only show for non-chat wizards or import mode */}
+      {(isImport || !withChat) && (
+        <button
+          onClick={() => runMutation.mutate()}
+          disabled={runMutation.isPending || isRunning || !canGenerate}
+          className="w-full py-3.5 bg-gradient-to-r from-amber-500 to-amber-600 text-amber-950 font-semibold rounded-xl shadow-lg shadow-amber-900/20 hover:from-amber-400 hover:to-amber-500 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+        >
+          {runMutation.isPending || isRunning ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Generating...
+            </span>
+          ) : isImport ? (
+            <span className="flex items-center justify-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              Import & Align
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <Wand2 className="h-4 w-4" />
+              {generateLabel}
+            </span>
+          )}
+        </button>
+      )}
+
+      {/* Run error (timeout, network, etc.) */}
+      {runError && (
+        <div className="mt-4 bg-destructive/5 border border-destructive/20 rounded-xl p-4 animate-fade-up">
+          <span className="flex items-center gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+            {runError}
           </span>
-        ) : isImport ? (
-          <span className="flex items-center justify-center gap-2">
-            <Sparkles className="h-4 w-4" />
-            Import & Align
-          </span>
-        ) : (
-          <span className="flex items-center justify-center gap-2">
-            <Wand2 className="h-4 w-4" />
-            Generate
-          </span>
-        )}
-      </button>
+        </div>
+      )}
 
       {/* Results */}
       {isCompleted && wizardRun && (

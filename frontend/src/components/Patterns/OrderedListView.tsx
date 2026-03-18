@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, GripVertical, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
-import { AIActionBar } from '../Shared/AIActionBar';
 import type { SubsectionConfig, PhaseDataResponse, TemplateConfig, ListItemResponse } from '../../types/template';
 
 interface OrderedListViewProps {
@@ -114,18 +113,6 @@ export function OrderedListView({ subsection, projectId, phase, phaseData }: Ord
           Add {itemType.replace('_', ' ')}
         </button>
       </div>
-
-      {/* AI Actions */}
-      {subsection.ai_actions && subsection.ai_actions.length > 0 && (
-        <div className="mb-6">
-          <AIActionBar
-            actions={subsection.ai_actions}
-            projectId={projectId}
-            phase={phase}
-            subsectionKey={subsection.key}
-          />
-        </div>
-      )}
 
       {/* Count */}
       <div className="text-xs text-muted-foreground mb-4 font-mono">

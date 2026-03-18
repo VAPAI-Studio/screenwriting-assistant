@@ -1,6 +1,6 @@
 // frontend/src/types/template.ts
 
-export type TemplateType = 'micro_drama' | 'short_movie';
+export type TemplateType = 'short_movie';
 export type PhaseType = 'idea' | 'story' | 'scenes' | 'write';
 
 export type UIPattern =
@@ -62,13 +62,22 @@ export interface WizardApproach {
   description: string;
 }
 
+export interface CountOption {
+  value: string;
+  label: string;
+}
+
 export interface WizardConfig {
   approaches?: WizardApproach[];
-  count_options?: number[];
-  default_count?: number;
+  count_options?: CountOption[];
+  default_count?: string | number;
   readiness_checks?: ReadinessCheck[];
   duration_selector?: boolean;
+  duration_options?: Array<{ value: number; label: string }>;
+  duration_description?: string;
   episode_selector?: boolean;
+  episode_selector_max?: number;
+  generate_button?: string;
 }
 
 export interface ListConfig {
@@ -181,6 +190,22 @@ export interface WizardRunResponse {
   error_message?: string;
   created_at: string;
   completed_at?: string;
+}
+
+// YOLO auto-fill events
+export interface YoloEvent {
+  type: 'start' | 'progress' | 'done';
+  total?: number;
+  key?: string;
+  name?: string;
+  index?: number;
+  phase?: string;
+  strategy?: string;
+  status?: 'running' | 'done' | 'skipped' | 'error';
+  detail?: string;
+  completed?: number;
+  skipped?: number;
+  errors?: number;
 }
 
 // Template-based project

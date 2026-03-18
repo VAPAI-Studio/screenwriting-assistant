@@ -2,7 +2,7 @@
 -- Template system: replaces rigid framework model with flexible template-based architecture
 
 -- New enum types
-CREATE TYPE template_type AS ENUM ('micro_drama', 'short_movie');
+CREATE TYPE template_type AS ENUM ('short_movie');
 CREATE TYPE phase_type AS ENUM ('idea', 'story', 'scenes', 'write');
 
 -- Extend projects table (non-destructive: keep framework column for backward compat)

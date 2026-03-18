@@ -3,12 +3,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Upload, Trash2, BookOpen, Loader2, CheckCircle2,
   AlertCircle, Brain, Link2, RefreshCw,
-  ChevronDown, FileText
+  ChevronDown, FileText, Square, Play, RotateCcw, PauseCircle
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import { Book, BookStatus, Agent } from '../../types';
 import { Button } from '../UI/Button';
+import { AgentManager } from './AgentManager';
 
 const STATUS_CONFIG: Record<BookStatus, { label: string; color: string; icon: typeof Loader2 }> = {
   pending: { label: 'Pending', color: 'text-muted-foreground', icon: RefreshCw },
@@ -17,12 +18,15 @@ const STATUS_CONFIG: Record<BookStatus, { label: string; color: string; icon: ty
   embedding: { label: 'Generating embeddings...', color: 'text-amber-400', icon: Loader2 },
   completed: { label: 'Ready', color: 'text-emerald-400', icon: CheckCircle2 },
   failed: { label: 'Failed', color: 'text-destructive', icon: AlertCircle },
+  paused: { label: 'Paused', color: 'text-amber-400', icon: PauseCircle },
 };
+
+const ACTIVE_STATUSES: BookStatus[] = ['pending', 'extracting', 'analyzing', 'embedding'];
 
 function BookStatusBadge({ status }: { status: BookStatus }) {
   const config = STATUS_CONFIG[status];
   const Icon = config.icon;
-  const isProcessing = ['extracting', 'analyzing', 'embedding'].includes(status);
+  const isProcessing = ACTIVE_STATUSES.includes(status);
 
   return (
     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${config.color}`}>
@@ -32,21 +36,53 @@ function BookStatusBadge({ status }: { status: BookStatus }) {
   );
 }
 
+function ProgressBar({ book }: { book: Book }) {
+  const showProgress = book.progress > 0 && book.status !== 'completed' && book.status !== 'failed';
+  if (!showProgress) return null;
+
+  return (
+    <div className="mt-3">
+      <div className="flex justify-between text-xs text-muted-foreground mb-1">
+        <span>{book.processing_step || 'Processing...'}</span>
+        <span>{book.progress}%</span>
+      </div>
+      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+        <div
+          className="h-full bg-amber-500 rounded-full transition-all duration-1000"
+          style={{ width: `${book.progress}%` }}
+        />
+      </div>
+      {book.chapters_total > 0 && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Chapter {book.chapters_processed} of {book.chapters_total}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function BookCard({
   book,
   agents,
   onDelete,
   onLinkAgent,
+  onPause,
+  onResume,
+  onRetry,
 }: {
   book: Book;
   agents: Agent[];
   onDelete: (id: string) => void;
   onLinkAgent: (agentId: string, bookId: string) => void;
   onUnlinkAgent: (agentId: string, bookId: string) => void;
+  onPause: (id: string) => void;
+  onResume: (id: string) => void;
+  onRetry: (id: string) => void;
 }) {
   const [showAgentMenu, setShowAgentMenu] = useState(false);
 
   const fileSizeMB = (book.file_size_bytes / (1024 * 1024)).toFixed(1);
+  const isActive = ACTIVE_STATUSES.includes(book.status);
 
   return (
     <div className="border border-border rounded-xl bg-card/60 hover:bg-card p-4 transition-all duration-200 hover:glow-amber group">
@@ -86,46 +122,94 @@ function BookCard({
         </button>
       </div>
 
-      <div className="flex items-center justify-between">
+      {/* Progress bar (for in-progress and paused books with progress > 0) */}
+      <ProgressBar book={book} />
+
+      <div className="flex items-center justify-between mt-3">
         <BookStatusBadge status={book.status} />
 
-        {book.status === 'completed' && (
-          <div className="relative">
+        <div className="flex items-center gap-2">
+          {/* Stop button — shown while actively processing */}
+          {isActive && (
             <button
-              onClick={() => setShowAgentMenu(!showAgentMenu)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-lg hover:text-foreground hover:border-muted-foreground/30 transition-colors"
+              onClick={() => onPause(book.id)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-lg hover:text-foreground hover:border-muted-foreground/30 transition-colors"
             >
-              <Link2 className="h-3 w-3" />
-              Link to Agent
-              <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showAgentMenu ? 'rotate-180' : ''}`} />
+              <Square className="h-3 w-3" />
+              Stop
             </button>
-            {showAgentMenu && (
-              <div className="absolute right-0 top-full mt-1 w-56 bg-card border border-border rounded-xl shadow-xl z-10 animate-fade-in overflow-hidden">
-                {agents.map((agent) => (
-                  <button
-                    key={agent.id}
-                    onClick={() => {
-                      onLinkAgent(agent.id, book.id);
-                      setShowAgentMenu(false);
-                    }}
-                    className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted/50 transition-colors flex items-center gap-2.5"
-                  >
-                    <span
-                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: agent.color }}
-                    />
-                    <span className="truncate">{agent.name}</span>
-                  </button>
-                ))}
-                {agents.length === 0 && (
-                  <div className="px-3 py-3 text-xs text-muted-foreground text-center">
-                    No agents yet. Seed defaults first.
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+          )}
+
+          {/* Continue + Retry from scratch — shown when paused */}
+          {book.status === 'paused' && (
+            <>
+              <button
+                onClick={() => onResume(book.id)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-emerald-400 border border-emerald-400/30 rounded-lg hover:bg-emerald-400/10 transition-colors"
+              >
+                <Play className="h-3 w-3" />
+                Continue
+              </button>
+              <button
+                onClick={() => onRetry(book.id)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-lg hover:text-foreground hover:border-muted-foreground/30 transition-colors"
+              >
+                <RotateCcw className="h-3 w-3" />
+                Retry from scratch
+              </button>
+            </>
+          )}
+
+          {/* Retry — shown when failed */}
+          {book.status === 'failed' && (
+            <button
+              onClick={() => onRetry(book.id)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-lg hover:text-foreground hover:border-muted-foreground/30 transition-colors"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Retry
+            </button>
+          )}
+
+          {/* Link to Agent — shown when completed */}
+          {book.status === 'completed' && (
+            <div className="relative">
+              <button
+                onClick={() => setShowAgentMenu(!showAgentMenu)}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border rounded-lg hover:text-foreground hover:border-muted-foreground/30 transition-colors"
+              >
+                <Link2 className="h-3 w-3" />
+                Link to Agent
+                <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${showAgentMenu ? 'rotate-180' : ''}`} />
+              </button>
+              {showAgentMenu && (
+                <div className="absolute right-0 top-full mt-1 w-56 bg-card border border-border rounded-xl shadow-xl z-10 animate-fade-in overflow-hidden">
+                  {agents.map((agent) => (
+                    <button
+                      key={agent.id}
+                      onClick={() => {
+                        onLinkAgent(agent.id, book.id);
+                        setShowAgentMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2.5 text-sm hover:bg-muted/50 transition-colors flex items-center gap-2.5"
+                    >
+                      <span
+                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: agent.color }}
+                      />
+                      <span className="truncate">{agent.name}</span>
+                    </button>
+                  ))}
+                  {agents.length === 0 && (
+                    <div className="px-3 py-3 text-xs text-muted-foreground text-center">
+                      No agents yet. Seed defaults first.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {book.processing_error && (
@@ -147,10 +231,10 @@ export function BookManager() {
     queryFn: () => api.getBooks(),
     refetchInterval: (query) => {
       const data = query.state.data as Book[] | undefined;
-      const hasProcessing = data?.some(
-        (b) => ['pending', 'extracting', 'analyzing', 'embedding'].includes(b.status)
+      const hasActive = data?.some(
+        (b) => [...ACTIVE_STATUSES, 'paused' as BookStatus].includes(b.status)
       );
-      return hasProcessing ? 5000 : false;
+      return hasActive ? 3000 : false;
     },
   });
 
@@ -194,6 +278,27 @@ export function BookManager() {
       api.linkBookToAgent(agentId, bookId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.AGENTS] });
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.BOOKS] });
+    },
+  });
+
+  const pauseMutation = useMutation({
+    mutationFn: (id: string) => api.pauseBook(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.BOOKS] });
+    },
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: (id: string) => api.resumeBook(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.BOOKS] });
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: (id: string) => api.retryBook(id),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.BOOKS] });
     },
   });
@@ -250,31 +355,10 @@ export function BookManager() {
         </div>
       </div>
 
-      {/* Agent summary */}
-      {agents.length > 0 && (
-        <div className="mb-8 p-5 bg-card/40 border border-border rounded-xl">
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Agents</h2>
-          <div className="flex flex-wrap gap-2">
-            {agents.map((agent: Agent) => (
-              <div
-                key={agent.id}
-                className="inline-flex items-center gap-2.5 bg-card border border-border rounded-full px-4 py-2 text-sm hover:glow-amber transition-all duration-200"
-              >
-                <span
-                  className="w-2.5 h-2.5 rounded-full ring-2 ring-background"
-                  style={{ backgroundColor: agent.color }}
-                />
-                <span className="font-medium text-foreground">{agent.name}</span>
-                {agent.book_count > 0 && (
-                  <span className="text-xs text-muted-foreground font-mono">
-                    {agent.book_count} book{agent.book_count !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Agent management */}
+      <div className="mb-8 p-5 bg-card/40 border border-border rounded-xl">
+        <AgentManager />
+      </div>
 
       {/* Books list */}
       {booksLoading ? (
@@ -307,6 +391,9 @@ export function BookManager() {
                 onDelete={handleDelete}
                 onLinkAgent={(agentId, bookId) => linkMutation.mutate({ agentId, bookId })}
                 onUnlinkAgent={(agentId, bookId) => linkMutation.mutate({ agentId, bookId })}
+                onPause={(id) => pauseMutation.mutate(id)}
+                onResume={(id) => resumeMutation.mutate(id)}
+                onRetry={(id) => retryMutation.mutate(id)}
               />
             </div>
           ))}

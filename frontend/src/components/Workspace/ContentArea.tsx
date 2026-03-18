@@ -10,6 +10,7 @@ import { RepeatableCardsView } from '../Patterns/RepeatableCardsView';
 import { WizardView } from '../Patterns/WizardView';
 import { OrderedListView } from '../Patterns/OrderedListView';
 import { IndividualEditorView } from '../Patterns/IndividualEditorView';
+import { ScreenplayEditorView } from '../Patterns/ScreenplayEditorView';
 import { PlaceholderView } from '../Patterns/PlaceholderView';
 
 interface ContentAreaProps {
@@ -18,9 +19,10 @@ interface ContentAreaProps {
   phase: string;
   templateConfig: TemplateConfig;
   itemId?: string;
+  onNavigateTo?: (key: string) => void;
 }
 
-export function ContentArea({ subsection, projectId, phase, templateConfig, itemId }: ContentAreaProps) {
+export function ContentArea({ subsection, projectId, phase, templateConfig, itemId, onNavigateTo }: ContentAreaProps) {
   const { data: phaseData, isLoading } = useQuery({
     queryKey: QUERY_KEYS.SUBSECTION_DATA(projectId, phase, subsection.key),
     queryFn: () => api.getSubsectionData(projectId, phase, subsection.key),
@@ -53,10 +55,10 @@ export function ContentArea({ subsection, projectId, phase, templateConfig, item
       return <RepeatableCardsView {...commonProps} />;
 
     case 'wizard':
-      return <WizardView {...commonProps} />;
+      return <WizardView {...commonProps} onApplySuccess={onNavigateTo} />;
 
     case 'wizard_with_chat':
-      return <WizardView {...commonProps} withChat />;
+      return <WizardView {...commonProps} withChat onApplySuccess={onNavigateTo} />;
 
     case 'import_wizard':
       return <WizardView {...commonProps} isImport />;
@@ -68,6 +70,8 @@ export function ContentArea({ subsection, projectId, phase, templateConfig, item
       return <IndividualEditorView {...commonProps} itemId={itemId} />;
 
     case 'screenplay_editor':
+      return <ScreenplayEditorView {...commonProps} />;
+
     case 'analyzer':
       return (
         <PlaceholderView

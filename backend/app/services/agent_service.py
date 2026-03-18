@@ -14,6 +14,7 @@ from ..models.database import (
 )
 from .rag_service import rag_service
 from .ai_provider import chat_completion, chat_completion_stream
+from .template_ai_service import template_ai_service
 from ..templates import get_template
 
 logger = logging.getLogger(__name__)
@@ -204,15 +205,42 @@ Available {item_label} fields — populate ALL of them:
         except (json.JSONDecodeError, ValueError):
             return text.strip(), []
 
-    def _format_project_context(self, project: Project) -> str:
+    def _format_project_context(self, project: Project, db: Optional[Session] = None) -> str:
+        # Template-based PhaseData (new system)
+        if db is not None and hasattr(project, 'template') and project.template:
+            phase_data_records = (
+                db.query(PhaseData)
+                .filter(PhaseData.project_id == project.id)
+                .all()
+            )
+            if phase_data_records:
+                project_data: Dict = {}
+                list_items_map: Dict = {}
+                for pd in phase_data_records:
+                    phase_key = pd.phase.value if hasattr(pd.phase, 'value') else pd.phase
+                    if phase_key not in project_data:
+                        project_data[phase_key] = {}
+                    project_data[phase_key][pd.subsection_key] = pd.content or {}
+                    if pd.list_items:
+                        items = [
+                            {"item_type": li.item_type, **(li.content or {})}
+                            for li in sorted(pd.list_items, key=lambda x: x.sort_order)
+                        ]
+                        if items:
+                            list_items_map[f"{phase_key}.{pd.subsection_key}"] = items
+                template_id = project.template.value if hasattr(project.template, 'value') else project.template
+                return template_ai_service._build_project_context(
+                    project_data, template_id,
+                    list_items=list_items_map,
+                    project_title=project.title,
+                )
+
+        # Legacy fallback: old Section model
         lines = [f"**Project:** {project.title}"]
         for section in sorted(project.sections, key=lambda s: s.type.value):
             section_name = SECTION_DESCRIPTIONS.get(section.type, section.type.value)
             notes = (section.user_notes or "").strip()
-            if notes:
-                lines.append(f"\n### {section_name}\n{notes[:500]}")
-            else:
-                lines.append(f"\n### {section_name}\n(No content yet)")
+            lines.append(f"\n### {section_name}\n{notes[:500] if notes else '(No content yet)'}")
         return "\n".join(lines)
 
     def _build_system_prompt(
@@ -224,6 +252,7 @@ Available {item_label} fields — populate ALL of them:
         framework: Framework,
         section_type: SectionType,
         project: Project,
+        db: Optional[Session] = None,
     ) -> str:
         """Build a complete system prompt grounded in KG data."""
         prompt = agent.system_prompt_template.format(
@@ -232,7 +261,7 @@ Available {item_label} fields — populate ALL of them:
             book_chunks=self._format_chunks(chunks),
             framework=FRAMEWORK_NAMES.get(framework, framework.value),
             section_type=SECTION_DESCRIPTIONS.get(section_type, section_type.value),
-            project_context=self._format_project_context(project),
+            project_context=self._format_project_context(project, db=db),
         )
 
         if agent.personality:
@@ -297,6 +326,7 @@ Available {item_label} fields — populate ALL of them:
                 framework=project.framework,
                 section_type=section.type,
                 project=project,
+                db=db,
             )
 
             # Step 5: Call AI
@@ -386,7 +416,7 @@ Available {item_label} fields — populate ALL of them:
 
         concept_context = self._format_concept_cards(concepts)
         chunk_context = self._format_chunks(chunks)
-        project_context = self._format_project_context(session.project)
+        project_context = self._format_project_context(session.project, db=db)
 
         system_prompt = f"""You are {agent.name}, a screenwriting consultant.
 {agent.description or ''}
@@ -528,7 +558,7 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
 
         concept_context = self._format_concept_cards(concepts)
         chunk_context = self._format_chunks(chunks)
-        project_context = self._format_project_context(session.project)
+        project_context = self._format_project_context(session.project, db=db)
 
         system_prompt = f"""You are {agent.name}, a screenwriting consultant.
 {agent.description or ''}
@@ -678,7 +708,7 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
 
         concept_context = self._format_concept_cards(all_concepts)
         chunk_context = self._format_chunks(all_chunks)
-        project_context = self._format_project_context(session.project)
+        project_context = self._format_project_context(session.project, db=db)
 
         list_creates_prompt, _list_item_config = self._build_list_creates_prompt(field_context, session)
 
@@ -879,7 +909,7 @@ For this query, you drew from the knowledge of: {consulted_names}.
 
         concept_context = self._format_concept_cards(all_concepts)
         chunk_context = self._format_chunks(all_chunks)
-        project_context = self._format_project_context(session.project)
+        project_context = self._format_project_context(session.project, db=db)
 
         consulted_names = ", ".join(a["name"] for a in consulted_agents_meta) or "no specialists"
         system_prompt = f"""You are {orchestrator.name}, a master screenwriting consultant who synthesizes multiple specialist perspectives.

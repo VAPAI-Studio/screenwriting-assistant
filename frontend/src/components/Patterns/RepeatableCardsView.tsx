@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, ChevronDown } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, Wand2, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import { FieldRenderer } from '../Shared/FieldRenderer';
-import { AIActionBar } from '../Shared/AIActionBar';
 import type { SubsectionConfig, PhaseDataResponse, TemplateConfig, ListItemResponse } from '../../types/template';
 
 interface RepeatableCardsViewProps {
@@ -18,6 +17,7 @@ interface RepeatableCardsViewProps {
 export function RepeatableCardsView({ subsection, projectId, phase, phaseData }: RepeatableCardsViewProps) {
   const queryClient = useQueryClient();
   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [fillingKey, setFillingKey] = useState<string | null>(null);
 
   const cardGroups = subsection.card_groups || [];
 
@@ -50,10 +50,29 @@ export function RepeatableCardsView({ subsection, projectId, phase, phaseData }:
     },
   });
 
+  const autofillMutation = useMutation({
+    mutationFn: ({ itemId, fieldKey }: { itemId: string; fieldKey: string }) =>
+      api.fillBlanks({ project_id: projectId, phase, subsection_key: subsection.key, item_id: itemId, field_key: fieldKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LIST_ITEMS(phaseData!.id) });
+      setFillingKey(null);
+    },
+    onError: () => {
+      setFillingKey(null);
+    },
+  });
+
   const handleFieldChange = (itemId: string, item: ListItemResponse, fieldKey: string, value: string) => {
     const updatedContent = { ...item.content, [fieldKey]: value };
     updateMutation.mutate({ id: itemId, content: updatedContent });
   };
+
+  const handleAutofill = useCallback((itemId: string, fieldKey: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const compositeKey = `${itemId}:${fieldKey}`;
+    setFillingKey(compositeKey);
+    autofillMutation.mutate({ itemId, fieldKey });
+  }, [autofillMutation]);
 
   return (
     <div className="p-8 animate-fade-in">
@@ -65,25 +84,13 @@ export function RepeatableCardsView({ subsection, projectId, phase, phaseData }:
         )}
       </div>
 
-      {/* AI Actions */}
-      {subsection.ai_actions && subsection.ai_actions.length > 0 && (
-        <div className="mb-8">
-          <AIActionBar
-            actions={subsection.ai_actions}
-            projectId={projectId}
-            phase={phase}
-            subsectionKey={subsection.key}
-          />
-        </div>
-      )}
-
       {/* Card Groups */}
       <div className="space-y-10 max-w-3xl">
         {cardGroups.map((group) => {
           const groupItems = items.filter((item) => item.item_type === group.item_type);
 
           return (
-            <div key={group.item_type}>
+            <div key={group.key}>
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">{group.label}</h3>
@@ -139,14 +146,33 @@ export function RepeatableCardsView({ subsection, projectId, phase, phaseData }:
 
                         {isExpanded && (
                           <div className="border-t border-border px-4 py-4 space-y-4">
-                            {group.fields.map((field) => (
-                              <FieldRenderer
-                                key={field.key}
-                                field={field}
-                                value={(item.content as Record<string, string>)[field.key] || ''}
-                                onChange={(key, val) => handleFieldChange(item.id, item, key, val)}
-                              />
-                            ))}
+                            {group.fields.map((field) => {
+                              const compositeKey = `${item.id}:${field.key}`;
+                              const isFilling = fillingKey === compositeKey;
+                              return (
+                                <div key={field.key} className="group/field flex items-start gap-2">
+                                  <div className="flex-1">
+                                    <FieldRenderer
+                                      field={field}
+                                      value={(item.content as Record<string, string>)[field.key] || ''}
+                                      onChange={(key, val) => handleFieldChange(item.id, item, key, val)}
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={(e) => handleAutofill(item.id, field.key, e)}
+                                    disabled={isFilling}
+                                    title="Autofill with AI"
+                                    className="mt-6 p-1.5 rounded-md text-muted-foreground/50 hover:text-amber-400 hover:bg-amber-500/10 transition-colors opacity-0 group-hover/field:opacity-100 disabled:opacity-100 flex-shrink-0"
+                                  >
+                                    {isFilling ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
+                                    ) : (
+                                      <Wand2 className="h-3.5 w-3.5" />
+                                    )}
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </div>

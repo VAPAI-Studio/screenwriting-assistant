@@ -13,10 +13,19 @@ logger = logging.getLogger(__name__)
 
 class TemplateAIService:
 
-    def _build_project_context(self, project_data: Dict, template_id: str) -> str:
-        """Build comprehensive project context string from all phase data."""
+    def _build_project_context(
+        self,
+        project_data: Dict,
+        template_id: str,
+        list_items: Optional[Dict[str, list]] = None,
+        project_title: Optional[str] = None,
+    ) -> str:
+        """Build comprehensive project context string from all phase data and list items."""
         template = get_template(template_id)
-        context_parts = [f"Template: {template['name']}"]
+        context_parts = []
+        if project_title:
+            context_parts.append(f"Project: {project_title}")
+        context_parts.append(f"Template: {template['name']}")
 
         for phase_key, subsections in project_data.items():
             if isinstance(subsections, dict):
@@ -27,6 +36,20 @@ class TemplateAIService:
                             context_parts.append(f"\n## {phase_key} > {sub_key}")
                             for field_key, value in filled.items():
                                 context_parts.append(f"- {field_key}: {value}")
+
+                    # Render list items for this subsection if any
+                    items_key = f"{phase_key}.{sub_key}"
+                    if list_items and items_key in list_items:
+                        items = list_items[items_key]
+                        if items:
+                            context_parts.append(f"\n## {phase_key} > {sub_key} (items)")
+                            for item in items:
+                                item_type = item.get("item_type", "item")
+                                name = item.get("name", f"{item_type}")
+                                context_parts.append(f"\n### {item_type}: {name}")
+                                for k, v in item.items():
+                                    if v and k not in ("item_type",):
+                                        context_parts.append(f"- {k}: {v}")
 
         return "\n".join(context_parts)
 
@@ -42,12 +65,8 @@ class TemplateAIService:
 
         if wizard_type == "idea_wizard":
             return await self._generate_idea(config, project_context, template)
-        elif wizard_type == "episode_wizard":
-            return await self._generate_episodes(config, project_context, template)
         elif wizard_type == "scene_wizard":
             return await self._generate_scenes(config, project_context, template)
-        elif wizard_type == "beat_wizard":
-            return await self._generate_beats(config, project_context, template)
         elif wizard_type == "script_writer_wizard":
             return await self._generate_scripts(config, project_context, template)
         else:
@@ -107,87 +126,114 @@ Return a JSON object with exactly these keys: "genre", "initial_idea", "tone", "
             logger.error(f"Idea generation error: {e}")
             return {"fields": {}, "error": str(e)}
 
-    async def _generate_episodes(self, config: Dict, project_context: str, template: Dict) -> Dict:
-        count = config.get("count", 50)
-        approach = config.get("approach", "classic")
-        guidance = config.get("custom_guidance", "")
+    def _get_wizard_config(self, template: Dict, wizard_key: str) -> Dict:
+        """Find wizard_config from template by subsection key."""
+        for phase in template.get("phases", []):
+            for sub in phase.get("subsections", []):
+                if sub.get("key") == wizard_key:
+                    return sub.get("wizard_config", {})
+        return {}
 
-        prompt = f"""You are an expert micro-drama screenwriting assistant.
+    def _build_field_instructions(self, field_emphasis: Dict) -> str:
+        """Build per-field instructions based on emphasis levels."""
+        field_labels = {
+            "summary": "One-line scene description",
+            "arena": "The location/setting",
+            "inciting_incident": "What triggers the scene's conflict",
+            "goal": "What the character wants in this scene",
+            "subtext": "The emotional undercurrent beneath words and actions",
+            "turning_point": "The key moment of change",
+            "crisis": "The worst moment / tightest pressure",
+            "climax": "How the scene peaks",
+            "fallout": "Immediate consequences",
+            "push_forward": "How this connects to the next scene",
+        }
+        lines = []
+        for key in ["summary", "arena", "inciting_incident", "goal", "subtext",
+                     "turning_point", "crisis", "climax", "fallout", "push_forward"]:
+            emphasis = field_emphasis.get(key, "essential").upper()
+            desc = field_labels[key]
+            lines.append(f"- {key}: {desc} ({emphasis})")
+        return "\n".join(lines)
 
-## Project Context
-{project_context}
-
-## Task
-Generate {count} episode outlines for this micro-drama series.
-
-Approach: {approach}
-{f'Custom guidance: {guidance}' if guidance else ''}
-
-Each episode MUST have these 11 fields:
-- summary: One-line episode description
-- arena: The setting/location for this episode
-- inciting_incident: What triggers the episode's conflict
-- goal: What the protagonist wants in this episode
-- subtext: The emotional undercurrent
-- opposition: What stands in the way
-- plan: The protagonist's strategy
-- progressive_complication: How things get worse
-- turning_point: The key moment of change
-- crisis: The worst moment / impossible choice
-- climax: How the episode resolves (with a CLIFFHANGER)
-
-Return a JSON object with key "episodes" containing an array of episode objects.
-Every episode must end on a cliffhanger that demands the next episode."""
-
-        try:
-            text = await chat_completion(
-                messages=[
-                    {"role": "system", "content": "You are an expert micro-drama screenwriter. Return valid JSON only."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.8,
-                max_tokens=4000,
-                json_mode=True,
-            )
-            result = json.loads(text)
-            return {"episodes": result.get("episodes", [])}
-        except Exception as e:
-            logger.error(f"Episode generation error: {e}")
-            return {"episodes": [], "error": str(e)}
+    def _build_character_section(self, characters: list) -> str:
+        """Build a formatted character section for the prompt."""
+        if not characters:
+            return ""
+        parts = ["\n## Characters"]
+        for char in characters:
+            item_type = char.get("item_type", "character")
+            name = char.get("name", "Unnamed")
+            parts.append(f"\n### {item_type.replace('_', ' ').title()}: {name}")
+            for k, v in char.items():
+                if v and k not in ("item_type", "name"):
+                    parts.append(f"- {k.replace('_', ' ').title()}: {v}")
+        return "\n".join(parts)
 
     async def _generate_scenes(self, config: Dict, project_context: str, template: Dict) -> Dict:
-        approach = config.get("approach", "minimal")
+        count_pref = str(config.get("count", "auto"))
         guidance = config.get("custom_guidance", "")
+        characters = config.get("_characters", [])
+        runtime_target = config.get("runtime_target", "")
 
-        prompt = f"""You are an expert short film screenwriting assistant.
+        # Get consolidated config from wizard_config
+        wizard_config = self._get_wizard_config(template, "scene_wizard")
+        template_guidance = wizard_config.get("guidance_default", "")
+        beat_mapping = wizard_config.get("beat_mapping_strategy", "")
+
+        # All fields essential
+        field_emphasis = {k: "essential" for k in [
+            "summary", "arena", "inciting_incident", "goal", "subtext",
+            "turning_point", "crisis", "climax", "fallout", "push_forward"
+        ]}
+        field_instructions = self._build_field_instructions(field_emphasis)
+        character_section = self._build_character_section(characters)
+
+        # Build count instruction
+        if count_pref == "auto":
+            count_instruction = "Determine the optimal number of scenes based on the story beats and runtime target."
+        else:
+            count_instruction = f"Generate {count_pref} scenes."
+
+        prompt = f"""You are an expert short film screenwriting assistant specializing in scene structure planning.
 
 ## Project Context
 {project_context}
+{character_section}
 
-## Task
-Generate scenes for this short film.
+## Scene Generation Task
 
-Approach: {approach}
-{f'Custom guidance: {guidance}' if guidance else ''}
+### Scene Count
+{count_instruction}
 
-Each scene MUST have these 10 fields:
-- summary: One-line scene description
-- arena: The location/setting
-- inciting_incident: What triggers the scene's conflict
-- goal: What the character wants
-- subtext: The emotional undercurrent
-- turning_point: The key moment of change
-- crisis: The worst moment
-- climax: How the scene peaks
-- fallout: Immediate consequences
-- push_forward: How this connects to the next scene
+{template_guidance}
 
-Return a JSON object with key "scenes" containing an array of scene objects."""
+{"### Beat-to-Scene Mapping Strategy" + chr(10) + beat_mapping if beat_mapping else ""}
+
+{"### Target Runtime: " + runtime_target if runtime_target else ""}
+
+{"### Additional Guidance" + chr(10) + guidance if guidance else ""}
+
+### Scene Field Requirements
+Each scene uses these 10 fields. All fields are essential:
+
+{field_instructions}
+
+### Important Guidelines
+- Explicitly reference the story beats from the project context. Each scene should map to one or more specific beats.
+- Reference characters BY NAME. Show which characters appear in each scene and what they want.
+- Each scene's summary should be a clear, visual one-line description.
+- The push_forward field should create clear causal or thematic connections between scenes.
+- Ensure the overall scene sequence covers the complete story arc from opening hook through resolution.
+
+Return a JSON object with key "scenes" containing an array of scene objects. Each scene object must
+have all 10 field keys (summary, arena, inciting_incident, goal, subtext, turning_point, crisis,
+climax, fallout, push_forward)."""
 
         try:
             text = await chat_completion(
                 messages=[
-                    {"role": "system", "content": "You are an expert short film screenwriter. Return valid JSON only."},
+                    {"role": "system", "content": "You are an expert short film scene structure planner. Return valid JSON only."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.8,
@@ -200,79 +246,79 @@ Return a JSON object with key "scenes" containing an array of scene objects."""
             logger.error(f"Scene generation error: {e}")
             return {"scenes": [], "error": str(e)}
 
-    async def _generate_beats(self, config: Dict, project_context: str, template: Dict) -> Dict:
-        story_input = config.get("story_input", "")
-
-        prompt = f"""You are an expert screenwriting assistant.
-
-## Project Context
-{project_context}
-
-## Story Idea
-{story_input}
-
-## Task
-Analyze this story idea and generate complete story beats. Fill in any gaps to form a complete story outline.
-
-Return a JSON object with key "beats" containing the story beats as key-value pairs matching the template's story arc structure."""
-
-        try:
-            text = await chat_completion(
-                messages=[
-                    {"role": "system", "content": "You are an expert screenwriter. Return valid JSON only."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.8,
-                max_tokens=4000,
-                json_mode=True,
-            )
-            result = json.loads(text)
-            return result
-        except Exception as e:
-            logger.error(f"Beat generation error: {e}")
-            return {"beats": {}, "error": str(e)}
-
     async def _generate_scripts(self, config: Dict, project_context: str, template: Dict) -> Dict:
         episodes = config.get("episodes", [])
-        duration = config.get("target_duration", 120)
+        runtime_target = config.get("runtime_target", "")
         guidance = config.get("custom_guidance", "")
 
-        prompt = f"""You are an expert screenwriter.
+        if not episodes:
+            return {"screenplays": [], "error": "No episodes/scenes provided to write scripts for."}
+
+        # Build a brief outline of ALL scenes so each call has structural context
+        scene_outline = "\n".join(
+            f"  {i + 1}. {ep.get('summary', f'Scene {i + 1}')}"
+            for i, ep in enumerate(episodes)
+        )
+
+        screenplays = []
+        for i, ep in enumerate(episodes):
+            summary = ep.get("summary", f"Scene {i + 1}")
+
+            prompt = f"""You are an expert screenwriter.
 
 ## Project Context
 {project_context}
 
-## Task
-Write screenplay content for the following episodes/scenes.
-Target duration per episode: {duration} seconds.
+{f'## Overall Target Runtime: {runtime_target}' if runtime_target else ''}
+## Total scenes: {len(episodes)}
+
+## Full scene outline (for pacing context):
+{scene_outline}
+
+## YOUR TASK: Write scene {i + 1} of {len(episodes)}
+Scene summary: "{summary}"
+
+## Full scene data:
+{json.dumps(ep, indent=2)}
+
 {f'Custom guidance: {guidance}' if guidance else ''}
 
-## Episodes to write:
-{json.dumps(episodes, indent=2)}
-
-For each episode, write a proper screenplay with:
+Write a proper screenplay for THIS scene with:
 - Scene headings (INT./EXT. LOCATION - TIME)
-- Action lines
-- Character dialogue
+- Action lines (visual, present tense)
+- Character dialogue with character names in CAPS
 - Parentheticals where needed
+- Pacing appropriate for this scene's role in the overall {runtime_target or 'short film'} runtime
+- Distribute the total runtime naturally across scenes — not all scenes need equal screen time
 
-Return a JSON object with key "screenplays" containing an array of objects, each with "episode_index" and "content" (the screenplay text)."""
+Return a JSON object with:
+- "title": a short title for this scene
+- "content": the full screenplay text"""
 
-        try:
-            text = await chat_completion(
-                messages=[
-                    {"role": "system", "content": "You are an expert screenwriter. Return valid JSON only."},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=4000,
-                json_mode=True,
-            )
-            result = json.loads(text)
-            return result
-        except Exception as e:
-            logger.error(f"Script generation error: {e}")
-            return {"screenplays": [], "error": str(e)}
+            try:
+                logger.info(f"Generating script for scene {i + 1}/{len(episodes)}: {summary}")
+                text = await chat_completion(
+                    messages=[
+                        {"role": "system", "content": "You are an expert screenwriter. Return valid JSON only."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=4000,
+                    json_mode=True,
+                )
+                result = json.loads(text)
+                result["episode_index"] = i
+                screenplays.append(result)
+            except Exception as e:
+                logger.error(f"Script generation error for scene {i + 1}: {e}")
+                screenplays.append({
+                    "episode_index": i,
+                    "title": summary,
+                    "content": f"[Generation failed: {str(e)}]",
+                    "error": str(e),
+                })
+
+        return {"screenplays": screenplays}
 
     async def fill_blanks(
         self,
@@ -295,7 +341,7 @@ Return a JSON object with key "screenplays" containing an array of objects, each
             return {"content": current_content, "message": "All fields are already filled."}
 
         field_descriptions = "\n".join(
-            f"- {f['label']}: {f.get('placeholder', f['label'])}" for f in empty_fields
+            f"- {f['key']} ({f['label']}): {f.get('placeholder', f['label'])}" for f in empty_fields
         )
 
         prompt = f"""You are an expert screenwriting assistant.
@@ -424,6 +470,7 @@ Return a JSON object with key "notes" containing an array of note strings."""
         project_context: str,
         field_definitions: List[Dict],
         current_content: Dict,
+        item_type: Optional[str] = None,
     ):
         """Phase 1: Stream conversational response for action mode. Yields text chunks."""
         fields_desc = "\n".join(
@@ -433,6 +480,13 @@ Return a JSON object with key "notes" containing an array of note strings."""
         current_desc = json.dumps(
             {k: v for k, v in current_content.items() if v}, indent=2
         ) if current_content else "{}"
+
+        create_section = ""
+        if item_type:
+            create_section = f"""
+## Creating New {item_type.replace('_', ' ').title()}s
+You may also create new {item_type.replace('_', ' ')}s. For each new {item_type.replace('_', ' ')} you will create,
+describe it conversationally using the available fields above. Be specific about the content of each field."""
 
         action_stream_prompt = f"""{system_prompt}
 
@@ -445,7 +499,7 @@ Available fields you can modify:
 
 ## Current Values
 {current_desc}
-
+{create_section}
 ## Instructions
 You are in ACTION mode. The user wants you to modify their story fields.
 Explain conversationally what changes you will make and why. Be specific about
@@ -470,8 +524,9 @@ Do NOT output JSON — respond naturally as a writing partner."""
         assistant_message: str,
         field_definitions: List[Dict],
         current_content: Dict,
+        item_type: Optional[str] = None,
     ) -> Dict:
-        """Phase 2: Extract field_updates from the streamed message via JSON-mode call."""
+        """Phase 2: Extract field_updates (and optionally list_item_creates) via JSON-mode call."""
         fields_desc = "\n".join(
             f"- {f.get('key')}: {f.get('label', f.get('key'))} ({f.get('type', 'text')})"
             for f in field_definitions
@@ -479,6 +534,19 @@ Do NOT output JSON — respond naturally as a writing partner."""
         current_desc = json.dumps(
             {k: v for k, v in current_content.items() if v}, indent=2
         ) if current_content else "{}"
+
+        if item_type:
+            item_label = item_type.replace('_', ' ')
+            task_instructions = f"""Based on what the assistant described, return a JSON object with:
+- "field_updates": an object mapping field keys to their new string values (for subsection-level edits). Use {{}} if none.
+- "list_item_creates": an array of objects, each containing field keys mapped to string values for a NEW {item_label} to create. Use [] if none.
+
+Only include items the assistant explicitly described creating."""
+        else:
+            task_instructions = """Based on what the assistant described, return a JSON object with exactly one key:
+- "field_updates": an object mapping field keys to their new string values.
+Use an empty object {} if no changes were described.
+Only include fields that the assistant explicitly mentioned changing."""
 
         extraction_prompt = f"""Extract field updates from this conversation.
 
@@ -495,10 +563,7 @@ Do NOT output JSON — respond naturally as a writing partner."""
 {assistant_message}
 
 ## Task:
-Based on what the assistant described, return a JSON object with exactly one key:
-- "field_updates": an object mapping field keys to their new string values.
-Use an empty object {{}} if no changes were described.
-Only include fields that the assistant explicitly mentioned changing."""
+{task_instructions}"""
 
         try:
             text = await chat_completion(
@@ -511,10 +576,13 @@ Only include fields that the assistant explicitly mentioned changing."""
                 json_mode=True,
             )
             result = json.loads(text)
-            return result.get("field_updates", {})
+            return {
+                "field_updates": result.get("field_updates", {}),
+                "list_item_creates": result.get("list_item_creates", []),
+            }
         except Exception as e:
             logger.error(f"Action extract updates error: {e}")
-            return {}
+            return {"field_updates": {}, "list_item_creates": []}
 
     async def chat_with_action(
         self,

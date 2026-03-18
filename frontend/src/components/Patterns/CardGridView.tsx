@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Check, AlertCircle, ChevronDown } from 'lucide-react';
+import { Check, AlertCircle, ChevronDown, Wand2, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, DEBOUNCE_DELAY } from '../../lib/constants';
-import { AIActionBar } from '../Shared/AIActionBar';
 import type { SubsectionConfig, PhaseDataResponse, TemplateConfig } from '../../types/template';
 
 interface CardGridViewProps {
@@ -18,7 +17,13 @@ export function CardGridView({ subsection, projectId, phase, phaseData }: CardGr
   const queryClient = useQueryClient();
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
-  const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [fillingKey, setFillingKey] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const formDataRef = useRef(formData);
+
+  useEffect(() => {
+    formDataRef.current = formData;
+  }, [formData]);
 
   useEffect(() => {
     if (phaseData?.content) {
@@ -34,17 +39,31 @@ export function CardGridView({ subsection, projectId, phase, phaseData }: CardGr
     },
   });
 
+  const autofillMutation = useMutation({
+    mutationFn: (fieldKey: string) =>
+      api.fillBlanks({ project_id: projectId, phase, subsection_key: subsection.key, field_key: fieldKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SUBSECTION_DATA(projectId, phase, subsection.key) });
+      setFillingKey(null);
+    },
+    onError: () => {
+      setFillingKey(null);
+    },
+  });
+
   const handleChange = useCallback((key: string, value: string) => {
-    setFormData(prev => {
-      const updated = { ...prev, [key]: value };
-      if (saveTimer) clearTimeout(saveTimer);
-      const timer = setTimeout(() => {
-        saveMutation.mutate(updated);
-      }, DEBOUNCE_DELAY * 3);
-      setSaveTimer(timer);
-      return updated;
-    });
-  }, [saveTimer, saveMutation]);
+    setFormData(prev => ({ ...prev, [key]: value }));
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      saveMutation.mutate({ ...formDataRef.current, [key]: value });
+    }, DEBOUNCE_DELAY * 3);
+  }, [saveMutation]);
+
+  const handleAutofill = useCallback((fieldKey: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setFillingKey(fieldKey);
+    autofillMutation.mutate(fieldKey);
+  }, [autofillMutation]);
 
   const fields = subsection.fields || subsection.cards || [];
   const columns = subsection.columns || subsection.grid_columns || 3;
@@ -59,18 +78,6 @@ export function CardGridView({ subsection, projectId, phase, phaseData }: CardGr
         )}
       </div>
 
-      {/* AI Actions */}
-      {subsection.ai_actions && subsection.ai_actions.length > 0 && (
-        <div className="mb-6">
-          <AIActionBar
-            actions={subsection.ai_actions}
-            projectId={projectId}
-            phase={phase}
-            subsectionKey={subsection.key}
-          />
-        </div>
-      )}
-
       {/* Card Grid */}
       <div
         className="grid gap-3"
@@ -79,6 +86,7 @@ export function CardGridView({ subsection, projectId, phase, phaseData }: CardGr
         {fields.map((field, index) => {
           const isExpanded = expandedCard === field.key;
           const hasContent = !!formData[field.key];
+          const isFilling = fillingKey === field.key;
 
           return (
             <div
@@ -99,6 +107,18 @@ export function CardGridView({ subsection, projectId, phase, phaseData }: CardGr
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-medium text-foreground">{field.label}</h3>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => handleAutofill(field.key, e)}
+                      disabled={isFilling}
+                      title="Autofill with AI"
+                      className="p-1 rounded-md text-muted-foreground/50 hover:text-amber-400 hover:bg-amber-500/10 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-100"
+                    >
+                      {isFilling ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
+                      ) : (
+                        <Wand2 className="h-3.5 w-3.5" />
+                      )}
+                    </button>
                     {hasContent && (
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     )}

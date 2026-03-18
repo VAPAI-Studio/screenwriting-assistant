@@ -24,22 +24,41 @@ export function AIActionBar({ actions, projectId, phase, subsectionKey, itemId }
   const [notes, setNotes] = useState<string | null>(null);
 
   const fillBlanksMutation = useMutation({
-    mutationFn: () => api.fillBlanks({ project_id: projectId, phase, subsection_key: subsectionKey, item_id: itemId }),
-    onSuccess: () => {
+    mutationFn: () => {
+      const payload = { project_id: projectId, phase, subsection_key: subsectionKey, item_id: itemId };
+      console.log('[AIActionBar] fillBlanks payload:', JSON.stringify(payload, null, 2));
+      return api.fillBlanks(payload);
+    },
+    onSuccess: (data) => {
+      console.log('[AIActionBar] fillBlanks SUCCESS:', JSON.stringify(data, null, 2));
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SUBSECTION_DATA(projectId, phase, subsectionKey) });
+      setActiveAction(null);
+    },
+    onError: (err: Error) => {
+      console.error('[AIActionBar] fillBlanks ERROR:', err.message, err);
       setActiveAction(null);
     },
   });
 
   const giveNotesMutation = useMutation({
-    mutationFn: () => api.giveNotes({ project_id: projectId, phase, subsection_key: subsectionKey, item_id: itemId }),
+    mutationFn: () => {
+      const payload = { project_id: projectId, phase, subsection_key: subsectionKey, item_id: itemId };
+      console.log('[AIActionBar] giveNotes payload:', JSON.stringify(payload, null, 2));
+      return api.giveNotes(payload);
+    },
     onSuccess: (data) => {
+      console.log('[AIActionBar] giveNotes SUCCESS:', JSON.stringify(data, null, 2));
       setNotes(typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data));
+      setActiveAction(null);
+    },
+    onError: (err: Error) => {
+      console.error('[AIActionBar] giveNotes ERROR:', err.message, err);
       setActiveAction(null);
     },
   });
 
   const handleAction = (action: AIActionDef) => {
+    console.log('[AIActionBar] handleAction:', action.key, { projectId, phase, subsectionKey, itemId });
     setActiveAction(action.key);
     if (action.key === 'fill_blanks') {
       fillBlanksMutation.mutate();

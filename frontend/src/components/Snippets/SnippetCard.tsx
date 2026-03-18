@@ -106,6 +106,13 @@ export function SnippetCard({
             {snippet.content}
           </p>
 
+          {/* Justification — why this snippet was selected */}
+          {snippet.justification && (
+            <p className="text-xs text-muted-foreground/80 italic border-l-2 border-amber-500/30 pl-2.5 leading-relaxed">
+              {snippet.justification}
+            </p>
+          )}
+
           {/* Concept name badges */}
           {snippet.concept_names.length > 0 && (
             <div className="flex flex-wrap gap-1.5">

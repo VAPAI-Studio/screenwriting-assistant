@@ -191,6 +191,7 @@ export function ProjectWorkspace() {
               phase={selectedPhase}
               templateConfig={templateConfig}
               itemId={itemId}
+              onNavigateTo={handleSubsectionChange}
             />
           ) : (
             <div className="flex items-center justify-center h-full">

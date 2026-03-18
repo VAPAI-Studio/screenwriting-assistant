@@ -4,7 +4,6 @@ import { Check, AlertCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, DEBOUNCE_DELAY } from '../../lib/constants';
 import { FieldRenderer } from '../Shared/FieldRenderer';
-import { AIActionBar } from '../Shared/AIActionBar';
 import type { SubsectionConfig, PhaseDataResponse, TemplateConfig } from '../../types/template';
 
 interface StructuredFormViewProps {
@@ -57,18 +56,6 @@ export function StructuredFormView({ subsection, projectId, phase, phaseData }: 
           <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{subsection.description}</p>
         )}
       </div>
-
-      {/* AI Actions */}
-      {subsection.ai_actions && subsection.ai_actions.length > 0 && (
-        <div className="mb-8">
-          <AIActionBar
-            actions={subsection.ai_actions}
-            projectId={projectId}
-            phase={phase}
-            subsectionKey={subsection.key}
-          />
-        </div>
-      )}
 
       {/* Field Groups */}
       <div className="space-y-10">

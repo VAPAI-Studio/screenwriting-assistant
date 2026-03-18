@@ -12,6 +12,34 @@ from ...config import settings
 
 router = APIRouter()
 
+ACTIVE_PROCESSING_STATUSES = {
+    BookStatus.PENDING,
+    BookStatus.EXTRACTING,
+    BookStatus.ANALYZING,
+    BookStatus.EMBEDDING,
+}
+
+
+def _book_dict(b: Book) -> dict:
+    return {
+        "id": str(b.id),
+        "title": b.title,
+        "author": b.author,
+        "filename": b.filename,
+        "file_type": b.file_type,
+        "file_size_bytes": b.file_size_bytes,
+        "status": b.status.value if b.status else "pending",
+        "processing_step": b.processing_step,
+        "total_chunks": b.total_chunks,
+        "total_concepts": b.total_concepts,
+        "processing_error": b.processing_error,
+        "chapters_total": b.chapters_total or 0,
+        "chapters_processed": b.chapters_processed or 0,
+        "progress": b.progress or 0,
+        "uploaded_at": b.uploaded_at.isoformat() if b.uploaded_at else None,
+        "processed_at": b.processed_at.isoformat() if b.processed_at else None,
+    }
+
 
 @router.post("/upload", response_model=schemas.BookUploadResponse)
 async def upload_book(
@@ -77,24 +105,90 @@ async def list_books(
         .order_by(Book.uploaded_at.desc())
         .all()
     )
-    return [
-        {
-            "id": str(b.id),
-            "title": b.title,
-            "author": b.author,
-            "filename": b.filename,
-            "file_type": b.file_type,
-            "file_size_bytes": b.file_size_bytes,
-            "status": b.status.value if b.status else "pending",
-            "processing_step": b.processing_step,
-            "total_chunks": b.total_chunks,
-            "total_concepts": b.total_concepts,
-            "processing_error": b.processing_error,
-            "uploaded_at": b.uploaded_at.isoformat() if b.uploaded_at else None,
-            "processed_at": b.processed_at.isoformat() if b.processed_at else None,
-        }
-        for b in books
-    ]
+    return [_book_dict(b) for b in books]
+
+
+@router.post("/{book_id}/pause")
+async def pause_book(
+    book_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Stop an actively processing book. It can be resumed later."""
+    book = (
+        db.query(Book)
+        .filter(Book.id == book_id, Book.owner_id == current_user.id)
+        .first()
+    )
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    if book.status not in ACTIVE_PROCESSING_STATUSES:
+        raise HTTPException(status_code=400, detail="Book is not currently being processed")
+
+    cancelled = book_processing_service.pause_book(str(book_id))
+    if not cancelled:
+        # Task not found in registry (may have just finished) — set PAUSED directly
+        book.status = BookStatus.PAUSED
+        book.processing_step = f"Paused at chapter {book.chapters_processed} of {book.chapters_total}"
+        db.commit()
+
+    return {"message": "Stopping..."}
+
+
+@router.post("/{book_id}/resume")
+async def resume_book(
+    book_id: UUID,
+    background_tasks: BackgroundTasks,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Resume processing a paused book from its last checkpoint."""
+    book = (
+        db.query(Book)
+        .filter(Book.id == book_id, Book.owner_id == current_user.id)
+        .first()
+    )
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    if book.status != BookStatus.PAUSED:
+        raise HTTPException(status_code=400, detail="Book is not paused")
+
+    # Pass IDs only — the background task creates its own DB session
+    background_tasks.add_task(
+        book_processing_service.resume_book,
+        str(book_id),
+        str(current_user.id),
+    )
+    return {"message": "Resuming..."}
+
+
+@router.post("/{book_id}/retry")
+async def retry_book(
+    book_id: UUID,
+    background_tasks: BackgroundTasks,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete all extracted data and reprocess the book from scratch."""
+    book = (
+        db.query(Book)
+        .filter(Book.id == book_id, Book.owner_id == current_user.id)
+        .first()
+    )
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    if book.status not in {BookStatus.FAILED, BookStatus.PAUSED}:
+        raise HTTPException(status_code=400, detail="Book must be failed or paused to retry")
+
+    background_tasks.add_task(
+        book_processing_service.retry_book,
+        str(book_id),
+        str(current_user.id),
+    )
+    return {"message": "Retrying from scratch..."}
 
 
 @router.get("/{book_id}")
@@ -111,7 +205,7 @@ async def get_book(
     )
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
-    return book
+    return _book_dict(book)
 
 
 @router.get("/{book_id}/concepts")
