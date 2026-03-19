@@ -6,6 +6,7 @@ import {
   TemplateConfig, TemplateListItem, PhaseDataResponse, ListItemResponse,
   AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
   Snippet, SnippetListResponse, PipelineMapResponse,
+  Shot, ShotCreate, ShotUpdate,
 } from '../types';
 import type { YoloEvent } from '../types/template';
 import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT, CHAT_TIMEOUT } from './constants';
@@ -867,6 +868,55 @@ export const api = {
     });
     if (!response.ok) throw new Error('Failed to trigger extraction');
     return response.json();
+  },
+
+  // ============================================================
+  // Shots (v3.0 — Phase 20)
+  // ============================================================
+
+  async listShots(projectId: string): Promise<Shot[]> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shots/${projectId}`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch shots');
+    return response.json();
+  },
+
+  async createShot(projectId: string, data: ShotCreate): Promise<Shot> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shots/${projectId}`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create shot');
+    return response.json();
+  },
+
+  async updateShot(projectId: string, shotId: string, data: ShotUpdate): Promise<Shot> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shots/${projectId}/${shotId}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update shot');
+    return response.json();
+  },
+
+  async deleteShot(projectId: string, shotId: string): Promise<void> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shots/${projectId}/${shotId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete shot');
+  },
+
+  async reorderShots(projectId: string, items: Array<{ id: string; sort_order: number }>): Promise<void> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shots/${projectId}/reorder`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ items }),
+    });
+    if (!response.ok) throw new Error('Failed to reorder shots');
   },
 
   async yoloFill(

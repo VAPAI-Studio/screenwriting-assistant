@@ -299,3 +299,54 @@ export interface BreakdownElementUpdate {
   name?: string;
   description?: string;
 }
+
+// ============================================================
+// Shot types (v3.0 — Phase 20)
+// ============================================================
+
+export interface ShotFields {
+  shot_size?: string;
+  camera_angle?: string;
+  camera_movement?: string;
+  lens?: string;
+  description?: string;
+  action?: string;
+  dialogue?: string;
+  sound?: string;
+  characters?: string;
+  environment?: string;
+  props?: string;
+  equipment?: string;
+  notes?: string;
+}
+
+export interface Shot {
+  id: string;
+  project_id: string;
+  scene_item_id: string | null;
+  shot_number: number;
+  script_text: string;
+  script_range: Record<string, unknown>;
+  fields: ShotFields;
+  sort_order: number;
+  source: 'user' | 'ai';
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface ShotCreate {
+  scene_item_id?: string | null;
+  shot_number?: number;
+  script_text?: string;
+  fields?: Partial<ShotFields>;
+  sort_order?: number;
+  source?: 'user' | 'ai';
+}
+
+export interface ShotUpdate {
+  scene_item_id?: string | null;
+  shot_number?: number;
+  script_text?: string;
+  fields?: Partial<ShotFields>;
+  sort_order?: number;
+}

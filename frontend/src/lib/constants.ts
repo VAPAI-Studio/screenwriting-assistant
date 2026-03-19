@@ -186,6 +186,7 @@ export const QUERY_KEYS = {
   PIPELINE_MAP: 'pipeline-map',
   BREAKDOWN_SUMMARY: (projectId: string) => ['breakdown-summary', projectId] as const,
   BREAKDOWN_ELEMENTS: (projectId: string, category?: string) => ['breakdown-elements', projectId, category] as const,
+  SHOTS: (projectId: string) => ['shots', projectId] as const,
 } as const;
 
 // Theme Configuration
