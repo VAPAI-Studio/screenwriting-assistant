@@ -26,11 +26,11 @@
 
 ### Script Selection
 
-- [ ] **SELC-01**: Left panel in breakdown mode shows a read-only rendering of the screenplay content
-- [ ] **SELC-02**: User can highlight/select text in the read-only script view
-- [ ] **SELC-03**: On text selection, a floating bar appears showing line count and "+ Add Shot" button
-- [ ] **SELC-04**: Clicking "+ Add Shot" creates a new shot pre-populated with the selected script text and linked to the corresponding scene
-- [ ] **SELC-05**: Selection bar dismisses on click outside or pressing X
+- [x] **SELC-01**: Left panel in breakdown mode shows a read-only rendering of the screenplay content
+- [x] **SELC-02**: User can highlight/select text in the read-only script view
+- [x] **SELC-03**: On text selection, a floating bar appears showing line count and "+ Add Shot" button
+- [x] **SELC-04**: Clicking "+ Add Shot" creates a new shot pre-populated with the selected script text and linked to the corresponding scene
+- [x] **SELC-05**: Selection bar dismisses on click outside or pressing X
 
 ### Media Uploads
 
@@ -124,11 +124,11 @@
 | SHOT-06 | Phase 20 | Complete |
 | SHOT-07 | Phase 20 | Complete |
 | SHOT-08 | Phase 20 | Complete |
-| SELC-01 | Phase 21 | Pending |
-| SELC-02 | Phase 21 | Pending |
-| SELC-03 | Phase 21 | Pending |
-| SELC-04 | Phase 21 | Pending |
-| SELC-05 | Phase 21 | Pending |
+| SELC-01 | Phase 21 | Complete |
+| SELC-02 | Phase 21 | Complete |
+| SELC-03 | Phase 21 | Complete |
+| SELC-04 | Phase 21 | Complete |
+| SELC-05 | Phase 21 | Complete |
 | MDIA-01 | Phase 22 | Pending |
 | MDIA-02 | Phase 22 | Pending |
 | MDIA-03 | Phase 23 | Pending |

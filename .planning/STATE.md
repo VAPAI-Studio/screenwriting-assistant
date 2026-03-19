@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: unknown
-stopped_at: Completed 20-02-PLAN.md (Phase 20 complete)
-last_updated: "2026-03-19T19:57:43.099Z"
+stopped_at: Completed 21-01-PLAN.md
+last_updated: "2026-03-19T20:44:28.978Z"
 progress:
   total_phases: 9
-  completed_phases: 4
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 5
+  total_plans: 7
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,20 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 20 — shotlist-panel
+**Current focus:** Phase 21 — script-read-view-text-selection (COMPLETE)
 
 ## Current Position
 
-Phase: 20 (shotlist-panel) — COMPLETE
-Plan: 2 of 2 (all plans complete)
+Phase: 21 (script-read-view-text-selection) — COMPLETE
+Plan: 1 of 1 (done)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 4 (v3.0) / 36 (lifetime)
-- Average duration: 3.5min (v3.0) / see milestones for historical
-- Total execution time: 0.23 hours (v3.0)
+- Total plans completed: 5 (v3.0) / 37 (lifetime)
+- Average duration: 3.2min (v3.0) / see milestones for historical
+- Total execution time: 0.27 hours (v3.0)
 
 **By Phase:**
 
@@ -41,16 +41,18 @@ Plan: 2 of 2 (all plans complete)
 | 17-data-foundation | 1 | 5min | 5min |
 | 19-shot-crud-api-core-model | 1 | 3min | 3min |
 | 20-shotlist-panel | 2 | 6min | 3min |
+| 21-script-read-view-text-selection | 1 | 2min | 2min |
 
 **Recent Trend:**
 
-- Last 5 plans: 17-01 (5min), 19-01 (3min), 20-01 (4min), 20-02 (2min)
+- Last 5 plans: 17-01 (5min), 19-01 (3min), 20-01 (4min), 20-02 (2min), 21-01 (2min)
 - Trend: improving
 
 *Updated after each plan completion*
 | Phase 18-two-mode-ui-shell P01 | 12 | 3 tasks | 4 files |
 | Phase 18-two-mode-ui-shell P02 | 3 | 3 tasks | 3 files |
 | Phase 20 P02 | 2 | 2 tasks | 5 files |
+| Phase 21 P01 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -94,6 +96,9 @@ v3.0 decisions (from execution):
 - [Phase 20]: Empty state CTA creates shot with scene_item_id: null (unassigned)
 - [Phase 20]: Reorder swaps sort_order values between adjacent shots -- minimizes API payload
 - [Phase 20]: Action controls use opacity-0 group-hover:opacity-100 for hover-reveal
+- [Phase 21-script-read-view-text-selection]: Text selection uses selectionchange event with Safari mouseup fallback for cross-browser support
+- [Phase 21-script-read-view-text-selection]: Scene resolution walks from selection anchor to nearest [data-scene-id] ancestor via closest()
+- [Phase 21-script-read-view-text-selection]: No new dependencies -- reused existing React Query, lucide-react
 
 ### Pending Todos
 
@@ -106,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T19:53:01.420Z
-Stopped at: Completed 20-02-PLAN.md (Phase 20 complete)
+Last session: 2026-03-19T20:44:28.975Z
+Stopped at: Completed 21-01-PLAN.md
 Resume file: None
