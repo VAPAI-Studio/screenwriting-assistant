@@ -109,61 +109,59 @@
 
 ## Traceability
 
-Populated during roadmap creation.
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODE-01 | TBD | Pending |
-| MODE-02 | TBD | Pending |
-| MODE-03 | TBD | Pending |
-| MODE-04 | TBD | Pending |
-| MODE-05 | TBD | Pending |
-| SHOT-01 | TBD | Pending |
-| SHOT-02 | TBD | Pending |
-| SHOT-03 | TBD | Pending |
-| SHOT-04 | TBD | Pending |
-| SHOT-05 | TBD | Pending |
-| SHOT-06 | TBD | Pending |
-| SHOT-07 | TBD | Pending |
-| SHOT-08 | TBD | Pending |
-| SELC-01 | TBD | Pending |
-| SELC-02 | TBD | Pending |
-| SELC-03 | TBD | Pending |
-| SELC-04 | TBD | Pending |
-| SELC-05 | TBD | Pending |
-| MDIA-01 | TBD | Pending |
-| MDIA-02 | TBD | Pending |
-| MDIA-03 | TBD | Pending |
-| MDIA-04 | TBD | Pending |
-| MDIA-05 | TBD | Pending |
-| MDIA-06 | TBD | Pending |
-| MDIA-07 | TBD | Pending |
-| ASST-01 | TBD | Pending |
-| ASST-02 | TBD | Pending |
-| ASST-03 | TBD | Pending |
-| ASST-04 | TBD | Pending |
-| ASST-05 | TBD | Pending |
-| CHAT-01 | TBD | Pending |
-| CHAT-02 | TBD | Pending |
-| CHAT-03 | TBD | Pending |
-| CHAT-04 | TBD | Pending |
-| CHAT-05 | TBD | Pending |
-| SYNC-01 | TBD | Pending |
-| SYNC-02 | TBD | Pending |
-| SYNC-03 | TBD | Pending |
-| SYNC-04 | TBD | Pending |
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
-| DATA-05 | TBD | Pending |
-| DATA-06 | TBD | Pending |
+| MODE-01 | Phase 18 | Pending |
+| MODE-02 | Phase 18 | Pending |
+| MODE-03 | Phase 18 | Pending |
+| MODE-04 | Phase 18 | Pending |
+| MODE-05 | Phase 18 | Pending |
+| SHOT-01 | Phase 19 | Pending |
+| SHOT-02 | Phase 19 | Pending |
+| SHOT-03 | Phase 20 | Pending |
+| SHOT-04 | Phase 20 | Pending |
+| SHOT-05 | Phase 20 | Pending |
+| SHOT-06 | Phase 20 | Pending |
+| SHOT-07 | Phase 20 | Pending |
+| SHOT-08 | Phase 20 | Pending |
+| SELC-01 | Phase 21 | Pending |
+| SELC-02 | Phase 21 | Pending |
+| SELC-03 | Phase 21 | Pending |
+| SELC-04 | Phase 21 | Pending |
+| SELC-05 | Phase 21 | Pending |
+| MDIA-01 | Phase 22 | Pending |
+| MDIA-02 | Phase 22 | Pending |
+| MDIA-03 | Phase 23 | Pending |
+| MDIA-04 | Phase 23 | Pending |
+| MDIA-05 | Phase 22 | Pending |
+| MDIA-06 | Phase 22 | Pending |
+| MDIA-07 | Phase 22 | Pending |
+| ASST-01 | Phase 23 | Pending |
+| ASST-02 | Phase 23 | Pending |
+| ASST-03 | Phase 23 | Pending |
+| ASST-04 | Phase 23 | Pending |
+| ASST-05 | Phase 23 | Pending |
+| CHAT-01 | Phase 24 | Pending |
+| CHAT-02 | Phase 24 | Pending |
+| CHAT-03 | Phase 24 | Pending |
+| CHAT-04 | Phase 24 | Pending |
+| CHAT-05 | Phase 24 | Pending |
+| SYNC-01 | Phase 25 | Pending |
+| SYNC-02 | Phase 25 | Pending |
+| SYNC-03 | Phase 25 | Pending |
+| SYNC-04 | Phase 25 | Pending |
+| DATA-01 | Phase 17 | Pending |
+| DATA-02 | Phase 17 | Pending |
+| DATA-03 | Phase 17 | Pending |
+| DATA-04 | Phase 19 | Pending |
+| DATA-05 | Phase 22 | Pending |
+| DATA-06 | Phase 17 | Pending |
 
 **Coverage:**
-- v3.0 requirements: 43 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 43
+- v3.0 requirements: 45 total
+- Mapped to phases: 45
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-19*
-*Last updated: 2026-03-19 after initial definition*
+*Last updated: 2026-03-19 after roadmap creation*
