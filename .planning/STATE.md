@@ -2,16 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
-status: completed
-stopped_at: Phase 19 context gathered
-last_updated: "2026-03-19T18:43:05.362Z"
-last_activity: 2026-03-19 — Phase 17 Plan 01 completed (data foundation)
+status: executing
+stopped_at: Completed 19-01-PLAN.md
+last_updated: "2026-03-19T19:01:32Z"
 progress:
   total_phases: 9
   completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_plans: 4
+  completed_plans: 4
 ---
 
 # Project State
@@ -21,23 +19,19 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v3.0 Shotlist & Production Breakdown — Phase 17 Plan 01 complete
+**Current focus:** Phase 19 — shot-crud-api-core-model
 
 ## Current Position
 
-Phase: 17 of 25 (Data Foundation)
-Plan: 1 of 1 in current phase
-Status: Phase 17 complete
-Last activity: 2026-03-19 — Phase 17 Plan 01 completed (data foundation)
-
-Progress: [██████████] 100%
+Phase: 19 (shot-crud-api-core-model) — COMPLETE
+Plan: 1 of 1 (DONE)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 1 (v3.0) / 33 (lifetime)
-- Average duration: 5min (v3.0) / see milestones for historical
+- Total plans completed: 2 (v3.0) / 34 (lifetime)
+- Average duration: 4min (v3.0) / see milestones for historical
 - Total execution time: 0.1 hours (v3.0)
 
 **By Phase:**
@@ -45,11 +39,12 @@ Progress: [██████████] 100%
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 17-data-foundation | 1 | 5min | 5min |
+| 19-shot-crud-api-core-model | 1 | 3min | 3min |
 
 **Recent Trend:**
 
-- Last 5 plans: 17-01 (5min)
-- Trend: --
+- Last 5 plans: 17-01 (5min), 19-01 (3min)
+- Trend: improving
 
 *Updated after each plan completion*
 | Phase 18-two-mode-ui-shell P01 | 12 | 3 tasks | 4 files |
@@ -85,6 +80,9 @@ v3.0 decisions (from execution):
 - [Phase 18-two-mode-ui-shell]: Used .breakdown-mode CSS class for palette override — consistent with Tailwind class-based theming
 - [Phase 18-two-mode-ui-shell]: ModeToggle self-guards via useParams returning null when projectId absent
 - [Phase 18-two-mode-ui-shell]: BreakdownPage import commented out (not deleted) in App.tsx — reserved for Phase 23; TypeScript noUnusedLocals prevented keeping as live unused import
+- [Phase 19-shot-crud-api-core-model]: _verify_project_ownership copied locally into shots.py -- avoids cross-module coupling
+- [Phase 19-shot-crud-api-core-model]: Reorder returns 403 for foreign shot IDs (not 404) -- ownership violation vs not-found
+- [Phase 19-shot-crud-api-core-model]: PUT fields replacement (not merge) -- consistent with JSONB column semantics
 
 ### Pending Todos
 
@@ -97,6 +95,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T18:43:05.358Z
-Stopped at: Phase 19 context gathered
-Resume file: .planning/phases/19-shot-crud-api-core-model/19-CONTEXT.md
+Last session: 2026-03-19T19:01:32Z
+Stopped at: Completed 19-01-PLAN.md
+Resume file: .planning/phases/19-shot-crud-api-core-model/19-01-SUMMARY.md

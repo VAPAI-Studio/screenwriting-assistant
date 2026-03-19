@@ -15,8 +15,8 @@
 
 ### Shotlist
 
-- [ ] **SHOT-01**: User can create a shot manually via "Add Shot" button with freeform text fields
-- [ ] **SHOT-02**: Shots have freeform text fields: shot_size, camera_angle, camera_movement, lens, description, action, dialogue, sound, characters, environment, props, equipment, notes
+- [x] **SHOT-01**: User can create a shot manually via "Add Shot" button with freeform text fields
+- [x] **SHOT-02**: Shots have freeform text fields: shot_size, camera_angle, camera_movement, lens, description, action, dialogue, sound, characters, environment, props, equipment, notes
 - [ ] **SHOT-03**: Shots are grouped by scene with scene headers in the shotlist panel
 - [ ] **SHOT-04**: User can edit shot fields inline in the shotlist table
 - [ ] **SHOT-05**: User can delete shots
@@ -70,7 +70,7 @@
 - [x] **DATA-01**: `shots` table exists with project_id, scene_item_id, shot_number, script_text, script_range (JSONB), fields (JSONB), sort_order, source
 - [x] **DATA-02**: `asset_media` table exists with project_id, element_id, shot_id, file_type, file_path, thumbnail_path, original_filename, file_size_bytes, metadata (JSONB)
 - [x] **DATA-03**: `shotlist_stale` boolean column added to projects table
-- [ ] **DATA-04**: Shot CRUD API endpoints exist (GET list, POST create, GET single, PUT update, DELETE)
+- [x] **DATA-04**: Shot CRUD API endpoints exist (GET list, POST create, GET single, PUT update, DELETE)
 - [ ] **DATA-05**: Media upload API endpoint exists (POST upload, GET list, DELETE)
 - [x] **DATA-06**: Idempotent delta migration for new tables (follows existing `delta/` pattern)
 
@@ -116,8 +116,8 @@
 | MODE-03 | Phase 18 | Complete |
 | MODE-04 | Phase 18 | Complete |
 | MODE-05 | Phase 18 | Complete |
-| SHOT-01 | Phase 19 | Pending |
-| SHOT-02 | Phase 19 | Pending |
+| SHOT-01 | Phase 19 | Complete |
+| SHOT-02 | Phase 19 | Complete |
 | SHOT-03 | Phase 20 | Pending |
 | SHOT-04 | Phase 20 | Pending |
 | SHOT-05 | Phase 20 | Pending |
@@ -153,7 +153,7 @@
 | DATA-01 | Phase 17 | Complete |
 | DATA-02 | Phase 17 | Complete |
 | DATA-03 | Phase 17 | Complete |
-| DATA-04 | Phase 19 | Pending |
+| DATA-04 | Phase 19 | Complete |
 | DATA-05 | Phase 22 | Pending |
 | DATA-06 | Phase 17 | Complete |
 
