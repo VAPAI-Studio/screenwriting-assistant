@@ -217,7 +217,7 @@ Note: Phase 19 and Phase 22 can execute in parallel (both depend only on Phase 1
 | 18. Two-Mode UI Shell | 2/2 | Complete    | 2026-03-19 | - |
 | 19. Shot CRUD API & Core Model | 1/1 | Complete    | 2026-03-19 | - |
 | 20. Shotlist Panel | 2/2 | Complete    | 2026-03-19 | - |
-| 21. Script Read View & Text Selection | 1/1 | Complete   | 2026-03-19 | - |
+| 21. Script Read View & Text Selection | 1/1 | Complete    | 2026-03-19 | - |
 | 22. Media Upload Backend | v3.0 | 0/1 | Not started | - |
 | 23. Assets Panel & Media Display | v3.0 | 0/2 | Not started | - |
 | 24. AI Chat for Breakdown | v3.0 | 0/2 | Not started | - |
