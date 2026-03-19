@@ -715,3 +715,87 @@ class BreakdownSummaryResponse(BaseModel):
 class SceneLinkCreate(BaseModel):
     scene_item_id: UUID
     context: str = ""
+
+
+# ============================================================
+# Shotlist Schemas (v3.0 -- Phase 17 Data Foundation)
+# ============================================================
+
+class ScriptRange(BaseModel):
+    scene_index: int = 0
+    start_offset: int = 0
+    end_offset: int = 0
+    content_hash: str = ""
+
+
+class ShotCreate(BaseModel):
+    scene_item_id: Optional[UUID] = None
+    shot_number: int = Field(default=1, ge=1)
+    script_text: str = ""
+    script_range: Optional[Dict] = Field(default_factory=dict)
+    fields: Dict = Field(default_factory=dict)
+    sort_order: Optional[int] = None
+    source: str = Field(default="user", pattern="^(user|ai)$")
+
+
+class ShotUpdate(BaseModel):
+    scene_item_id: Optional[UUID] = None
+    shot_number: Optional[int] = Field(None, ge=1)
+    script_text: Optional[str] = None
+    script_range: Optional[Dict] = None
+    fields: Optional[Dict] = None
+    sort_order: Optional[int] = None
+
+
+class ShotResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    scene_item_id: Optional[UUID] = None
+    shot_number: int
+    script_text: str = ""
+    script_range: Dict = Field(default_factory=dict)
+    fields: Dict = Field(default_factory=dict)
+    sort_order: int = 0
+    source: str = "user"
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ShotElementCreate(BaseModel):
+    element_id: UUID
+
+
+class ShotElementResponse(BaseModel):
+    id: UUID
+    shot_id: UUID
+    element_id: UUID
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AssetMediaCreate(BaseModel):
+    element_id: Optional[UUID] = None
+    shot_id: Optional[UUID] = None
+    file_type: str = Field(..., pattern="^(image|audio)$")
+    original_filename: str = Field(..., min_length=1, max_length=500)
+    file_size_bytes: int = Field(..., ge=0)
+
+
+class AssetMediaResponse(BaseModel):
+    id: UUID
+    project_id: UUID
+    element_id: Optional[UUID] = None
+    shot_id: Optional[UUID] = None
+    file_type: str
+    file_path: str
+    thumbnail_path: Optional[str] = None
+    original_filename: str
+    file_size_bytes: int = 0
+    metadata: Dict = Field(default_factory=dict, validation_alias="metadata_")
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
