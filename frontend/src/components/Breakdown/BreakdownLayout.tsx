@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import { FileText, MessageSquare } from 'lucide-react';
 import { STORAGE_KEYS } from '../../lib/constants';
 import { BreakdownPanel } from './BreakdownPanel';
 import { ShotlistPanel } from './ShotlistPanel';
+import { ScriptReadView } from './ScriptReadView';
 
 const MIN_PANEL_WIDTH = 200;
 
@@ -24,6 +26,8 @@ function readStoredBool(key: string, fallback: boolean): boolean {
 }
 
 export function BreakdownLayout() {
+  const { projectId } = useParams<{ projectId: string }>();
+
   // Mode class lifecycle — MUST clean up on unmount
   useEffect(() => {
     document.documentElement.classList.add('breakdown-mode');
@@ -140,11 +144,14 @@ export function BreakdownLayout() {
         onToggleCollapse={toggleLeft}
         style={{ width: leftWidth, borderRight: '1px solid hsl(var(--border))' }}
       >
-        <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
-          <FileText className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">Script View</p>
-          <p className="text-xs text-muted-foreground/60">Available in Phase 21</p>
-        </div>
+        {projectId ? (
+          <ScriptReadView projectId={projectId} />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+            <FileText className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm font-medium text-muted-foreground">No project selected</p>
+          </div>
+        )}
       </BreakdownPanel>
 
       {/* Left drag handle */}
