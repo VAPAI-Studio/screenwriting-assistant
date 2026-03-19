@@ -45,7 +45,7 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 - [ ] Two-mode UI: Screenwriting / Script Breakdown with distinct visual identity
 - ✓ Interactive shotlist: highlight script text → Add Shot → freeform field entry — Validated in Phase 21: ScriptReadView with text selection, SelectionBar floating UI, shot creation from selection — v3.0
 - ✓ Shotlist data model and CRUD API — Validated in Phase 19-20: Shot model, CRUD endpoints, scene-grouped table UI with inline editing, create/delete/reorder — v3.0
-- [ ] Media uploads: image and audio attachments for pre-production assets
+- ✓ Media uploads backend: file upload endpoint, WebP thumbnail generation (Pillow), media list/delete, StaticFiles serving — Validated in Phase 22: media-upload-backend — v3.0
 - [ ] AI chat in Breakdown mode with shotlist awareness and modification capability
 - [ ] Bidirectional sync between screenplay and shotlist (staleness pattern)
 
@@ -61,12 +61,12 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ## Context
 
-Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18). v3.0 in progress (shotlist & production breakdown, 2026-03-18). Phase 21 complete — script read view with text selection and shot creation from selected text.
+Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18). v3.0 in progress (shotlist & production breakdown, 2026-03-18). Phase 22 complete — media upload backend with WebP thumbnail generation and StaticFiles serving.
 
 **Current codebase:**
 - ~16,267 Python LOC (backend/app), ~8,667 TypeScript LOC (frontend/src)
 - Tech stack: FastAPI, PostgreSQL, SQLAlchemy, React, React Query, Tailwind, Radix UI, OpenAI/Anthropic
-- 16 total phases shipped, 32 plans
+- 17 total phases shipped, 33 plans
 
 **Key existing files:**
 - `backend/app/services/template_ai_service.py` — phase-based content generation
