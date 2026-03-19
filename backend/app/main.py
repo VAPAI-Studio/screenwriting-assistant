@@ -9,6 +9,7 @@ from .api.endpoints import projects, sections, review, auth, books, agents, chat
 from .api.endpoints import templates as templates_ep, phase_data as phase_data_ep, list_items as list_items_ep
 from .api.endpoints import wizards as wizards_ep, ai_chat as ai_chat_ep
 from .api.endpoints import breakdown as breakdown_ep
+from .api.endpoints import shots as shots_ep
 from .config import settings
 from .middleware import (
     LoggingMiddleware,
@@ -95,6 +96,7 @@ app.include_router(list_items_ep.router, prefix="/api/list-items", tags=["list-i
 app.include_router(wizards_ep.router, prefix="/api/wizards", tags=["wizards"])
 app.include_router(ai_chat_ep.router, prefix="/api/ai", tags=["ai"])
 app.include_router(breakdown_ep.router, prefix="/api/breakdown", tags=["breakdown"])
+app.include_router(shots_ep.router, prefix="/api/shots", tags=["shots"])
 
 @app.get("/health")
 async def health_check():
