@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: unknown
-stopped_at: Phase 20 UI-SPEC approved
-last_updated: "2026-03-19T19:46:20.490Z"
+stopped_at: Completed 20-02-PLAN.md (Phase 20 complete)
+last_updated: "2026-03-19T19:53:08.549Z"
 progress:
   total_phases: 9
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 6
-  completed_plans: 5
+  completed_plans: 6
 ---
 
 # Project State
@@ -23,16 +23,16 @@ See: .planning/PROJECT.md (updated 2026-03-18)
 
 ## Current Position
 
-Phase: 20 (shotlist-panel) — EXECUTING
-Plan: 2 of 2
+Phase: 20 (shotlist-panel) — COMPLETE
+Plan: 2 of 2 (all plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 3 (v3.0) / 35 (lifetime)
-- Average duration: 4min (v3.0) / see milestones for historical
-- Total execution time: 0.2 hours (v3.0)
+- Total plans completed: 4 (v3.0) / 36 (lifetime)
+- Average duration: 3.5min (v3.0) / see milestones for historical
+- Total execution time: 0.23 hours (v3.0)
 
 **By Phase:**
 
@@ -40,16 +40,17 @@ Plan: 2 of 2
 |-------|-------|-------|----------|
 | 17-data-foundation | 1 | 5min | 5min |
 | 19-shot-crud-api-core-model | 1 | 3min | 3min |
-| 20-shotlist-panel | 1 | 4min | 4min |
+| 20-shotlist-panel | 2 | 6min | 3min |
 
 **Recent Trend:**
 
-- Last 5 plans: 17-01 (5min), 19-01 (3min), 20-01 (4min)
+- Last 5 plans: 17-01 (5min), 19-01 (3min), 20-01 (4min), 20-02 (2min)
 - Trend: improving
 
 *Updated after each plan completion*
 | Phase 18-two-mode-ui-shell P01 | 12 | 3 tasks | 4 files |
 | Phase 18-two-mode-ui-shell P02 | 3 | 3 tasks | 3 files |
+| Phase 20 P02 | 2 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -87,6 +88,12 @@ v3.0 decisions (from execution):
 - [Phase 20-shotlist-panel]: Frontend spreads existing fields before overriding changed key in update mutation -- prevents JSONB wipe since PUT replaces entire fields dict
 - [Phase 20-shotlist-panel]: Scene grouping is frontend-only -- flat API response grouped by scene_item_id with unassigned shots last
 - [Phase 20-shotlist-panel]: 5 visible columns in table (shot_size, camera_angle, camera_movement, description, action); remaining 8 fields deferred to detail/expansion view
+- [Phase 20-shotlist-panel]: Empty state CTA creates shot with scene_item_id: null (unassigned) -- simplest approach, user can reassign later
+- [Phase 20-shotlist-panel]: Reorder swaps sort_order values between adjacent shots -- minimizes API payload vs recalculating all
+- [Phase 20-shotlist-panel]: Action controls (reorder + delete) use opacity-0 group-hover:opacity-100 for hover-reveal
+- [Phase 20]: Empty state CTA creates shot with scene_item_id: null (unassigned)
+- [Phase 20]: Reorder swaps sort_order values between adjacent shots -- minimizes API payload
+- [Phase 20]: Action controls use opacity-0 group-hover:opacity-100 for hover-reveal
 
 ### Pending Todos
 
@@ -99,6 +106,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T19:45:08Z
-Stopped at: Completed 20-01-PLAN.md
-Resume file: .planning/phases/20-shotlist-panel/20-01-SUMMARY.md
+Last session: 2026-03-19T19:53:01.420Z
+Stopped at: Completed 20-02-PLAN.md (Phase 20 complete)
+Resume file: None

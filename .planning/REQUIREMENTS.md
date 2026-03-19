@@ -19,10 +19,10 @@
 - [x] **SHOT-02**: Shots have freeform text fields: shot_size, camera_angle, camera_movement, lens, description, action, dialogue, sound, characters, environment, props, equipment, notes
 - [x] **SHOT-03**: Shots are grouped by scene with scene headers in the shotlist panel
 - [x] **SHOT-04**: User can edit shot fields inline in the shotlist table
-- [ ] **SHOT-05**: User can delete shots
-- [ ] **SHOT-06**: Shots have a sort_order and can be reordered within a scene
+- [x] **SHOT-05**: User can delete shots
+- [x] **SHOT-06**: Shots have a sort_order and can be reordered within a scene
 - [x] **SHOT-07**: Shotlist panel displays as a table/grid in the center-right area of breakdown mode
-- [ ] **SHOT-08**: Empty state shows clear CTA when no shots exist
+- [x] **SHOT-08**: Empty state shows clear CTA when no shots exist
 
 ### Script Selection
 
@@ -120,10 +120,10 @@
 | SHOT-02 | Phase 19 | Complete |
 | SHOT-03 | Phase 20 | Complete |
 | SHOT-04 | Phase 20 | Complete |
-| SHOT-05 | Phase 20 | Pending |
-| SHOT-06 | Phase 20 | Pending |
+| SHOT-05 | Phase 20 | Complete |
+| SHOT-06 | Phase 20 | Complete |
 | SHOT-07 | Phase 20 | Complete |
-| SHOT-08 | Phase 20 | Pending |
+| SHOT-08 | Phase 20 | Complete |
 | SELC-01 | Phase 21 | Pending |
 | SELC-02 | Phase 21 | Pending |
 | SELC-03 | Phase 21 | Pending |
