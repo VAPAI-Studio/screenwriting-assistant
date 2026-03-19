@@ -137,10 +137,10 @@ Plans:
   3. Upload endpoint enforces file type validation and rejects files over 20MB (MDIA-07)
   4. DELETE endpoint removes the media record and deletes the file from disk (MDIA-05)
   5. GET endpoint lists all media for a project or element (DATA-05)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 22-01: Media upload endpoint with Pillow thumbnails, file validation, size limits, and CRUD API with tests
+- [ ] 22-01-PLAN.md — Media upload endpoint with Pillow thumbnails, file validation, size limits, and CRUD API with tests
 
 ### Phase 23: Assets Panel & Media Display
 **Goal**: Users can browse breakdown elements with attached media and upload new files from the assets panel
