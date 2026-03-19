@@ -63,6 +63,7 @@ Notes:
 - Scene group headers use Heading role.
 - Table cell content uses Body role.
 - Column headers and field labels use Label role.
+- Empty state heading uses Body role at semibold (14px 600) — adequate prominence in a sparse, centered layout.
 
 ---
 
@@ -149,14 +150,15 @@ Components to build for this phase, with their visual contracts:
 - Hover state: `text-muted-foreground`, `cursor-grab`
 - Dragging state: `text-primary`, `cursor-grabbing`
 - Implementation: Button-based up/down arrows for v3.0 (drag-and-drop deferred to SMGT-01 in v3.1)
-  - Up arrow: `ChevronUp` icon, disabled if first in group
-  - Down arrow: `ChevronDown` icon, disabled if last in group
+  - Up arrow: `ChevronUp` icon, disabled if first in group, `aria-label="Move shot up"`
+  - Down arrow: `ChevronDown` icon, disabled if last in group, `aria-label="Move shot down"`
   - Size: `h-6 w-6` touch target, `h-3.5 w-3.5` icon
+  - Grip icon (visual indicator): `aria-label="Reorder shot"` (decorative in v3.0 since up/down buttons handle reorder, but label provided for screen reader context)
 
 ### 7. DeleteShotButton
 
 - Position: rightmost area of the action cell in each ShotRow
-- Default: `Trash2` icon from lucide-react, `h-3.5 w-3.5`, `text-muted-foreground/40`
+- Default: `Trash2` icon from lucide-react, `h-3.5 w-3.5`, `text-muted-foreground/40`, `aria-label="Delete shot"`
 - Hover: `text-red-400`
 - Confirmation: Matches ElementCard pattern — first click shows "Delete?" text button in red, auto-dismisses after 3 seconds, second click confirms deletion
 - Disabled state during pending mutation: `opacity-30`
@@ -165,9 +167,9 @@ Components to build for this phase, with their visual contracts:
 
 - Centered in the panel content area using `flex flex-col items-center justify-center h-full`
 - Icon: `List` from lucide-react, `h-10 w-10 text-muted-foreground/30`
-- Heading: "No shots yet" — Display role (but 16px for empty state prominence), semibold, `text-foreground`
-- Body: "Create your first shot to start building your shotlist." — Body role, `text-muted-foreground`, `max-w-xs text-center`
-- CTA button: "Add First Shot" — primary variant Button, `mt-4`
+- Heading: "No shots yet" -- Body role (14px), semibold (weight 600), `text-foreground`
+- Body: "Create your first shot to start building your shotlist." -- Body role (14px), regular (weight 400), `text-muted-foreground`, `max-w-xs text-center`
+- CTA button: "Add First Shot" -- primary variant Button, `mt-4`
 - Animation: `animate-fade-in` (already defined in tailwind config)
 
 ---
