@@ -5,8 +5,12 @@ import { AlertCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import { SceneGroup } from './SceneGroup';
+import { ShotlistEmptyState } from './ShotlistEmptyState';
+import { AddShotButton } from './AddShotButton';
+import { DeleteShotButton } from './DeleteShotButton';
+import { ReorderControls } from './ReorderControls';
 import type { SceneGroupData } from './SceneGroup';
-import type { Shot, ShotFields } from '../../types';
+import type { Shot, ShotFields, ShotCreate } from '../../types';
 
 // ============================================================
 // Scene grouping — pure function
@@ -97,6 +101,94 @@ export function ShotlistPanel() {
     },
   });
 
+  // Create mutation (optimistic)
+  const createMutation = useMutation({
+    mutationFn: (data: ShotCreate) => api.createShot(projectId!, data),
+    onMutate: async (data) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
+      const previous = queryClient.getQueryData<Shot[]>(QUERY_KEYS.SHOTS(projectId!));
+      const optimisticShot: Shot = {
+        id: `temp-${Date.now()}`,
+        project_id: projectId!,
+        scene_item_id: data.scene_item_id ?? null,
+        shot_number: data.shot_number ?? 1,
+        script_text: data.script_text ?? '',
+        script_range: {},
+        fields: (data.fields ?? {}) as ShotFields,
+        sort_order: data.sort_order ?? 0,
+        source: (data.source ?? 'user') as 'user' | 'ai',
+        created_at: new Date().toISOString(),
+        updated_at: null,
+      };
+      queryClient.setQueryData(QUERY_KEYS.SHOTS(projectId!), (old: Shot[] | undefined) =>
+        [...(old ?? []), optimisticShot]
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEYS.SHOTS(projectId!), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
+    },
+  });
+
+  // Delete mutation (optimistic)
+  const deleteMutation = useMutation({
+    mutationFn: (shotId: string) => api.deleteShot(projectId!, shotId),
+    onMutate: async (shotId) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
+      const previous = queryClient.getQueryData<Shot[]>(QUERY_KEYS.SHOTS(projectId!));
+      queryClient.setQueryData(QUERY_KEYS.SHOTS(projectId!), (old: Shot[] | undefined) =>
+        (old ?? []).filter(s => s.id !== shotId)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEYS.SHOTS(projectId!), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
+    },
+  });
+
+  // Reorder mutation (optimistic)
+  const reorderMutation = useMutation({
+    mutationFn: (items: Array<{ id: string; sort_order: number }>) =>
+      api.reorderShots(projectId!, items),
+    onMutate: async (items) => {
+      await queryClient.cancelQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
+      const previous = queryClient.getQueryData<Shot[]>(QUERY_KEYS.SHOTS(projectId!));
+      const orderMap = new Map(items.map(i => [i.id, i.sort_order]));
+      queryClient.setQueryData(QUERY_KEYS.SHOTS(projectId!), (old: Shot[] | undefined) => {
+        if (!old) return old;
+        return old
+          .map(s => orderMap.has(s.id) ? { ...s, sort_order: orderMap.get(s.id)! } : s)
+          .sort((a, b) => {
+            if (a.scene_item_id !== b.scene_item_id) {
+              if (a.scene_item_id === null) return 1;
+              if (b.scene_item_id === null) return -1;
+              return (a.scene_item_id ?? '').localeCompare(b.scene_item_id ?? '');
+            }
+            return a.sort_order - b.sort_order;
+          });
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(QUERY_KEYS.SHOTS(projectId!), context.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
+    },
+  });
+
   // Handler passed to SceneGroup -> ShotRow -> InlineEditCell
   const handleUpdateField = useCallback(
     (shotId: string, fieldKey: string, newValue: string, existingFields: ShotFields) => {
@@ -107,6 +199,41 @@ export function ShotlistPanel() {
     },
     [updateMutation]
   );
+
+  // Create shot handler — auto-calculates shot_number and sort_order
+  const handleCreateShot = useCallback((sceneItemId: string | null) => {
+    const groupShots = (shots ?? []).filter(s =>
+      sceneItemId === null
+        ? s.scene_item_id === null
+        : s.scene_item_id === sceneItemId
+    );
+    const maxNumber = groupShots.reduce((max, s) => Math.max(max, s.shot_number), 0);
+    const maxSortOrder = groupShots.reduce((max, s) => Math.max(max, s.sort_order), -1);
+
+    createMutation.mutate({
+      scene_item_id: sceneItemId,
+      shot_number: maxNumber + 1,
+      sort_order: maxSortOrder + 1,
+      source: 'user',
+    });
+  }, [shots, createMutation]);
+
+  // Move shot handler — swaps sort_order with adjacent shot
+  const handleMoveShot = useCallback((shot: Shot, direction: 'up' | 'down', groupShots: Shot[]) => {
+    const sorted = [...groupShots].sort((a, b) => a.sort_order - b.sort_order);
+    const idx = sorted.findIndex(s => s.id === shot.id);
+
+    if (direction === 'up' && idx <= 0) return;
+    if (direction === 'down' && idx >= sorted.length - 1) return;
+
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    const other = sorted[swapIdx];
+
+    reorderMutation.mutate([
+      { id: shot.id, sort_order: other.sort_order },
+      { id: other.id, sort_order: shot.sort_order },
+    ]);
+  }, [reorderMutation]);
 
   // ---- Loading state ----
   if (isLoading) {
@@ -154,12 +281,10 @@ export function ShotlistPanel() {
   // ---- Empty state ----
   if (!shots || shots.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-sm font-semibold text-foreground">No shots yet</p>
-        <p className="text-sm text-muted-foreground max-w-xs">
-          Create your first shot to start building your shotlist.
-        </p>
-      </div>
+      <ShotlistEmptyState
+        onAddShot={() => handleCreateShot(null)}
+        isPending={createMutation.isPending}
+      />
     );
   }
 
@@ -196,6 +321,31 @@ export function ShotlistPanel() {
             group={group}
             groupIndex={idx}
             onUpdateField={handleUpdateField}
+            renderActionCell={(shot, groupShots) => {
+              const sorted = [...groupShots].sort((a, b) => a.sort_order - b.sort_order);
+              const sortedIdx = sorted.findIndex(s => s.id === shot.id);
+              return (
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ReorderControls
+                    onMoveUp={() => handleMoveShot(shot, 'up', groupShots)}
+                    onMoveDown={() => handleMoveShot(shot, 'down', groupShots)}
+                    isFirst={sortedIdx === 0}
+                    isLast={sortedIdx === sorted.length - 1}
+                    isPending={reorderMutation.isPending}
+                  />
+                  <DeleteShotButton
+                    onDelete={() => deleteMutation.mutate(shot.id)}
+                    isPending={deleteMutation.isPending}
+                  />
+                </div>
+              );
+            }}
+            renderAddButton={(sceneItemId) => (
+              <AddShotButton
+                onClick={() => handleCreateShot(sceneItemId)}
+                isPending={createMutation.isPending}
+              />
+            )}
           />
         ))}
       </div>
