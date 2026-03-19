@@ -97,6 +97,7 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     breakdown_stale = Column(Boolean, default=False)
+    shotlist_stale = Column(Boolean, default=False)
 
     sections = sa_relationship("Section", back_populates="project", cascade="all, delete-orphan")
     phase_data = sa_relationship("PhaseData", back_populates="project", cascade="all, delete-orphan")
@@ -104,6 +105,8 @@ class Project(Base):
                                           cascade="all, delete-orphan")
     breakdown_runs = sa_relationship("BreakdownRun", back_populates="project",
                                       cascade="all, delete-orphan")
+    shots = sa_relationship("Shot", back_populates="project", cascade="all, delete-orphan")
+    asset_media = sa_relationship("AssetMedia", back_populates="project", cascade="all, delete-orphan")
 
 class Section(Base):
     __tablename__ = "sections"
@@ -530,3 +533,62 @@ class BreakdownRun(Base):
     completed_at = Column(DateTime(timezone=True))
 
     project = sa_relationship("Project", back_populates="breakdown_runs")
+
+
+# ============================================================
+# Shotlist models (v3.0 -- Phase 17 Data Foundation)
+# ============================================================
+
+class Shot(Base):
+    __tablename__ = "shots"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
+    scene_item_id = Column(UUID(as_uuid=True), ForeignKey("list_items.id", ondelete="SET NULL"), nullable=True, index=True)
+    shot_number = Column(Integer, nullable=False, default=1)
+    script_text = Column(Text, default="")
+    script_range = Column(JSON, default=dict)
+    fields = Column(JSON, default=dict)
+    sort_order = Column(Integer, default=0)
+    source = Column(String(20), default="user")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    project = sa_relationship("Project", back_populates="shots")
+    shot_elements = sa_relationship("ShotElement", back_populates="shot", cascade="all, delete-orphan")
+    media = sa_relationship("AssetMedia", back_populates="shot", cascade="all, delete-orphan")
+
+
+class ShotElement(Base):
+    __tablename__ = "shot_elements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    shot_id = Column(UUID(as_uuid=True), ForeignKey("shots.id", ondelete="CASCADE"), nullable=False, index=True)
+    element_id = Column(UUID(as_uuid=True), ForeignKey("breakdown_elements.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    shot = sa_relationship("Shot", back_populates="shot_elements")
+    element = sa_relationship("BreakdownElement")
+
+    __table_args__ = (UniqueConstraint('shot_id', 'element_id', name='uq_shot_element'),)
+
+
+class AssetMedia(Base):
+    __tablename__ = "asset_media"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
+    element_id = Column(UUID(as_uuid=True), ForeignKey("breakdown_elements.id", ondelete="SET NULL"), nullable=True, index=True)
+    shot_id = Column(UUID(as_uuid=True), ForeignKey("shots.id", ondelete="SET NULL"), nullable=True, index=True)
+    file_type = Column(String(20), nullable=False)
+    file_path = Column(String(1000), nullable=False)
+    thumbnail_path = Column(String(1000), nullable=True)
+    original_filename = Column(String(500), nullable=False)
+    file_size_bytes = Column(BigInteger, nullable=False, default=0)
+    metadata_ = Column("metadata", JSON, default=dict)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    project = sa_relationship("Project", back_populates="asset_media")
+    element = sa_relationship("BreakdownElement")
+    shot = sa_relationship("Shot", back_populates="media")
