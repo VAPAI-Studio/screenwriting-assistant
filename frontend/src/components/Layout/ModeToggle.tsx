@@ -1,12 +1,16 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useMatch } from 'react-router-dom';
 import { ChevronDown, PenLine, Clapperboard } from 'lucide-react';
 import { ROUTES } from '../../lib/constants';
 
 export function ModeToggle() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { projectId } = useParams<{ projectId: string }>();
+
+  // useParams is unavailable in components rendered outside <Routes> (e.g. Header/Layout).
+  // useMatch works anywhere inside <Router> and matches against the current URL.
+  const projectMatch = useMatch('/projects/:projectId/*');
+  const projectId = projectMatch?.params.projectId;
 
   // Only render when inside a project route
   if (!projectId) return null;
