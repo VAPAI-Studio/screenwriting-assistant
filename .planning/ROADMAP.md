@@ -92,10 +92,10 @@ Plans:
   3. PUT endpoint updates any combination of shot fields (DATA-04)
   4. DELETE endpoint removes a shot and returns success (DATA-04)
   5. Shot fields JSONB supports all standard fields: shot_size, camera_angle, camera_movement, lens, description, action, dialogue, sound, characters, environment, props, equipment, notes (SHOT-02)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 19-01: Shots API endpoints (list, create, get, update, delete, reorder) with tests
+- [ ] 19-01-PLAN.md — Shots API endpoints (list, create, get, update, delete, reorder) with integration tests
 
 ### Phase 20: Shotlist Panel
 **Goal**: Users can view, create, edit, reorder, and delete shots in a table grouped by scene
