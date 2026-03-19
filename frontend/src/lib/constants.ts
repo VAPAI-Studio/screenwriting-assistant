@@ -151,6 +151,10 @@ export const STORAGE_KEYS = {
   SIDEBAR_CHAT_PANEL_MODE: 'sidebar_chat_panel_mode',
   LAST_PHASE: 'last_phase',
   LAST_SUBSECTION: 'last_subsection',
+  BREAKDOWN_LEFT_WIDTH: 'breakdown_left_width',
+  BREAKDOWN_RIGHT_WIDTH: 'breakdown_right_width',
+  BREAKDOWN_LEFT_COLLAPSED: 'breakdown_left_collapsed',
+  BREAKDOWN_RIGHT_COLLAPSED: 'breakdown_right_collapsed',
 } as const;
 
 // Query Keys for React Query
