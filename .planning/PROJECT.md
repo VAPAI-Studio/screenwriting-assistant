@@ -44,7 +44,7 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 - [ ] Two-mode UI: Screenwriting / Script Breakdown with distinct visual identity
 - [ ] Interactive shotlist: highlight script text → Add Shot → freeform field entry
-- [ ] Shotlist data model and CRUD API
+- ✓ Shotlist data model and CRUD API — Validated in Phase 19-20: Shot model, CRUD endpoints, scene-grouped table UI with inline editing, create/delete/reorder — v3.0
 - [ ] Media uploads: image and audio attachments for pre-production assets
 - [ ] AI chat in Breakdown mode with shotlist awareness and modification capability
 - [ ] Bidirectional sync between screenplay and shotlist (staleness pattern)
@@ -61,7 +61,7 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ## Context
 
-Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18). Starting v3.0 (shotlist & production breakdown, 2026-03-18).
+Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18). v3.0 in progress (shotlist & production breakdown, 2026-03-18). Phase 20 complete — shotlist panel with scene grouping, inline editing, create/delete/reorder mutations.
 
 **Current codebase:**
 - ~16,267 Python LOC (backend/app), ~8,667 TypeScript LOC (frontend/src)
