@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { BookOpen, Scissors } from 'lucide-react';
 import { APP_NAME, ROUTES } from '../../lib/constants';
+import { ModeToggle } from './ModeToggle';
 
 export function Header() {
   const location = useLocation();
@@ -13,9 +14,9 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto max-w-screen-2xl px-6">
-        <div className="flex h-14 items-center justify-between">
-          {/* Logo */}
-          <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group">
+        <div className="flex h-14 items-center gap-4">
+          {/* Logo — left */}
+          <Link to={ROUTES.HOME} className="flex items-center gap-2.5 group flex-shrink-0">
             <div className="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-amber-700 shadow-md shadow-amber-900/20 transition-shadow group-hover:shadow-amber-800/30">
               <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4 text-amber-50" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -27,8 +28,11 @@ export function Header() {
             </span>
           </Link>
 
-          {/* Navigation */}
-          <nav className="flex items-center gap-1">
+          {/* Mode Toggle — center */}
+          <ModeToggle />
+
+          {/* Navigation — right, pushed to end */}
+          <nav className="flex items-center gap-1 ml-auto">
             <Link
               to={ROUTES.PROJECTS}
               className={`relative px-3.5 py-1.5 text-sm font-medium rounded-md transition-colors
