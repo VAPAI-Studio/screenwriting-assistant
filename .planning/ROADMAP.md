@@ -76,7 +76,7 @@ Plans:
   3. Selecting Script Breakdown mode renders a 3-panel layout skeleton: left panel, center shotlist area, right chat area (MODE-03)
   4. The two modes have visually distinct color schemes (warm vs cool) while sharing typography and component shapes (MODE-04)
   5. Switching modes preserves the current project context without data loss (MODE-05)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
 - [ ] 18-01: ModeToggle component, breakdown route, and CSS variable scoping for dual visual identity
