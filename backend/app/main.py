@@ -1,8 +1,11 @@
 # backend/app/main.py
 
+import os
+
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from pydantic import ValidationError
 from .api.endpoints import projects, sections, review, auth, books, agents, chat, snippets, snippet_manager
@@ -10,6 +13,7 @@ from .api.endpoints import templates as templates_ep, phase_data as phase_data_e
 from .api.endpoints import wizards as wizards_ep, ai_chat as ai_chat_ep
 from .api.endpoints import breakdown as breakdown_ep
 from .api.endpoints import shots as shots_ep
+from .api.endpoints import media as media_ep
 from .config import settings
 from .middleware import (
     LoggingMiddleware,
@@ -44,7 +48,7 @@ app.openapi = custom_openapi_wrapper
 # Add middleware (order matters - executed from bottom to top)
 # Rate limit generous for dev; tighten for production
 app.add_middleware(RateLimitMiddleware, requests_per_minute=600)
-app.add_middleware(RequestSizeLimitMiddleware, max_size=10 * 1024 * 1024)  # 10MB
+app.add_middleware(RequestSizeLimitMiddleware, max_size=25 * 1024 * 1024)  # 25MB (supports 20MB media uploads + multipart overhead)
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(LoggingMiddleware)
 
@@ -97,6 +101,11 @@ app.include_router(wizards_ep.router, prefix="/api/wizards", tags=["wizards"])
 app.include_router(ai_chat_ep.router, prefix="/api/ai", tags=["ai"])
 app.include_router(breakdown_ep.router, prefix="/api/breakdown", tags=["breakdown"])
 app.include_router(shots_ep.router, prefix="/api/shots", tags=["shots"])
+app.include_router(media_ep.router, prefix="/api/media", tags=["media"])
+
+# Serve uploaded media files
+os.makedirs(settings.MEDIA_DIR, exist_ok=True)
+app.mount("/media", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 
 @app.get("/health")
 async def health_check():

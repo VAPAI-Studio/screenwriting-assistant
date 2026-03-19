@@ -20,7 +20,7 @@ COPY ./migrations ./migrations
 
 # Create non-root user and uploads directory with proper permissions
 RUN adduser --disabled-password --gecos "" --home /app appuser \
-    && mkdir -p /app/uploads \
+    && mkdir -p /app/uploads /app/media \
     && chown -R appuser:appuser /app
 USER appuser
 

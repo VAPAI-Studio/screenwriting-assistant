@@ -62,6 +62,7 @@ class Settings(BaseSettings):
 
     # File storage
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
+    MEDIA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "media")
     
     # Environment
     ENVIRONMENT: str = "development"
