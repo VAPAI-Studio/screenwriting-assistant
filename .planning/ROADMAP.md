@@ -122,10 +122,10 @@ Plans:
   2. User can highlight/select text in the script view and see a floating bar showing line count and "+ Add Shot" button (SELC-02, SELC-03)
   3. Clicking "+ Add Shot" creates a new shot pre-populated with the selected text and linked to the corresponding scene (SELC-04)
   4. The selection bar dismisses when clicking outside or pressing the X button (SELC-05)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 21-01: ScriptReadView component with text selection, SelectionBar, and selection-to-shot creation flow
+- [ ] 21-01-PLAN.md — ScriptReadView and SelectionBar components, wired into BreakdownLayout left panel
 
 ### Phase 22: Media Upload Backend
 **Goal**: Backend supports uploading, storing, thumbnailing, and managing image and audio files for breakdown elements
