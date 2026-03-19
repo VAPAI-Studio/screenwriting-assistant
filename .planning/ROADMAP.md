@@ -61,10 +61,10 @@
   2. `asset_media` table exists with project_id, element_id, shot_id, file_type, file_path, thumbnail_path, original_filename, file_size_bytes, and metadata columns (DATA-02)
   3. `shotlist_stale` boolean column exists on the projects table (DATA-03)
   4. Delta migration in `delta/` is idempotent and applies cleanly on existing Docker volumes without data loss (DATA-06)
-**Plans**: TBD
+**Plans**: 1 plan
 
 Plans:
-- [ ] 17-01: SQLAlchemy models, Pydantic schemas, and delta migration for shots and asset_media tables
+- [ ] 17-01-PLAN.md — Delta migration, ORM models, Pydantic schemas, and tests for shots, shot_elements, and asset_media tables
 
 ### Phase 18: Two-Mode UI Shell
 **Goal**: Users can switch between Screenwriting and Script Breakdown modes with distinct visual identities
