@@ -213,7 +213,7 @@ Note: Phase 19 and Phase 22 can execute in parallel (both depend only on Phase 1
 | 14. Reverse Sync | v2.0 | 2/2 | Complete | 2026-03-18 |
 | 15. Phase 13 Doc Closure & UI-05 Fix | v2.0 | 1/1 | Complete | 2026-03-18 |
 | 16. Staleness Bug & Migration Upgrade | v2.0 | 1/1 | Complete | 2026-03-18 |
-| 17. Data Foundation | 1/1 | Complete   | 2026-03-19 | - |
+| 17. Data Foundation | 1/1 | Complete    | 2026-03-19 | - |
 | 18. Two-Mode UI Shell | v3.0 | 0/2 | Not started | - |
 | 19. Shot CRUD API & Core Model | v3.0 | 0/1 | Not started | - |
 | 20. Shotlist Panel | v3.0 | 0/2 | Not started | - |
