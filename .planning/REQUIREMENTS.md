@@ -34,13 +34,13 @@
 
 ### Media Uploads
 
-- [ ] **MDIA-01**: User can upload image files (JPEG, PNG, WebP) to breakdown elements (characters, locations, props, etc.)
-- [ ] **MDIA-02**: User can upload audio files (MP3, WAV, M4A) to breakdown elements
+- [x] **MDIA-01**: User can upload image files (JPEG, PNG, WebP) to breakdown elements (characters, locations, props, etc.)
+- [x] **MDIA-02**: User can upload audio files (MP3, WAV, M4A) to breakdown elements
 - [ ] **MDIA-03**: Uploaded images display as thumbnails in the assets panel
 - [ ] **MDIA-04**: Uploaded audio files have playable controls (play, pause, stop) in the assets panel
-- [ ] **MDIA-05**: User can delete uploaded media files
-- [ ] **MDIA-06**: Image uploads generate thumbnails on the server (via Pillow)
-- [ ] **MDIA-07**: Media upload endpoint enforces file type validation and size limits (20MB max)
+- [x] **MDIA-05**: User can delete uploaded media files
+- [x] **MDIA-06**: Image uploads generate thumbnails on the server (via Pillow)
+- [x] **MDIA-07**: Media upload endpoint enforces file type validation and size limits (20MB max)
 
 ### Assets Panel
 
@@ -71,7 +71,7 @@
 - [x] **DATA-02**: `asset_media` table exists with project_id, element_id, shot_id, file_type, file_path, thumbnail_path, original_filename, file_size_bytes, metadata (JSONB)
 - [x] **DATA-03**: `shotlist_stale` boolean column added to projects table
 - [x] **DATA-04**: Shot CRUD API endpoints exist (GET list, POST create, GET single, PUT update, DELETE)
-- [ ] **DATA-05**: Media upload API endpoint exists (POST upload, GET list, DELETE)
+- [x] **DATA-05**: Media upload API endpoint exists (POST upload, GET list, DELETE)
 - [x] **DATA-06**: Idempotent delta migration for new tables (follows existing `delta/` pattern)
 
 ## v3.1 Requirements (Deferred)
@@ -129,13 +129,13 @@
 | SELC-03 | Phase 21 | Complete |
 | SELC-04 | Phase 21 | Complete |
 | SELC-05 | Phase 21 | Complete |
-| MDIA-01 | Phase 22 | Pending |
-| MDIA-02 | Phase 22 | Pending |
+| MDIA-01 | Phase 22 | Complete |
+| MDIA-02 | Phase 22 | Complete |
 | MDIA-03 | Phase 23 | Pending |
 | MDIA-04 | Phase 23 | Pending |
-| MDIA-05 | Phase 22 | Pending |
-| MDIA-06 | Phase 22 | Pending |
-| MDIA-07 | Phase 22 | Pending |
+| MDIA-05 | Phase 22 | Complete |
+| MDIA-06 | Phase 22 | Complete |
+| MDIA-07 | Phase 22 | Complete |
 | ASST-01 | Phase 23 | Pending |
 | ASST-02 | Phase 23 | Pending |
 | ASST-03 | Phase 23 | Pending |
@@ -154,7 +154,7 @@
 | DATA-02 | Phase 17 | Complete |
 | DATA-03 | Phase 17 | Complete |
 | DATA-04 | Phase 19 | Complete |
-| DATA-05 | Phase 22 | Pending |
+| DATA-05 | Phase 22 | Complete |
 | DATA-06 | Phase 17 | Complete |
 
 **Coverage:**

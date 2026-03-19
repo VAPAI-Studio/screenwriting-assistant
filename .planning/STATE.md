@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: unknown
-stopped_at: Completed 21-01-PLAN.md
-last_updated: "2026-03-19T20:48:19.674Z"
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-03-19T22:34:41.150Z"
 progress:
   total_phases: 9
-  completed_phases: 5
-  total_plans: 7
-  completed_plans: 7
+  completed_phases: 6
+  total_plans: 8
+  completed_plans: 8
 ---
 
 # Project State
@@ -19,20 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 21 — script-read-view-text-selection (COMPLETE)
+**Current focus:** Phase 22 — media-upload-backend
 
 ## Current Position
 
-Phase: 21 (script-read-view-text-selection) — COMPLETE
+Phase: 22 (media-upload-backend) — COMPLETE
 Plan: 1 of 1 (done)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 5 (v3.0) / 37 (lifetime)
-- Average duration: 3.2min (v3.0) / see milestones for historical
-- Total execution time: 0.27 hours (v3.0)
+- Total plans completed: 6 (v3.0) / 38 (lifetime)
+- Average duration: 3.3min (v3.0) / see milestones for historical
+- Total execution time: 0.33 hours (v3.0)
 
 **By Phase:**
 
@@ -42,10 +42,11 @@ Plan: 1 of 1 (done)
 | 19-shot-crud-api-core-model | 1 | 3min | 3min |
 | 20-shotlist-panel | 2 | 6min | 3min |
 | 21-script-read-view-text-selection | 1 | 2min | 2min |
+| 22-media-upload-backend | 1 | 4min | 4min |
 
 **Recent Trend:**
 
-- Last 5 plans: 17-01 (5min), 19-01 (3min), 20-01 (4min), 20-02 (2min), 21-01 (2min)
+- Last 5 plans: 19-01 (3min), 20-01 (4min), 20-02 (2min), 21-01 (2min), 22-01 (4min)
 - Trend: improving
 
 *Updated after each plan completion*
@@ -53,6 +54,7 @@ Plan: 1 of 1 (done)
 | Phase 18-two-mode-ui-shell P02 | 3 | 3 tasks | 3 files |
 | Phase 20 P02 | 2 | 2 tasks | 5 files |
 | Phase 21 P01 | 2 | 2 tasks | 3 files |
+| Phase 22 P01 | 4 | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -99,6 +101,10 @@ v3.0 decisions (from execution):
 - [Phase 21-script-read-view-text-selection]: Text selection uses selectionchange event with Safari mouseup fallback for cross-browser support
 - [Phase 21-script-read-view-text-selection]: Scene resolution walks from selection anchor to nearest [data-scene-id] ancestor via closest()
 - [Phase 21-script-read-view-text-selection]: No new dependencies -- reused existing React Query, lucide-react
+- [Phase 22-media-upload-backend]: UUID-based filenames on disk prevent path traversal; original filename stored in DB only
+- [Phase 22-media-upload-backend]: Element ownership validated on upload to prevent cross-project data leaks
+- [Phase 22-media-upload-backend]: RequestSizeLimitMiddleware bumped from 10MB to 25MB for 20MB files + multipart overhead
+- [Phase 22-media-upload-backend]: shot_id not exposed as upload form field (ADVM-03 deferred to v3.1)
 
 ### Pending Todos
 
@@ -111,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T20:44:28.975Z
-Stopped at: Completed 21-01-PLAN.md
+Last session: 2026-03-19T22:34:41.146Z
+Stopped at: Completed 22-01-PLAN.md
 Resume file: None

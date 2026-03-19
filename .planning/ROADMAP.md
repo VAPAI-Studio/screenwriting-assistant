@@ -45,7 +45,7 @@
 - [x] **Phase 19: Shot CRUD API & Core Model** - Backend endpoints for shot creation, reading, updating, deleting, and freeform field schema (completed 2026-03-19)
 - [x] **Phase 20: Shotlist Panel** - Frontend shotlist table with scene grouping, inline editing, reordering, and empty state (completed 2026-03-19)
 - [x] **Phase 21: Script Read View & Text Selection** - Read-only script rendering with text selection, floating bar, and selection-to-shot creation (completed 2026-03-19)
-- [ ] **Phase 22: Media Upload Backend** - Upload endpoint with file validation, Pillow thumbnail generation, and media CRUD API
+- [x] **Phase 22: Media Upload Backend** - Upload endpoint with file validation, Pillow thumbnail generation, and media CRUD API (completed 2026-03-19)
 - [ ] **Phase 23: Assets Panel & Media Display** - Left panel script/assets toggle, breakdown element browsing, media thumbnails, and audio playback
 - [ ] **Phase 24: AI Chat for Breakdown** - Extend SidebarChat with shotlist and breakdown context awareness, shot creation and modification via conversation
 - [ ] **Phase 25: Staleness & Sync** - Shotlist staleness hooks on script save/generate, staleness banner, and character name propagation
@@ -218,7 +218,7 @@ Note: Phase 19 and Phase 22 can execute in parallel (both depend only on Phase 1
 | 19. Shot CRUD API & Core Model | 1/1 | Complete    | 2026-03-19 | - |
 | 20. Shotlist Panel | 2/2 | Complete    | 2026-03-19 | - |
 | 21. Script Read View & Text Selection | 1/1 | Complete    | 2026-03-19 | - |
-| 22. Media Upload Backend | v3.0 | 0/1 | Not started | - |
+| 22. Media Upload Backend | 1/1 | Complete   | 2026-03-19 | - |
 | 23. Assets Panel & Media Display | v3.0 | 0/2 | Not started | - |
 | 24. AI Chat for Breakdown | v3.0 | 0/2 | Not started | - |
 | 25. Staleness & Sync | v3.0 | 0/1 | Not started | - |
