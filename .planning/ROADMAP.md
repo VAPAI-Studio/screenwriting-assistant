@@ -41,7 +41,7 @@
 **Milestone Goal:** Add interactive shotlist creation from script, media uploads for pre-production assets, and restructure the app into two distinct modes (Screenwriting / Script Breakdown).
 
 - [x] **Phase 17: Data Foundation** - Shots table, asset_media table, shotlist_stale column, and delta migration (completed 2026-03-19)
-- [ ] **Phase 18: Two-Mode UI Shell** - Top-level mode toggle, breakdown route, 3-panel layout skeleton with distinct visual identity
+- [x] **Phase 18: Two-Mode UI Shell** - Top-level mode toggle, breakdown route, 3-panel layout skeleton with distinct visual identity (completed 2026-03-19)
 - [ ] **Phase 19: Shot CRUD API & Core Model** - Backend endpoints for shot creation, reading, updating, deleting, and freeform field schema
 - [ ] **Phase 20: Shotlist Panel** - Frontend shotlist table with scene grouping, inline editing, reordering, and empty state
 - [ ] **Phase 21: Script Read View & Text Selection** - Read-only script rendering with text selection, floating bar, and selection-to-shot creation
@@ -214,7 +214,7 @@ Note: Phase 19 and Phase 22 can execute in parallel (both depend only on Phase 1
 | 15. Phase 13 Doc Closure & UI-05 Fix | v2.0 | 1/1 | Complete | 2026-03-18 |
 | 16. Staleness Bug & Migration Upgrade | v2.0 | 1/1 | Complete | 2026-03-18 |
 | 17. Data Foundation | 1/1 | Complete    | 2026-03-19 | - |
-| 18. Two-Mode UI Shell | 1/2 | In Progress|  | - |
+| 18. Two-Mode UI Shell | 2/2 | Complete   | 2026-03-19 | - |
 | 19. Shot CRUD API & Core Model | v3.0 | 0/1 | Not started | - |
 | 20. Shotlist Panel | v3.0 | 0/2 | Not started | - |
 | 21. Script Read View & Text Selection | v3.0 | 0/1 | Not started | - |

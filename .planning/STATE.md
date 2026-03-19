@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: completed
-stopped_at: Completed 18-two-mode-ui-shell/18-01-PLAN.md
-last_updated: "2026-03-19T18:15:12.992Z"
+stopped_at: Completed 18-two-mode-ui-shell/18-02-PLAN.md
+last_updated: "2026-03-19T18:20:27.164Z"
 last_activity: 2026-03-19 — Phase 17 Plan 01 completed (data foundation)
 progress:
   total_phases: 9
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
   percent: 100
 ---
 
@@ -35,6 +35,7 @@ Progress: [██████████] 100%
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 1 (v3.0) / 33 (lifetime)
 - Average duration: 5min (v3.0) / see milestones for historical
 - Total execution time: 0.1 hours (v3.0)
@@ -46,11 +47,13 @@ Progress: [██████████] 100%
 | 17-data-foundation | 1 | 5min | 5min |
 
 **Recent Trend:**
+
 - Last 5 plans: 17-01 (5min)
 - Trend: --
 
 *Updated after each plan completion*
 | Phase 18-two-mode-ui-shell P01 | 12 | 3 tasks | 4 files |
+| Phase 18-two-mode-ui-shell P02 | 3 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -59,12 +62,14 @@ Progress: [██████████] 100%
 Decisions logged in PROJECT.md Key Decisions table.
 
 v2.0 decisions carried forward:
+
 - Breakdown is NOT a template phase — cross-cutting derived view
 - Bidirectional sync on save/generate (staleness flag), not real-time
 - Single breakdown_elements table with category column + JSONB metadata
 - `delta/` directory for incremental migrations
 
 v3.0 decisions (from research):
+
 - JSONB for shot fields — extensible, matches freeform requirement
 - CSS variables scoped to mode context for visual identity separation
 - Pillow only new backend dep; lean on existing stack
@@ -73,11 +78,13 @@ v3.0 decisions (from research):
 - Script view is read-only — no rich text editor needed
 
 v3.0 decisions (from execution):
+
 - Shot.scene_item_id uses ON DELETE SET NULL so shots survive scene deletion
 - AssetMedia has dual nullable FKs (element_id, shot_id) with SET NULL
 - AssetMedia.shot cascade="all, delete-orphan" cleans up media when shot deleted
 - [Phase 18-two-mode-ui-shell]: Used .breakdown-mode CSS class for palette override — consistent with Tailwind class-based theming
 - [Phase 18-two-mode-ui-shell]: ModeToggle self-guards via useParams returning null when projectId absent
+- [Phase 18-two-mode-ui-shell]: BreakdownPage import commented out (not deleted) in App.tsx — reserved for Phase 23; TypeScript noUnusedLocals prevented keeping as live unused import
 
 ### Pending Todos
 
@@ -90,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T18:15:12.989Z
-Stopped at: Completed 18-two-mode-ui-shell/18-01-PLAN.md
+Last session: 2026-03-19T18:20:27.161Z
+Stopped at: Completed 18-two-mode-ui-shell/18-02-PLAN.md
 Resume file: None
