@@ -7,11 +7,11 @@
 
 ### Two-Mode UI
 
-- [ ] **MODE-01**: App has a top-level toggle in the header switching between "Screenwriting" and "Script Breakdown" modes
+- [x] **MODE-01**: App has a top-level toggle in the header switching between "Screenwriting" and "Script Breakdown" modes
 - [ ] **MODE-02**: Screenwriting mode renders the existing workspace with zero changes to existing components
 - [ ] **MODE-03**: Script Breakdown mode renders a distinct 3-panel layout (left panel, center shotlist, right chat)
-- [ ] **MODE-04**: Screenwriting and Breakdown modes have visually distinct color schemes while maintaining design unity (shared typography, spacing, component shapes)
-- [ ] **MODE-05**: Mode toggle preserves project context (no data loss on switch)
+- [x] **MODE-04**: Screenwriting and Breakdown modes have visually distinct color schemes while maintaining design unity (shared typography, spacing, component shapes)
+- [x] **MODE-05**: Mode toggle preserves project context (no data loss on switch)
 
 ### Shotlist
 
@@ -111,11 +111,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODE-01 | Phase 18 | Pending |
+| MODE-01 | Phase 18 | Complete |
 | MODE-02 | Phase 18 | Pending |
 | MODE-03 | Phase 18 | Pending |
-| MODE-04 | Phase 18 | Pending |
-| MODE-05 | Phase 18 | Pending |
+| MODE-04 | Phase 18 | Complete |
+| MODE-05 | Phase 18 | Complete |
 | SHOT-01 | Phase 19 | Pending |
 | SHOT-02 | Phase 19 | Pending |
 | SHOT-03 | Phase 20 | Pending |
