@@ -47,6 +47,46 @@
     --phase-write: 160 84% 39%;
   }
 
+  .breakdown-mode {
+    /* Backgrounds — cool slate-noir with blue undertone */
+    --background: 220 13% 5%;
+    --foreground: 210 20% 95%;
+
+    --card: 220 12% 9%;
+    --card-foreground: 210 15% 92%;
+
+    --muted: 220 10% 16%;
+    --muted-foreground: 215 12% 52%;
+
+    /* Accent — steel blue (replaces warm amber) */
+    --accent: 213 80% 52%;
+    --accent-foreground: 0 0% 98%;
+
+    --primary: 213 80% 52%;
+    --primary-foreground: 220 15% 8%;
+
+    --secondary: 220 10% 16%;
+    --secondary-foreground: 210 15% 88%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 10% 18%;
+    --input: 220 12% 12%;
+    --ring: 213 80% 52%;
+
+    /* Extended palette */
+    --surface: 220 12% 12%;
+    --surface-hover: 220 10% 16%;
+    --border-strong: 220 10% 24%;
+
+    /* Phase colors — unchanged */
+    --phase-idea: 263 70% 58%;
+    --phase-story: 217 91% 60%;
+    --phase-scenes: 38 92% 50%;
+    --phase-write: 160 84% 39%;
+  }
+
   * {
     @apply border-border;
   }
@@ -54,6 +94,9 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    transition:
+      background-color 200ms ease,
+      color 200ms ease;
   }
 
   /* Elegant thin scrollbars */
