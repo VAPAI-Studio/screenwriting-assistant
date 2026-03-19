@@ -107,11 +107,11 @@ Plans:
   3. User can delete a shot from the shotlist (SHOT-05)
   4. Shots have a visible order within each scene and can be reordered (SHOT-06)
   5. When no shots exist, the panel shows a clear call-to-action to create the first shot (SHOT-08)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 20-01: ShotlistPanel component with scene-grouped table, ShotRow with inline editing
-- [ ] 20-02: Shot reordering, deletion, empty state CTA, and "Add Shot" button
+- [ ] 20-01-PLAN.md — Shot types, API functions, ShotlistPanel with scene-grouped CSS grid table, ShotRow with inline editing
+- [ ] 20-02-PLAN.md — Delete confirmation, reorder controls, Add Shot button, and empty state CTA
 
 ### Phase 21: Script Read View & Text Selection
 **Goal**: Users can view their script in breakdown mode and create shots by selecting text
