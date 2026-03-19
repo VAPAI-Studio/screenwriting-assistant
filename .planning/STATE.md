@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
-status: planning
-stopped_at: Phase 17 context gathered
-last_updated: "2026-03-19T15:13:59.066Z"
-last_activity: 2026-03-19 — Roadmap created (9 phases, 45 requirements)
+status: executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-03-19T15:48:15.616Z"
+last_activity: 2026-03-19 — Phase 17 Plan 01 completed (data foundation)
 progress:
   total_phases: 9
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_plans: 1
+  completed_plans: 1
+  percent: 100
 ---
 
 # Project State
@@ -21,33 +21,33 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v3.0 Shotlist & Production Breakdown — Phase 17 ready to plan
+**Current focus:** v3.0 Shotlist & Production Breakdown — Phase 17 Plan 01 complete
 
 ## Current Position
 
 Phase: 17 of 25 (Data Foundation)
-Plan: 0 of 1 in current phase
-Status: Ready to plan
-Last activity: 2026-03-19 — Roadmap created (9 phases, 45 requirements)
+Plan: 1 of 1 in current phase
+Status: Phase 17 complete
+Last activity: 2026-03-19 — Phase 17 Plan 01 completed (data foundation)
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 0 (v3.0) / 32 (lifetime)
-- Average duration: — (v3.0) / see milestones for historical
-- Total execution time: 0 hours (v3.0)
+- Total plans completed: 1 (v3.0) / 33 (lifetime)
+- Average duration: 5min (v3.0) / see milestones for historical
+- Total execution time: 0.1 hours (v3.0)
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| - | - | - | - |
+| 17-data-foundation | 1 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: n/a (new milestone)
-- Trend: —
+- Last 5 plans: 17-01 (5min)
+- Trend: --
 
 *Updated after each plan completion*
 
@@ -71,6 +71,11 @@ v3.0 decisions (from research):
 - Extend SidebarChat — don't create separate chat component
 - Script view is read-only — no rich text editor needed
 
+v3.0 decisions (from execution):
+- Shot.scene_item_id uses ON DELETE SET NULL so shots survive scene deletion
+- AssetMedia has dual nullable FKs (element_id, shot_id) with SET NULL
+- AssetMedia.shot cascade="all, delete-orphan" cleans up media when shot deleted
+
 ### Pending Todos
 
 None yet.
@@ -82,6 +87,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T15:13:59.062Z
-Stopped at: Phase 17 context gathered
-Resume file: .planning/phases/17-data-foundation/17-CONTEXT.md
+Last session: 2026-03-19T15:46:58Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: .planning/phases/17-data-foundation/17-01-SUMMARY.md

@@ -67,12 +67,12 @@
 
 ### Data Model & API
 
-- [ ] **DATA-01**: `shots` table exists with project_id, scene_item_id, shot_number, script_text, script_range (JSONB), fields (JSONB), sort_order, source
-- [ ] **DATA-02**: `asset_media` table exists with project_id, element_id, shot_id, file_type, file_path, thumbnail_path, original_filename, file_size_bytes, metadata (JSONB)
-- [ ] **DATA-03**: `shotlist_stale` boolean column added to projects table
+- [x] **DATA-01**: `shots` table exists with project_id, scene_item_id, shot_number, script_text, script_range (JSONB), fields (JSONB), sort_order, source
+- [x] **DATA-02**: `asset_media` table exists with project_id, element_id, shot_id, file_type, file_path, thumbnail_path, original_filename, file_size_bytes, metadata (JSONB)
+- [x] **DATA-03**: `shotlist_stale` boolean column added to projects table
 - [ ] **DATA-04**: Shot CRUD API endpoints exist (GET list, POST create, GET single, PUT update, DELETE)
 - [ ] **DATA-05**: Media upload API endpoint exists (POST upload, GET list, DELETE)
-- [ ] **DATA-06**: Idempotent delta migration for new tables (follows existing `delta/` pattern)
+- [x] **DATA-06**: Idempotent delta migration for new tables (follows existing `delta/` pattern)
 
 ## v3.1 Requirements (Deferred)
 
@@ -150,12 +150,12 @@
 | SYNC-02 | Phase 25 | Pending |
 | SYNC-03 | Phase 25 | Pending |
 | SYNC-04 | Phase 25 | Pending |
-| DATA-01 | Phase 17 | Pending |
-| DATA-02 | Phase 17 | Pending |
-| DATA-03 | Phase 17 | Pending |
+| DATA-01 | Phase 17 | Complete |
+| DATA-02 | Phase 17 | Complete |
+| DATA-03 | Phase 17 | Complete |
 | DATA-04 | Phase 19 | Pending |
 | DATA-05 | Phase 22 | Pending |
-| DATA-06 | Phase 17 | Pending |
+| DATA-06 | Phase 17 | Complete |
 
 **Coverage:**
 - v3.0 requirements: 45 total
