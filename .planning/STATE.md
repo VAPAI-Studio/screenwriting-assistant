@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: unknown
-stopped_at: Completed 19-01-PLAN.md
-last_updated: "2026-03-19T19:06:35.836Z"
+stopped_at: Phase 20 UI-SPEC approved
+last_updated: "2026-03-19T19:46:20.490Z"
 progress:
   total_phases: 9
   completed_phases: 3
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 6
+  completed_plans: 5
 ---
 
 # Project State
@@ -19,20 +19,20 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 19 — shot-crud-api-core-model
+**Current focus:** Phase 20 — shotlist-panel
 
 ## Current Position
 
-Phase: 19 (shot-crud-api-core-model) — COMPLETE
-Plan: 1 of 1 (DONE)
+Phase: 20 (shotlist-panel) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 2 (v3.0) / 34 (lifetime)
+- Total plans completed: 3 (v3.0) / 35 (lifetime)
 - Average duration: 4min (v3.0) / see milestones for historical
-- Total execution time: 0.1 hours (v3.0)
+- Total execution time: 0.2 hours (v3.0)
 
 **By Phase:**
 
@@ -40,10 +40,11 @@ Plan: 1 of 1 (DONE)
 |-------|-------|-------|----------|
 | 17-data-foundation | 1 | 5min | 5min |
 | 19-shot-crud-api-core-model | 1 | 3min | 3min |
+| 20-shotlist-panel | 1 | 4min | 4min |
 
 **Recent Trend:**
 
-- Last 5 plans: 17-01 (5min), 19-01 (3min)
+- Last 5 plans: 17-01 (5min), 19-01 (3min), 20-01 (4min)
 - Trend: improving
 
 *Updated after each plan completion*
@@ -83,6 +84,9 @@ v3.0 decisions (from execution):
 - [Phase 19-shot-crud-api-core-model]: _verify_project_ownership copied locally into shots.py -- avoids cross-module coupling
 - [Phase 19-shot-crud-api-core-model]: Reorder returns 403 for foreign shot IDs (not 404) -- ownership violation vs not-found
 - [Phase 19-shot-crud-api-core-model]: PUT fields replacement (not merge) -- consistent with JSONB column semantics
+- [Phase 20-shotlist-panel]: Frontend spreads existing fields before overriding changed key in update mutation -- prevents JSONB wipe since PUT replaces entire fields dict
+- [Phase 20-shotlist-panel]: Scene grouping is frontend-only -- flat API response grouped by scene_item_id with unassigned shots last
+- [Phase 20-shotlist-panel]: 5 visible columns in table (shot_size, camera_angle, camera_movement, description, action); remaining 8 fields deferred to detail/expansion view
 
 ### Pending Todos
 
@@ -95,6 +99,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T19:01:32Z
-Stopped at: Completed 19-01-PLAN.md
-Resume file: .planning/phases/19-shot-crud-api-core-model/19-01-SUMMARY.md
+Last session: 2026-03-19T19:45:08Z
+Stopped at: Completed 20-01-PLAN.md
+Resume file: .planning/phases/20-shotlist-panel/20-01-SUMMARY.md
