@@ -1,7 +1,8 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { FileText, List, MessageSquare } from 'lucide-react';
+import { FileText, MessageSquare } from 'lucide-react';
 import { STORAGE_KEYS } from '../../lib/constants';
 import { BreakdownPanel } from './BreakdownPanel';
+import { ShotlistPanel } from './ShotlistPanel';
 
 const MIN_PANEL_WIDTH = 200;
 
@@ -163,11 +164,7 @@ export function BreakdownLayout() {
             Shotlist
           </span>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center overflow-auto">
-          <List className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">Shotlist</p>
-          <p className="text-xs text-muted-foreground/60">Available in Phase 20</p>
-        </div>
+        <ShotlistPanel />
       </div>
 
       {/* Right drag handle */}
