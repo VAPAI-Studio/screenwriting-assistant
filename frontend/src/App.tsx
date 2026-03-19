@@ -8,7 +8,9 @@ import { Editor } from './components/Editor/Editor';
 import { BookManager } from './components/Books/BookManager';
 import { ProjectWorkspace } from './components/Workspace/ProjectWorkspace';
 import { SnippetManager } from './components/Snippets/SnippetManager';
-import { BreakdownPage } from './components/Breakdown/BreakdownPage';
+// BreakdownPage retained for Phase 23 assets panel integration
+// import { BreakdownPage } from './components/Breakdown/BreakdownPage';
+import { BreakdownLayout } from './components/Breakdown/BreakdownLayout';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,7 +30,7 @@ function App() {
             <Route path="/" element={<ProjectList />} />
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/projects/:projectId" element={<Editor />} />
-            <Route path="/projects/:projectId/breakdown" element={<BreakdownPage />} />
+            <Route path="/projects/:projectId/breakdown" element={<BreakdownLayout />} />
             <Route path="/projects/:projectId/:phase" element={<ProjectWorkspace />} />
             <Route path="/projects/:projectId/:phase/:subsectionKey" element={<ProjectWorkspace />} />
             <Route path="/projects/:projectId/:phase/:subsectionKey/:itemId" element={<ProjectWorkspace />} />
