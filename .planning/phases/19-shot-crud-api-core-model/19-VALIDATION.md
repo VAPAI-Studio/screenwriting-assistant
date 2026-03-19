@@ -19,7 +19,7 @@ created: 2026-03-19
 |----------|-------|
 | **Framework** | pytest 7.x |
 | **Config file** | `backend/pytest.ini` or `backend/pyproject.toml` |
-| **Quick run command** | `cd backend && source venv/bin/activate && pytest app/tests/test_shots.py -x -q` |
+| **Quick run command** | `cd backend && source venv/bin/activate && pytest app/tests/test_shots_api.py -x -q` |
 | **Full suite command** | `cd backend && source venv/bin/activate && pytest app/tests/ -q` |
 | **Estimated runtime** | ~15 seconds |
 
@@ -27,7 +27,7 @@ created: 2026-03-19
 
 ## Sampling Rate
 
-- **After every task commit:** Run `cd backend && source venv/bin/activate && pytest app/tests/test_shots.py -x -q`
+- **After every task commit:** Run `cd backend && source venv/bin/activate && pytest app/tests/test_shots_api.py -x -q`
 - **After every plan wave:** Run `cd backend && source venv/bin/activate && pytest app/tests/ -q`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 15 seconds
@@ -38,13 +38,13 @@ created: 2026-03-19
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 19-01-01 | 01 | 0 | SHOT-01 | unit | `pytest app/tests/test_shots.py -x -q` | ❌ W0 | ⬜ pending |
-| 19-01-02 | 01 | 1 | SHOT-01 | integration | `pytest app/tests/test_shots.py::TestShotsAPI::test_create_shot -x` | ❌ W0 | ⬜ pending |
-| 19-01-03 | 01 | 1 | SHOT-02 | integration | `pytest app/tests/test_shots.py::TestShotsAPI::test_create_shot_fields -x` | ❌ W0 | ⬜ pending |
-| 19-01-04 | 01 | 1 | DATA-04 | integration | `pytest app/tests/test_shots.py::TestShotsAPI::test_list_shots -x` | ❌ W0 | ⬜ pending |
-| 19-01-05 | 01 | 1 | DATA-04 | integration | `pytest app/tests/test_shots.py::TestShotsAPI::test_update_shot -x` | ❌ W0 | ⬜ pending |
-| 19-01-06 | 01 | 1 | DATA-04 | integration | `pytest app/tests/test_shots.py::TestShotsAPI::test_delete_shot -x` | ❌ W0 | ⬜ pending |
-| 19-01-07 | 01 | 1 | SHOT-01 | integration | `pytest app/tests/test_shots.py::TestShotsAPI::test_reorder_shots -x` | ❌ W0 | ⬜ pending |
+| 19-01-01 | 01 | 0 | SHOT-01 | unit | `pytest app/tests/test_shots_api.py -x -q` | ❌ W0 | ⬜ pending |
+| 19-01-02 | 01 | 1 | SHOT-01 | integration | `pytest app/tests/test_shots_api.py::TestShotsAPI::test_create_shot -x` | ❌ W0 | ⬜ pending |
+| 19-01-03 | 01 | 1 | SHOT-02 | integration | `pytest app/tests/test_shots_api.py::TestShotsAPI::test_create_shot_fields -x` | ❌ W0 | ⬜ pending |
+| 19-01-04 | 01 | 1 | DATA-04 | integration | `pytest app/tests/test_shots_api.py::TestShotsAPI::test_list_shots -x` | ❌ W0 | ⬜ pending |
+| 19-01-05 | 01 | 1 | DATA-04 | integration | `pytest app/tests/test_shots_api.py::TestShotsAPI::test_update_shot -x` | ❌ W0 | ⬜ pending |
+| 19-01-06 | 01 | 1 | DATA-04 | integration | `pytest app/tests/test_shots_api.py::TestShotsAPI::test_delete_shot -x` | ❌ W0 | ⬜ pending |
+| 19-01-07 | 01 | 1 | SHOT-01 | integration | `pytest app/tests/test_shots_api.py::TestShotsAPI::test_reorder_shots -x` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -52,7 +52,7 @@ created: 2026-03-19
 
 ## Wave 0 Requirements
 
-- [ ] `backend/app/tests/test_shots.py` — stub test file with test class and placeholder tests for all CRUD endpoints + reorder
+- [ ] `backend/app/tests/test_shots_api.py` — stub test file with test class and placeholder tests for all CRUD endpoints + reorder
 - [ ] `backend/app/tests/conftest.py` — verify Shot/ShotElement fixtures exist or add them
 
 *Existing pytest infrastructure covers the framework; only test stubs for the new endpoint are new.*
