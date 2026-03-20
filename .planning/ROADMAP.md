@@ -47,7 +47,7 @@
 - [x] **Phase 21: Script Read View & Text Selection** - Read-only script rendering with text selection, floating bar, and selection-to-shot creation (completed 2026-03-19)
 - [x] **Phase 22: Media Upload Backend** - Upload endpoint with file validation, Pillow thumbnail generation, and media CRUD API (completed 2026-03-19)
 - [x] **Phase 23: Assets Panel & Media Display** - Left panel script/assets toggle, breakdown element browsing, media thumbnails, and audio playback (completed 2026-03-20)
-- [ ] **Phase 24: AI Chat for Breakdown** - Extend SidebarChat with shotlist and breakdown context awareness, shot creation and modification via conversation
+- [ ] **Phase 24: AI Chat for Breakdown** - Dedicated BreakdownChat component with shotlist and breakdown context awareness, shot creation and modification via conversation
 - [ ] **Phase 25: Staleness & Sync** - Shotlist staleness hooks on script save/generate, staleness banner, and character name propagation
 
 ## Phase Details
@@ -163,16 +163,16 @@ Plans:
 **Depends on**: Phase 19, Phase 20
 **Requirements**: CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05
 **Success Criteria** (what must be TRUE):
-  1. Right sidebar in breakdown mode shows the AI chat by extending the existing SidebarChat component (CHAT-01)
+  1. Right sidebar in breakdown mode shows the AI chat via dedicated BreakdownChat component (CHAT-01)
   2. AI chat responses reflect awareness of the current project's shotlist data (CHAT-02)
   3. AI chat responses reflect awareness of the current project's breakdown elements (CHAT-03)
   4. User can ask AI to create a new shot and sees a preview/confirmation before it is created (CHAT-04)
   5. User can ask AI to modify existing shot fields and sees proposed changes before they are applied (CHAT-05)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 24-01: Extend SidebarChat with breakdown mode context injection (shotlist + elements)
-- [ ] 24-02: AI shot creation and modification tool-use with user confirmation flow
+- [ ] 24-01-PLAN.md — Backend streaming endpoint, BreakdownChat component with context injection (shotlist + elements)
+- [ ] 24-02-PLAN.md — Shot action extraction, ShotProposalCard confirmation flow for create and modify
 
 ### Phase 25: Staleness & Sync
 **Goal**: Script changes are detected and the shotlist is flagged as stale, keeping breakdown mode in sync with screenplay edits
