@@ -2,7 +2,7 @@
 
 import json
 import uuid
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -164,63 +164,115 @@ class TestBreakdownChatAPI:
         assert "[DONE]" in raw_text
 
     def test_shot_create_action(self, client, mock_auth_headers, db_session):
-        """Stub test for shot create action (Plan 02 adds extraction)."""
+        """CHAT-04: AI can create shots. Verify shot_action in done event."""
         project = self._create_test_project(client, mock_auth_headers)
         project_id = project["id"]
 
         async def mock_stream(*args, **kwargs):
-            for chunk in ["I can help create a shot."]:
-                yield chunk
+            yield "I'll create a close-up shot for you."
+
+        # Mock extraction to return a create action
+        mock_action = {
+            "type": "create",
+            "data": {
+                "scene_item_id": None,
+                "shot_number": 1,
+                "fields": {"shot_size": "CU", "description": "Close-up of protagonist"},
+            },
+        }
 
         with patch(
             "app.api.endpoints.breakdown_chat.chat_completion_stream",
             side_effect=mock_stream,
         ):
-            resp = client.post(
-                f"/api/breakdown-chat/{project_id}/stream",
-                json={
-                    "content": "Create a close-up shot",
-                    "message_history": [],
-                    "shots_context": [],
-                    "elements_context": [],
-                },
-                headers=mock_auth_headers,
-            )
+            with patch(
+                "app.api.endpoints.breakdown_chat.chat_completion",
+                new_callable=AsyncMock,
+                return_value=json.dumps({"action": mock_action}),
+            ):
+                resp = client.post(
+                    f"/api/breakdown-chat/{project_id}/stream",
+                    json={
+                        "content": "Create a close-up shot",
+                        "message_history": [],
+                        "shots_context": [],
+                        "elements_context": [],
+                    },
+                    headers=mock_auth_headers,
+                )
 
         assert resp.status_code == 200
-        # Shot action extraction tested after Plan 02 implementation
+        text = resp.text
+        # Parse the done event to verify shot_action
+        for line in text.split("\n"):
+            if line.startswith("data: ") and "done" in line:
+                try:
+                    payload = json.loads(line[6:])
+                    if payload.get("done"):
+                        assert payload["shot_action"] is not None
+                        assert payload["shot_action"]["type"] == "create"
+                        assert payload["shot_action"]["data"]["fields"]["shot_size"] == "CU"
+                        break
+                except json.JSONDecodeError:
+                    continue
+        else:
+            pytest.fail("No done event with shot_action found in SSE stream")
 
     def test_shot_modify_action(self, client, mock_auth_headers, db_session):
-        """Stub test for shot modify action (Plan 02 adds extraction)."""
+        """CHAT-05: AI can modify shots. Verify shot_action in done event."""
         project = self._create_test_project(client, mock_auth_headers)
         project_id = project["id"]
 
         async def mock_stream(*args, **kwargs):
-            for chunk in ["I can help modify that shot."]:
-                yield chunk
+            yield "I'll change the camera angle to low angle."
+
+        mock_action = {
+            "type": "modify",
+            "shot_id": "existing-shot-id",
+            "data": {"fields": {"camera_angle": "Low Angle"}},
+        }
 
         with patch(
             "app.api.endpoints.breakdown_chat.chat_completion_stream",
             side_effect=mock_stream,
         ):
-            resp = client.post(
-                f"/api/breakdown-chat/{project_id}/stream",
-                json={
-                    "content": "Change shot 1 to a wide angle",
-                    "message_history": [],
-                    "shots_context": [
-                        {
-                            "id": "shot-1",
-                            "shot_number": 1,
-                            "scene_item_id": None,
-                            "fields": {"shot_size": "CU"},
-                            "source": "user",
-                        }
-                    ],
-                    "elements_context": [],
-                },
-                headers=mock_auth_headers,
-            )
+            with patch(
+                "app.api.endpoints.breakdown_chat.chat_completion",
+                new_callable=AsyncMock,
+                return_value=json.dumps({"action": mock_action}),
+            ):
+                resp = client.post(
+                    f"/api/breakdown-chat/{project_id}/stream",
+                    json={
+                        "content": "Change shot 1 to low angle",
+                        "message_history": [],
+                        "shots_context": [
+                            {
+                                "id": "existing-shot-id",
+                                "shot_number": 1,
+                                "scene_item_id": None,
+                                "fields": {"camera_angle": "Eye Level"},
+                                "source": "user",
+                            }
+                        ],
+                        "elements_context": [],
+                    },
+                    headers=mock_auth_headers,
+                )
 
         assert resp.status_code == 200
-        # Shot action extraction tested after Plan 02 implementation
+        text = resp.text
+        for line in text.split("\n"):
+            if line.startswith("data: ") and "done" in line:
+                try:
+                    payload = json.loads(line[6:])
+                    if payload.get("done"):
+                        assert payload["shot_action"] is not None
+                        assert payload["shot_action"]["type"] == "modify"
+                        assert payload["shot_action"]["shot_id"] == "existing-shot-id"
+                        assert payload["shot_action"]["data"]["fields"]["camera_angle"] == "Low Angle"
+                        break
+                except json.JSONDecodeError:
+                    continue
+        else:
+            pytest.fail("No done event with shot_action found in SSE stream")

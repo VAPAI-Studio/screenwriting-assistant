@@ -9,7 +9,7 @@ from uuid import UUID
 
 from ...models import schemas, database
 from ..dependencies import get_db, get_current_user
-from ...services.ai_provider import chat_completion_stream
+from ...services.ai_provider import chat_completion, chat_completion_stream
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,87 @@ def _build_breakdown_system_prompt(
     return "\n".join(prompt_parts)
 
 
+async def _extract_shot_action(
+    user_message: str,
+    assistant_response: str,
+    shots_context: list,
+    elements_context: list,
+) -> dict | None:
+    """
+    Two-phase extraction: After the AI streams a conversational response,
+    make a second JSON-mode call to extract any shot create/modify action.
+    Returns None if no action implied, or a dict with type/data.
+    """
+    extraction_prompt = """You are analyzing a conversation between a user and an AI filmmaking assistant.
+
+Given the user's message and the AI's response, determine if the AI is proposing to CREATE a new shot or MODIFY an existing shot.
+
+CURRENT SHOTS:
+{shots}
+
+CURRENT BREAKDOWN ELEMENTS:
+{elements}
+
+USER MESSAGE: {user_message}
+
+AI RESPONSE: {assistant_response}
+
+Respond with ONLY valid JSON. If no shot action is implied, return:
+{{"action": null}}
+
+If a NEW shot should be created, return:
+{{"action": {{"type": "create", "data": {{"scene_item_id": null, "shot_number": <next_available_number>, "fields": {{"shot_size": "<value_or_empty>", "camera_angle": "<value_or_empty>", "camera_movement": "<value_or_empty>", "lens": "<value_or_empty>", "description": "<value_or_empty>", "action": "<value_or_empty>", "dialogue": "<value_or_empty>", "sound": "<value_or_empty>", "characters": "<value_or_empty>", "environment": "<value_or_empty>", "props": "<value_or_empty>", "equipment": "<value_or_empty>", "notes": "<value_or_empty>"}}}}}}}}
+
+If an EXISTING shot should be modified, return:
+{{"action": {{"type": "modify", "shot_id": "<existing_shot_id>", "data": {{"fields": {{<only_changed_fields>}}}}}}}}
+
+Rules:
+- Only return an action if the AI explicitly describes creating or changing a shot
+- For create: populate fields from the AI's description, leave unmentioned fields as empty strings
+- For modify: only include fields that are being changed
+- shot_number for new shots should be max(existing shot numbers) + 1, or 1 if no shots exist
+- If the AI is just discussing shots without proposing changes, return {{"action": null}}
+"""
+
+    # Format shots and elements for the extraction prompt
+    shots_text = "\n".join(
+        f"Shot #{s.shot_number} (id: {s.id}): {json.dumps(s.fields)}"
+        if hasattr(s, "shot_number")
+        else f"Shot #{s.get('shot_number', '?')} (id: {s.get('id', '?')}): {json.dumps(s.get('fields', {}))}"
+        for s in (shots_context if shots_context else [])
+    ) or "No shots yet."
+
+    elements_text = "\n".join(
+        f"[{e.category}] {e.name}: {e.description}"
+        if hasattr(e, "category")
+        else f"[{e.get('category', '?')}] {e.get('name', '?')}: {e.get('description', '')}"
+        for e in (elements_context if elements_context else [])
+    ) or "No elements yet."
+
+    filled_prompt = extraction_prompt.format(
+        shots=shots_text,
+        elements=elements_text,
+        user_message=user_message,
+        assistant_response=assistant_response,
+    )
+
+    try:
+        result_text = await chat_completion(
+            messages=[{"role": "user", "content": filled_prompt}],
+            temperature=0.1,
+            max_tokens=1000,
+            json_mode=True,
+        )
+        result = json.loads(result_text)
+        action = result.get("action")
+        if action and isinstance(action, dict) and action.get("type") in ("create", "modify"):
+            return action
+        return None
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        logger.warning(f"Shot action extraction failed to parse: {e}")
+        return None
+
+
 @router.post("/{project_id}/stream")
 async def breakdown_chat_stream(
     project_id: UUID,
@@ -119,8 +200,16 @@ async def breakdown_chat_stream(
             logger.error(f"Breakdown chat streaming error: {e}")
             full_text = full_text or "I had trouble generating a response."
 
-        # shot_action is always None in Plan 01; Plan 02 adds extraction
-        yield f"data: {json.dumps({'done': True, 'full_text': full_text, 'shot_action': None})}\n\n"
+        # Two-phase extraction: extract shot action from the AI response
+        shot_action = None
+        try:
+            shot_action = await _extract_shot_action(
+                body.content, full_text, body.shots_context, body.elements_context
+            )
+        except Exception as e:
+            logger.error(f"Shot action extraction error: {e}")
+
+        yield f"data: {json.dumps({'done': True, 'full_text': full_text, 'shot_action': shot_action})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
