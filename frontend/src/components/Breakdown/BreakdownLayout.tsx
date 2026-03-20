@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { FileText, MessageSquare } from 'lucide-react';
+import { BreakdownChat } from './BreakdownChat';
 import { STORAGE_KEYS } from '../../lib/constants';
 import { BreakdownPanel } from './BreakdownPanel';
 import { ShotlistPanel } from './ShotlistPanel';
@@ -233,11 +234,14 @@ export function BreakdownLayout() {
         onToggleCollapse={toggleRight}
         style={{ width: rightWidth, borderLeft: '1px solid hsl(var(--border))' }}
       >
-        <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
-          <MessageSquare className="h-8 w-8 text-muted-foreground/40" />
-          <p className="text-sm font-medium text-muted-foreground">AI Chat</p>
-          <p className="text-xs text-muted-foreground/60">Available in Phase 24</p>
-        </div>
+        {projectId ? (
+          <BreakdownChat projectId={projectId} />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
+            <MessageSquare className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm font-medium text-muted-foreground">No project selected</p>
+          </div>
+        )}
       </BreakdownPanel>
 
     </div>

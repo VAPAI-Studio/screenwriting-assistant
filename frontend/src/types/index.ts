@@ -369,3 +369,25 @@ export interface AssetMedia {
   created_at: string;
   updated_at: string | null;
 }
+
+// ============================================================
+// Breakdown Chat types (v3.0 — Phase 24)
+// ============================================================
+
+export interface BreakdownChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
+  shot_action?: ShotAction | null;
+}
+
+export interface ShotAction {
+  type: 'create' | 'modify';
+  shot_id?: string;       // only for 'modify'
+  data: {
+    scene_item_id?: string | null;
+    shot_number?: number;
+    fields?: Partial<ShotFields>;
+  };
+}

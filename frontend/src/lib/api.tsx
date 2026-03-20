@@ -959,6 +959,63 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete media');
   },
 
+  // ============================================================
+  // Breakdown Chat (v3.0 — Phase 24)
+  // ============================================================
+
+  async sendBreakdownChatStream(
+    projectId: string,
+    content: string,
+    messageHistory: Array<{ role: string; content: string }>,
+    breakdownContext: { shots: any[]; elements: any[] },
+    onChunk: (chunk: string) => void,
+    onDone: (data: { shot_action?: any | null }) => void,
+  ): Promise<void> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/breakdown-chat/${projectId}/stream`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          content,
+          message_history: messageHistory,
+          shots_context: breakdownContext.shots,
+          elements_context: breakdownContext.elements,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to send breakdown chat message');
+
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = line.slice(6);
+          if (payload === '[DONE]') return;
+          try {
+            const data = JSON.parse(payload);
+            if (data.chunk) onChunk(data.chunk);
+            else if (data.done) onDone({ shot_action: data.shot_action ?? null });
+          } catch { /* skip malformed */ }
+        }
+      }
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
+  },
+
   async yoloFill(
     projectId: string,
     onEvent: (event: YoloEvent) => void,
