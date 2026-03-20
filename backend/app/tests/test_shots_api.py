@@ -422,3 +422,64 @@ class TestShotAIColumns:
         data = resp.json()
         assert data["ai_generated"] is True
         assert data["user_modified"] is False
+
+
+# ============================================================
+# TestUpdateShotUserModified
+# ============================================================
+
+class TestUpdateShotUserModified:
+    def test_update_sets_user_modified(self, client, db_session, mock_auth_headers):
+        """PUT update on a shot sets user_modified=True."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        shot = _make_shot(db_session, project_id, shot_number=1)
+        db_session.commit()
+
+        resp = client.put(
+            f"/api/shots/{project_id}/{shot.id}",
+            json={"fields": {"shot_size": "Close-Up"}},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["user_modified"] is True
+
+    def test_update_ai_shot_sets_user_modified(self, client, db_session, mock_auth_headers):
+        """PUT update on an AI-generated shot sets user_modified=True."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        shot = _make_shot(db_session, project_id, shot_number=1, source="ai")
+        shot.ai_generated = True
+        db_session.commit()
+
+        resp = client.put(
+            f"/api/shots/{project_id}/{shot.id}",
+            json={"fields": {"description": "User edit"}},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["user_modified"] is True
+        assert data["ai_generated"] is True
+
+    def test_create_then_update_lifecycle(self, client, mock_auth_headers):
+        """Full lifecycle: create AI shot (user_modified=False), update it (user_modified=True)."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+
+        # Create AI shot
+        create_resp = client.post(
+            f"/api/shots/{project_id}",
+            json={"source": "ai", "ai_generated": True},
+            headers=mock_auth_headers,
+        )
+        assert create_resp.status_code == 201
+        shot_id = create_resp.json()["id"]
+        assert create_resp.json()["user_modified"] is False
+
+        # Update it
+        update_resp = client.put(
+            f"/api/shots/{project_id}/{shot_id}",
+            json={"fields": {"shot_size": "Medium"}},
+            headers=mock_auth_headers,
+        )
+        assert update_resp.status_code == 200
+        assert update_resp.json()["user_modified"] is True
