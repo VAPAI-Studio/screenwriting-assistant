@@ -36,8 +36,8 @@
 
 - [x] **MDIA-01**: User can upload image files (JPEG, PNG, WebP) to breakdown elements (characters, locations, props, etc.)
 - [x] **MDIA-02**: User can upload audio files (MP3, WAV, M4A) to breakdown elements
-- [ ] **MDIA-03**: Uploaded images display as thumbnails in the assets panel
-- [ ] **MDIA-04**: Uploaded audio files have playable controls (play, pause, stop) in the assets panel
+- [x] **MDIA-03**: Uploaded images display as thumbnails in the assets panel
+- [x] **MDIA-04**: Uploaded audio files have playable controls (play, pause, stop) in the assets panel
 - [x] **MDIA-05**: User can delete uploaded media files
 - [x] **MDIA-06**: Image uploads generate thumbnails on the server (via Pillow)
 - [x] **MDIA-07**: Media upload endpoint enforces file type validation and size limits (20MB max)
@@ -46,8 +46,8 @@
 
 - [x] **ASST-01**: Left panel has a toggle between "Script" view and "Assets" view
 - [x] **ASST-02**: Assets view shows existing breakdown elements grouped by category (Characters, Locations, Props, Wardrobe, Vehicles)
-- [ ] **ASST-03**: Each element in assets view shows its attached media (image thumbnails, audio players)
-- [ ] **ASST-04**: User can upload media directly from the assets panel via drag-and-drop or file picker
+- [x] **ASST-03**: Each element in assets view shows its attached media (image thumbnails, audio players)
+- [x] **ASST-04**: User can upload media directly from the assets panel via drag-and-drop or file picker
 - [x] **ASST-05**: Toggling between Script and Assets preserves panel state (scroll position, expanded items)
 
 ### AI Chat in Breakdown
@@ -131,15 +131,15 @@
 | SELC-05 | Phase 21 | Complete |
 | MDIA-01 | Phase 22 | Complete |
 | MDIA-02 | Phase 22 | Complete |
-| MDIA-03 | Phase 23 | Pending |
-| MDIA-04 | Phase 23 | Pending |
+| MDIA-03 | Phase 23 | Complete |
+| MDIA-04 | Phase 23 | Complete |
 | MDIA-05 | Phase 22 | Complete |
 | MDIA-06 | Phase 22 | Complete |
 | MDIA-07 | Phase 22 | Complete |
 | ASST-01 | Phase 23 | Complete |
 | ASST-02 | Phase 23 | Complete |
-| ASST-03 | Phase 23 | Pending |
-| ASST-04 | Phase 23 | Pending |
+| ASST-03 | Phase 23 | Complete |
+| ASST-04 | Phase 23 | Complete |
 | ASST-05 | Phase 23 | Complete |
 | CHAT-01 | Phase 24 | Pending |
 | CHAT-02 | Phase 24 | Pending |
