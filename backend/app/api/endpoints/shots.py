@@ -150,6 +150,9 @@ async def update_shot(
     for field, value in update_data.items():
         setattr(shot, field, value)
 
+    # AISG-06: Mark shot as user-modified on any manual edit
+    shot.user_modified = True
+
     db.commit()
     db.refresh(shot)
     return shot
