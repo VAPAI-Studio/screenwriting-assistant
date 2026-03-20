@@ -34,13 +34,18 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 - ✓ AI chat in Breakdown mode with shotlist + element context awareness, shot create/modify via conversation — v3.0
 - ✓ Bidirectional sync between screenplay and shotlist (staleness banner + acknowledge) — v3.0
 
-### Active
+### Active (v3.1)
 
-- [ ] AI auto-generation of full shotlist from script content (AUTO-01, deferred from v3.0)
-- [ ] Media deletion UI (backend exists, no UI yet — deferred from v3.0)
-- [ ] Drag-and-drop shot reordering (SMGT-01, deferred from v3.0)
-- [ ] Shot duplication and batch operations (SMGT-02, SMGT-03, deferred from v3.0)
-- [ ] Scene reorder marks shotlist stale (minor gap from v3.0 audit)
+- [ ] AI auto-generation of full shotlist from script content with smart merge and user_modified preservation (AUTO-01)
+- [ ] AI-generated shots display subtle AI badge (sparkle icon) to distinguish from manually-created shots
+- [ ] Media deletion UI — delete button for uploaded assets (backend already exists)
+- [ ] Drag-and-drop shot reordering replacing arrow buttons (SMGT-01)
+- [ ] Scene reorder marks shotlist stale (SYNC-01 gap from v3.0 audit)
+
+### Deferred (v3.2+)
+
+- [ ] Shot duplication and batch operations (SMGT-02, SMGT-03)
+- [ ] YOLO auto-generation of shotlist on script save
 
 ### Out of Scope
 
@@ -110,4 +115,18 @@ Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-
 
 ---
 
-*Last updated: 2026-03-20 after v3.0 milestone — Shotlist & Production Breakdown shipped*
+## Current Milestone: v3.1 — AI Shotlist Generation
+
+**Goal:** AI generates a complete shotlist from the script, populating all fields, with smart merge that preserves user edits.
+
+**Target features:**
+- AI auto-generates shots from script (all fields: size, angle, movement, description, action, scene assignment, ordering, script link)
+- Smart merge: user_modified shots preserved on regeneration
+- AI badge on auto-generated shots
+- Media deletion UI
+- Drag-and-drop shot reorder
+- Scene reorder marks shotlist stale
+
+---
+
+*Last updated: 2026-03-20 after v3.0 milestone archived — starting v3.1*

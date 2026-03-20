@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: Shotlist & Production Breakdown
-status: complete
-stopped_at: Milestone archived
-last_updated: "2026-03-20T17:56:09Z"
+milestone: v3.1
+milestone_name: AI Shotlist Generation
+status: defining_requirements
+stopped_at: ~
+last_updated: "2026-03-20T18:30:00Z"
 progress:
-  total_phases: 9
-  completed_phases: 9
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,11 +19,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Planning next milestone (v4.0)
+**Current focus:** v3.1 — AI Shotlist Generation (defining requirements)
 
 ## Current Position
 
-v3.0 milestone complete — all 25 phases shipped, archived to .planning/milestones/
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-20 — Milestone v3.1 started
 
 ## Performance Metrics
 
@@ -129,9 +132,8 @@ v3.0 decisions (from execution):
 
 ### Pending Todos
 
-- Nyquist validation for phases 17-25 (all VALIDATION.md in draft state)
-- scene reorder → _mark_shotlist_stale (minor gap from v3.0 audit)
-- Media deletion UI (backend exists, no frontend component)
+- Nyquist validation for phases 17-25 (all VALIDATION.md in draft state — carried forward)
+- All v3.1 items now in REQUIREMENTS.md
 
 ### Blockers/Concerns
 
@@ -141,5 +143,5 @@ v3.0 decisions (from execution):
 ## Session Continuity
 
 Last session: 2026-03-20
-Stopped at: v3.0 milestone archived
+Stopped at: v3.1 requirements definition
 Resume file: None
