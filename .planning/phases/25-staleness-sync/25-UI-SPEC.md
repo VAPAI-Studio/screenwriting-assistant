@@ -35,7 +35,7 @@ Declared values (must be multiples of 4):
 |-------|-------|-------|
 | xs | 4px | Icon gaps (gap-1), inline padding (px-1) |
 | sm | 8px | Compact element spacing (gap-2, py-2) |
-| md | 16px | Default element spacing (px-4, gap-4) |
+| md | 16px | Default element spacing (px-4, gap-4), dismiss button margin (ml-4) |
 | lg | 24px | Section padding (px-6, py-6) |
 | xl | 32px | Layout gaps |
 | 2xl | 48px | Major section breaks |
@@ -52,7 +52,8 @@ Exceptions: none -- this phase adds a single banner component that follows the e
 | Body | 14px (text-sm) | 400 (normal) | 1.5 |
 | Label | 12px (text-xs) | 600 (font-semibold) | 1.5 |
 | Heading | 18px (text-lg) | 600 (font-semibold) | 1.2 |
-| Display | 20px (text-xl) | 700 (font-bold) | 1.2 |
+
+Display role not used in this phase.
 
 Source: Existing component patterns across BreakdownLayout.tsx, StalenessBar.tsx, BreakdownPage.tsx. This phase uses only Body (banner copy) and Label (dismiss button tooltip) roles.
 
@@ -101,7 +102,7 @@ This phase introduces exactly one new UI component and modifies one existing lay
 | Copy | See Copywriting Contract below |
 | Action | Dismiss button (X icon), not Refresh -- no auto-regeneration exists yet (AUTO-01 deferred to v3.1) |
 | Dismiss icon | `X` from lucide-react, `h-3.5 w-3.5` |
-| Dismiss button | `p-1 text-amber-400/60 hover:text-amber-400 transition-colors flex-shrink-0 ml-3` |
+| Dismiss button | `p-1 text-amber-400/60 hover:text-amber-400 transition-colors flex-shrink-0 ml-4` |
 | Disabled state | `disabled:opacity-60 disabled:cursor-not-allowed` during API call |
 | Animation | None -- banner appears/disappears instantly (no fade) |
 
