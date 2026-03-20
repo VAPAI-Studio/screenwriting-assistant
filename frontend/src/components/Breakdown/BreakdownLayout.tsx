@@ -1,10 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, MessageSquare } from 'lucide-react';
+import { api } from '../../lib/api';
 import { BreakdownChat } from './BreakdownChat';
 import { STORAGE_KEYS } from '../../lib/constants';
 import { BreakdownPanel } from './BreakdownPanel';
 import { ShotlistPanel } from './ShotlistPanel';
+import { ShotlistStalenessBar } from './ShotlistStalenessBar';
 import { ScriptReadView } from './ScriptReadView';
 import { AssetsPanel } from './AssetsPanel';
 
@@ -61,6 +64,22 @@ export function BreakdownLayout() {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.BREAKDOWN_LEFT_PANEL_VIEW, leftPanelView);
   }, [leftPanelView]);
+
+  // Shotlist staleness status (SYNC-02)
+  const queryClient = useQueryClient();
+  const { data: shotlistStatus } = useQuery({
+    queryKey: ['shotlist-status', projectId],
+    queryFn: () => api.getShotlistStatus(projectId!),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
+  const dismissStaleMutation = useMutation({
+    mutationFn: () => api.acknowledgeShotlistStale(projectId!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['shotlist-status', projectId] });
+    },
+  });
 
   // Drag refs
   const isDraggingLeft = useRef(false);
@@ -214,6 +233,12 @@ export function BreakdownLayout() {
             Shotlist
           </span>
         </div>
+        {shotlistStatus?.shotlist_stale && shotlistStatus.shot_count > 0 && (
+          <ShotlistStalenessBar
+            onDismiss={() => dismissStaleMutation.mutate()}
+            isPending={dismissStaleMutation.isPending}
+          />
+        )}
         <ShotlistPanel />
       </div>
 
