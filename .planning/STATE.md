@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: unknown
-stopped_at: Completed 22-01-PLAN.md
-last_updated: "2026-03-19T22:37:56.162Z"
+stopped_at: Completed 23-01-PLAN.md
+last_updated: "2026-03-20T12:39:11.802Z"
 progress:
   total_phases: 9
   completed_phases: 6
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 22 — media-upload-backend
+**Current focus:** Phase 23 — assets-panel-media-display
 
 ## Current Position
 
-Phase: 22 (media-upload-backend) — COMPLETE
-Plan: 1 of 1 (done)
+Phase: 23 (assets-panel-media-display) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Plan: 1 of 1 (done)
 | Phase 20 P02 | 2 | 2 tasks | 5 files |
 | Phase 21 P01 | 2 | 2 tasks | 3 files |
 | Phase 22 P01 | 4 | 3 tasks | 7 files |
+| Phase 23 P01 | 3 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,10 @@ v3.0 decisions (from execution):
 - [Phase 22-media-upload-backend]: Element ownership validated on upload to prevent cross-project data leaks
 - [Phase 22-media-upload-backend]: RequestSizeLimitMiddleware bumped from 10MB to 25MB for 20MB files + multipart overhead
 - [Phase 22-media-upload-backend]: shot_id not exposed as upload form field (ADVM-03 deferred to v3.1)
+- [Phase 23-assets-panel-media-display]: Both Script and Assets views always mounted in DOM (display:none toggle) to preserve scroll position and expanded state across toggles (ASST-05)
+- [Phase 23-assets-panel-media-display]: Audio overlap prevention refs in AssetsPanel as useRef for Plan 02 consumption
+- [Phase 23-assets-panel-media-display]: Empty categories hidden entirely rather than shown with zero count
+- [Phase 23-assets-panel-media-display]: uploadMedia uses Authorization-only header (no Content-Type) for browser multipart boundary
 
 ### Pending Todos
 
@@ -117,6 +122,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:34:41.146Z
-Stopped at: Completed 22-01-PLAN.md
+Last session: 2026-03-20T12:39:11.798Z
+Stopped at: Completed 23-01-PLAN.md
 Resume file: None

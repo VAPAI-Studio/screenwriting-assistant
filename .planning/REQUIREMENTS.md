@@ -44,11 +44,11 @@
 
 ### Assets Panel
 
-- [ ] **ASST-01**: Left panel has a toggle between "Script" view and "Assets" view
-- [ ] **ASST-02**: Assets view shows existing breakdown elements grouped by category (Characters, Locations, Props, Wardrobe, Vehicles)
+- [x] **ASST-01**: Left panel has a toggle between "Script" view and "Assets" view
+- [x] **ASST-02**: Assets view shows existing breakdown elements grouped by category (Characters, Locations, Props, Wardrobe, Vehicles)
 - [ ] **ASST-03**: Each element in assets view shows its attached media (image thumbnails, audio players)
 - [ ] **ASST-04**: User can upload media directly from the assets panel via drag-and-drop or file picker
-- [ ] **ASST-05**: Toggling between Script and Assets preserves panel state (scroll position, expanded items)
+- [x] **ASST-05**: Toggling between Script and Assets preserves panel state (scroll position, expanded items)
 
 ### AI Chat in Breakdown
 
@@ -136,11 +136,11 @@
 | MDIA-05 | Phase 22 | Complete |
 | MDIA-06 | Phase 22 | Complete |
 | MDIA-07 | Phase 22 | Complete |
-| ASST-01 | Phase 23 | Pending |
-| ASST-02 | Phase 23 | Pending |
+| ASST-01 | Phase 23 | Complete |
+| ASST-02 | Phase 23 | Complete |
 | ASST-03 | Phase 23 | Pending |
 | ASST-04 | Phase 23 | Pending |
-| ASST-05 | Phase 23 | Pending |
+| ASST-05 | Phase 23 | Complete |
 | CHAT-01 | Phase 24 | Pending |
 | CHAT-02 | Phase 24 | Pending |
 | CHAT-03 | Phase 24 | Pending |
