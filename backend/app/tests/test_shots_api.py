@@ -394,3 +394,31 @@ class TestCrossCutting:
             headers=mock_auth_headers,
         )
         assert resp.status_code == 404
+
+
+# ============================================================
+# TestShotAIColumns
+# ============================================================
+
+class TestShotAIColumns:
+    def test_create_shot_defaults_flags_false(self, client, mock_auth_headers):
+        """New shot has user_modified=False and ai_generated=False by default."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        resp = client.post(f"/api/shots/{project_id}", json={}, headers=mock_auth_headers)
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["user_modified"] is False
+        assert data["ai_generated"] is False
+
+    def test_create_shot_ai_generated_flag(self, client, mock_auth_headers):
+        """Creating a shot with ai_generated=True stores and returns True."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        resp = client.post(
+            f"/api/shots/{project_id}",
+            json={"source": "ai", "ai_generated": True},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["ai_generated"] is True
+        assert data["user_modified"] is False
