@@ -6,7 +6,7 @@ import {
   TemplateConfig, TemplateListItem, PhaseDataResponse, ListItemResponse,
   AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
   Snippet, SnippetListResponse, PipelineMapResponse,
-  Shot, ShotCreate, ShotUpdate,
+  Shot, ShotCreate, ShotUpdate, AssetMedia,
 } from '../types';
 import type { YoloEvent } from '../types/template';
 import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT, CHAT_TIMEOUT } from './constants';
@@ -917,6 +917,46 @@ export const api = {
       body: JSON.stringify({ items }),
     });
     if (!response.ok) throw new Error('Failed to reorder shots');
+  },
+
+  // ============================================================
+  // Media (v3.0 — Phase 23)
+  // ============================================================
+
+  async listElementMedia(projectId: string, elementId: string): Promise<AssetMedia[]> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/media/${projectId}?element_id=${elementId}`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch element media');
+    return response.json();
+  },
+
+  async uploadMedia(projectId: string, formData: FormData): Promise<AssetMedia> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/media/${projectId}`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': getAuthToken() },
+        body: formData,
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(err.detail || 'Failed to upload media');
+    }
+    return response.json();
+  },
+
+  async deleteMedia(projectId: string, mediaId: string): Promise<void> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/media/${projectId}/${mediaId}`,
+      {
+        method: 'DELETE',
+        headers: getHeaders(),
+      }
+    );
+    if (!response.ok) throw new Error('Failed to delete media');
   },
 
   async yoloFill(

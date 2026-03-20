@@ -350,3 +350,22 @@ export interface ShotUpdate {
   fields?: Partial<ShotFields>;
   sort_order?: number;
 }
+
+// ============================================================
+// Asset Media types (v3.0 — Phase 23)
+// ============================================================
+
+export interface AssetMedia {
+  id: string;
+  project_id: string;
+  element_id: string | null;
+  shot_id: string | null;
+  file_type: 'image' | 'audio';
+  file_path: string;
+  thumbnail_path: string | null;
+  original_filename: string;
+  file_size_bytes: number;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string | null;
+}

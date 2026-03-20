@@ -155,6 +155,7 @@ export const STORAGE_KEYS = {
   BREAKDOWN_RIGHT_WIDTH: 'breakdown_right_width',
   BREAKDOWN_LEFT_COLLAPSED: 'breakdown_left_collapsed',
   BREAKDOWN_RIGHT_COLLAPSED: 'breakdown_right_collapsed',
+  BREAKDOWN_LEFT_PANEL_VIEW: 'breakdown_left_panel_view',
 } as const;
 
 // Query Keys for React Query
@@ -187,6 +188,8 @@ export const QUERY_KEYS = {
   BREAKDOWN_SUMMARY: (projectId: string) => ['breakdown-summary', projectId] as const,
   BREAKDOWN_ELEMENTS: (projectId: string, category?: string) => ['breakdown-elements', projectId, category] as const,
   SHOTS: (projectId: string) => ['shots', projectId] as const,
+  ELEMENT_MEDIA: (elementId: string) => ['element-media', elementId] as const,
+  PROJECT_MEDIA: (projectId: string) => ['project-media', projectId] as const,
 } as const;
 
 // Theme Configuration
