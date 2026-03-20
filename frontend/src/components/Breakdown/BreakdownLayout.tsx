@@ -5,6 +5,7 @@ import { STORAGE_KEYS } from '../../lib/constants';
 import { BreakdownPanel } from './BreakdownPanel';
 import { ShotlistPanel } from './ShotlistPanel';
 import { ScriptReadView } from './ScriptReadView';
+import { AssetsPanel } from './AssetsPanel';
 
 const MIN_PANEL_WIDTH = 200;
 
@@ -49,6 +50,16 @@ export function BreakdownLayout() {
   const [rightCollapsed, setRightCollapsed] = useState(() =>
     readStoredBool(STORAGE_KEYS.BREAKDOWN_RIGHT_COLLAPSED, false)
   );
+
+  // Left panel Script/Assets toggle (ASST-01)
+  const [leftPanelView, setLeftPanelView] = useState<'script' | 'assets'>(() => {
+    const stored = localStorage.getItem(STORAGE_KEYS.BREAKDOWN_LEFT_PANEL_VIEW);
+    return stored === 'assets' ? 'assets' : 'script';
+  });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.BREAKDOWN_LEFT_PANEL_VIEW, leftPanelView);
+  }, [leftPanelView]);
 
   // Drag refs
   const isDraggingLeft = useRef(false);
@@ -145,7 +156,38 @@ export function BreakdownLayout() {
         style={{ width: leftWidth, borderRight: '1px solid hsl(var(--border))' }}
       >
         {projectId ? (
-          <ScriptReadView projectId={projectId} />
+          <div className="flex flex-col h-full">
+            {/* Toggle bar */}
+            <div className="flex items-center gap-1 px-3 py-1.5 flex-shrink-0" style={{ borderBottom: '1px solid hsl(var(--border))' }}>
+              <button
+                onClick={() => setLeftPanelView('script')}
+                className={`h-9 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
+                  leftPanelView === 'script'
+                    ? 'text-primary border-primary'
+                    : 'text-muted-foreground border-transparent'
+                }`}
+              >
+                Script
+              </button>
+              <button
+                onClick={() => setLeftPanelView('assets')}
+                className={`h-9 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors ${
+                  leftPanelView === 'assets'
+                    ? 'text-primary border-primary'
+                    : 'text-muted-foreground border-transparent'
+                }`}
+              >
+                Assets
+              </button>
+            </div>
+            {/* Views -- both mounted, only one visible (ASST-05: preserves scroll + state) */}
+            <div className="flex-1 overflow-hidden" style={{ display: leftPanelView === 'script' ? 'contents' : 'none' }}>
+              <ScriptReadView projectId={projectId} />
+            </div>
+            <div className="flex-1 overflow-hidden" style={{ display: leftPanelView === 'assets' ? 'contents' : 'none' }}>
+              <AssetsPanel projectId={projectId} />
+            </div>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-3 px-6 text-center">
             <FileText className="h-8 w-8 text-muted-foreground/40" />
