@@ -1,167 +1,70 @@
-# Requirements: v3.0 Shotlist & Production Breakdown
+# Requirements: Screenwriting Assistant
 
-**Defined:** 2026-03-19
+**Defined:** 2026-03-20
+**Milestone:** v3.1 — AI Shotlist Generation
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
 
-## v3.0 Requirements
+## v1 Requirements
 
-### Two-Mode UI
+### AI Shotlist Generation
 
-- [x] **MODE-01**: App has a top-level toggle in the header switching between "Screenwriting" and "Script Breakdown" modes
-- [x] **MODE-02**: Screenwriting mode renders the existing workspace with zero changes to existing components
-- [x] **MODE-03**: Script Breakdown mode renders a distinct 3-panel layout (left panel, center shotlist, right chat)
-- [x] **MODE-04**: Screenwriting and Breakdown modes have visually distinct color schemes while maintaining design unity (shared typography, spacing, component shapes)
-- [x] **MODE-05**: Mode toggle preserves project context (no data loss on switch)
+- [ ] **AISG-01**: User can trigger AI generation of a full shotlist via "Generate Shotlist" button in the breakdown panel
+- [ ] **AISG-02**: AI populates all standard shot fields for each generated shot (shot_size, camera_angle, camera_movement, description, action)
+- [ ] **AISG-03**: AI assigns each generated shot to the correct scene from the script
+- [ ] **AISG-04**: AI determines logical shot ordering within each scene
+- [ ] **AISG-05**: AI links each generated shot to the source script passage it covers (script_text field)
+- [ ] **AISG-06**: Regenerating the shotlist preserves shots the user has manually edited (smart merge via user_modified flag)
+- [ ] **AISG-07**: AI-generated shots display a subtle visual indicator (sparkle icon badge) distinguishable from manually-created shots
 
-### Shotlist
+### Media Management
 
-- [x] **SHOT-01**: User can create a shot manually via "Add Shot" button with freeform text fields
-- [x] **SHOT-02**: Shots have freeform text fields: shot_size, camera_angle, camera_movement, lens, description, action, dialogue, sound, characters, environment, props, equipment, notes
-- [x] **SHOT-03**: Shots are grouped by scene with scene headers in the shotlist panel
-- [x] **SHOT-04**: User can edit shot fields inline in the shotlist table
-- [x] **SHOT-05**: User can delete shots
-- [x] **SHOT-06**: Shots have a sort_order and can be reordered within a scene
-- [x] **SHOT-07**: Shotlist panel displays as a table/grid in the center-right area of breakdown mode
-- [x] **SHOT-08**: Empty state shows clear CTA when no shots exist
-
-### Script Selection
-
-- [x] **SELC-01**: Left panel in breakdown mode shows a read-only rendering of the screenplay content
-- [x] **SELC-02**: User can highlight/select text in the read-only script view
-- [x] **SELC-03**: On text selection, a floating bar appears showing line count and "+ Add Shot" button
-- [x] **SELC-04**: Clicking "+ Add Shot" creates a new shot pre-populated with the selected script text and linked to the corresponding scene
-- [x] **SELC-05**: Selection bar dismisses on click outside or pressing X
-
-### Media Uploads
-
-- [x] **MDIA-01**: User can upload image files (JPEG, PNG, WebP) to breakdown elements (characters, locations, props, etc.)
-- [x] **MDIA-02**: User can upload audio files (MP3, WAV, M4A) to breakdown elements
-- [x] **MDIA-03**: Uploaded images display as thumbnails in the assets panel
-- [x] **MDIA-04**: Uploaded audio files have playable controls (play, pause, stop) in the assets panel
-- [x] **MDIA-05**: User can delete uploaded media files
-- [x] **MDIA-06**: Image uploads generate thumbnails on the server (via Pillow)
-- [x] **MDIA-07**: Media upload endpoint enforces file type validation and size limits (20MB max)
-
-### Assets Panel
-
-- [x] **ASST-01**: Left panel has a toggle between "Script" view and "Assets" view
-- [x] **ASST-02**: Assets view shows existing breakdown elements grouped by category (Characters, Locations, Props, Wardrobe, Vehicles)
-- [x] **ASST-03**: Each element in assets view shows its attached media (image thumbnails, audio players)
-- [x] **ASST-04**: User can upload media directly from the assets panel via drag-and-drop or file picker
-- [x] **ASST-05**: Toggling between Script and Assets preserves panel state (scroll position, expanded items)
-
-### AI Chat in Breakdown
-
-- [x] **CHAT-01**: Right sidebar in breakdown mode shows the AI chat (extends existing SidebarChat)
-- [x] **CHAT-02**: AI chat in breakdown mode has context awareness of the current project's shotlist data
-- [x] **CHAT-03**: AI chat in breakdown mode has context awareness of the current project's breakdown elements
-- [x] **CHAT-04**: AI chat can create new shots via conversation (user confirms before creation)
-- [x] **CHAT-05**: AI chat can modify existing shot fields via conversation (user confirms before changes)
-
-### Sync
-
-- [x] **SYNC-01**: Script content changes (save/generate) set `shotlist_stale = true` on the project
-- [x] **SYNC-02**: Breakdown mode shows a staleness banner when shotlist is stale
-- [x] **SYNC-03**: Character name changes in Screenwriting mode propagate to Breakdown (via existing staleness pattern)
-- [x] **SYNC-04**: Staleness hooks are placed in the same locations as v2.0 breakdown_stale hooks
-
-### Data Model & API
-
-- [x] **DATA-01**: `shots` table exists with project_id, scene_item_id, shot_number, script_text, script_range (JSONB), fields (JSONB), sort_order, source
-- [x] **DATA-02**: `asset_media` table exists with project_id, element_id, shot_id, file_type, file_path, thumbnail_path, original_filename, file_size_bytes, metadata (JSONB)
-- [x] **DATA-03**: `shotlist_stale` boolean column added to projects table
-- [x] **DATA-04**: Shot CRUD API endpoints exist (GET list, POST create, GET single, PUT update, DELETE)
-- [x] **DATA-05**: Media upload API endpoint exists (POST upload, GET list, DELETE)
-- [x] **DATA-06**: Idempotent delta migration for new tables (follows existing `delta/` pattern)
-
-## v3.1 Requirements (Deferred)
-
-### AI Auto-Generation
-
-- **AUTO-01**: AI can auto-generate a full shotlist from script content
-- **AUTO-02**: AI-generated shots are marked with source='ai' and distinguishable from user shots
-
-### Advanced Media
-
-- **ADVM-01**: Audio waveform visualization in media player
-- **ADVM-02**: Image annotation/markup on reference images
-- **ADVM-03**: Media can be attached to individual shots (not just elements)
+- [ ] **MDIA-01**: User can delete an uploaded media asset from the assets panel (backend endpoint `DELETE /api/media/{id}` already exists)
 
 ### Shot Management
 
-- **SMGT-01**: Drag-and-drop shot reordering
-- **SMGT-02**: Shot duplication
-- **SMGT-03**: Batch shot operations (multi-select, bulk delete)
+- [ ] **SMGT-01**: User can reorder shots via drag-and-drop within the shotlist panel (replacing existing arrow buttons)
+
+### Staleness Sync
+
+- [ ] **SYNC-01**: Reordering scenes in the screenplay marks the shotlist as stale
+
+## v2 Requirements
+
+### AI Shotlist Generation (deferred)
+
+- **AISG-08**: AI auto-generates shotlist on script save (YOLO mode)
+- **AISG-09**: Shot duplication — user can duplicate an existing shot
+- **AISG-10**: Batch shot operations (select multiple, bulk delete/move)
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Scheduling/calendar | Different product domain, PROJECT.md defers |
-| Budget/cost tracking | Different product domain, PROJECT.md defers |
-| Export to PDF/storyboard | Separate feature pass |
-| Video upload/playback | Requires transcoding infrastructure |
-| Real-time collaborative editing | Save-triggered sync per PROJECT.md |
-| Camera/lens preset database | Freeform text sufficient per user requirement |
-| Storyboard drawing tools | Different product; image upload covers this |
-| Shot diagram / overhead view | Different product category |
-| Department assignments | PROJECT.md defers |
+| PDF/print breakdown export | Different product domain — scheduling/budgeting tools handle this |
+| Department assignments per shot | Production management feature, out of MVP scope |
+| Real-time AI suggestions while typing | Too complex, staleness-flag pattern is sufficient |
+| Movie Magic / Final Draft export | Industry format integration deferred indefinitely |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MODE-01 | Phase 18 | Complete |
-| MODE-02 | Phase 18 | Complete |
-| MODE-03 | Phase 18 | Complete |
-| MODE-04 | Phase 18 | Complete |
-| MODE-05 | Phase 18 | Complete |
-| SHOT-01 | Phase 19 | Complete |
-| SHOT-02 | Phase 19 | Complete |
-| SHOT-03 | Phase 20 | Complete |
-| SHOT-04 | Phase 20 | Complete |
-| SHOT-05 | Phase 20 | Complete |
-| SHOT-06 | Phase 20 | Complete |
-| SHOT-07 | Phase 20 | Complete |
-| SHOT-08 | Phase 20 | Complete |
-| SELC-01 | Phase 21 | Complete |
-| SELC-02 | Phase 21 | Complete |
-| SELC-03 | Phase 21 | Complete |
-| SELC-04 | Phase 21 | Complete |
-| SELC-05 | Phase 21 | Complete |
-| MDIA-01 | Phase 22 | Complete |
-| MDIA-02 | Phase 22 | Complete |
-| MDIA-03 | Phase 23 | Complete |
-| MDIA-04 | Phase 23 | Complete |
-| MDIA-05 | Phase 22 | Complete |
-| MDIA-06 | Phase 22 | Complete |
-| MDIA-07 | Phase 22 | Complete |
-| ASST-01 | Phase 23 | Complete |
-| ASST-02 | Phase 23 | Complete |
-| ASST-03 | Phase 23 | Complete |
-| ASST-04 | Phase 23 | Complete |
-| ASST-05 | Phase 23 | Complete |
-| CHAT-01 | Phase 24 | Complete |
-| CHAT-02 | Phase 24 | Complete |
-| CHAT-03 | Phase 24 | Complete |
-| CHAT-04 | Phase 24 | Complete |
-| CHAT-05 | Phase 24 | Complete |
-| SYNC-01 | Phase 25 | Complete |
-| SYNC-02 | Phase 25 | Complete |
-| SYNC-03 | Phase 25 | Complete |
-| SYNC-04 | Phase 25 | Complete |
-| DATA-01 | Phase 17 | Complete |
-| DATA-02 | Phase 17 | Complete |
-| DATA-03 | Phase 17 | Complete |
-| DATA-04 | Phase 19 | Complete |
-| DATA-05 | Phase 22 | Complete |
-| DATA-06 | Phase 17 | Complete |
+| AISG-01 | Phase 26 | Pending |
+| AISG-02 | Phase 26 | Pending |
+| AISG-03 | Phase 26 | Pending |
+| AISG-04 | Phase 26 | Pending |
+| AISG-05 | Phase 26 | Pending |
+| AISG-06 | Phase 26 | Pending |
+| AISG-07 | Phase 26 | Pending |
+| MDIA-01 | Phase 27 | Pending |
+| SMGT-01 | Phase 27 | Pending |
+| SYNC-01 | Phase 27 | Pending |
 
 **Coverage:**
-- v3.0 requirements: 45 total
-- Mapped to phases: 45
-- Unmapped: 0
+- v1 requirements: 10 total
+- Mapped to phases: 10
+- Unmapped: 0 ✓
 
 ---
-*Requirements defined: 2026-03-19*
-*Last updated: 2026-03-19 after roadmap creation*
+*Requirements defined: 2026-03-20*
+*Last updated: 2026-03-20 after initial definition*
