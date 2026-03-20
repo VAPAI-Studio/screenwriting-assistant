@@ -919,6 +919,23 @@ export const api = {
     if (!response.ok) throw new Error('Failed to reorder shots');
   },
 
+  async getShotlistStatus(projectId: string): Promise<{ shotlist_stale: boolean; shot_count: number }> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shots/${projectId}/status`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch shotlist status');
+    return response.json();
+  },
+
+  async acknowledgeShotlistStale(projectId: string): Promise<{ status: string }> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shots/${projectId}/acknowledge-stale`, {
+      method: 'POST',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to acknowledge shotlist staleness');
+    return response.json();
+  },
+
   // ============================================================
   // Media (v3.0 — Phase 23)
   // ============================================================
