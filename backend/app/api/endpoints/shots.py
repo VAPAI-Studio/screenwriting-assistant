@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from ...models import schemas, database
+from ...services.shotlist_generation_service import shotlist_generation_service
 from ..dependencies import get_db, get_current_user
 
 logger = logging.getLogger(__name__)
@@ -102,6 +103,18 @@ async def acknowledge_shotlist_stale(
     project.shotlist_stale = False
     db.commit()
     return {"status": "success"}
+
+
+@router.post("/{project_id}/generate")
+async def generate_shotlist(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Trigger AI generation of shotlist. Preserves user-modified shots."""
+    _verify_project_ownership(db, project_id, current_user.id)
+    result = await shotlist_generation_service.generate(db, project_id)
+    return result
 
 
 @router.get("/{project_id}/{shot_id}", response_model=schemas.ShotResponse)

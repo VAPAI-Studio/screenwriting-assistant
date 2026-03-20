@@ -170,8 +170,6 @@ class TestFieldPopulation:
                 script_excerpt="The KNIGHT draws a MAGIC SWORD",
             ),
         ])
-        result = shotlist_generation_service.generate(db_session, project_id)
-        # generate() is async so we need to run it properly
         import asyncio
         result = asyncio.get_event_loop().run_until_complete(
             shotlist_generation_service.generate(db_session, project_id)
