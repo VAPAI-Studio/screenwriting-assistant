@@ -55,8 +55,8 @@
 - [x] **CHAT-01**: Right sidebar in breakdown mode shows the AI chat (extends existing SidebarChat)
 - [x] **CHAT-02**: AI chat in breakdown mode has context awareness of the current project's shotlist data
 - [x] **CHAT-03**: AI chat in breakdown mode has context awareness of the current project's breakdown elements
-- [ ] **CHAT-04**: AI chat can create new shots via conversation (user confirms before creation)
-- [ ] **CHAT-05**: AI chat can modify existing shot fields via conversation (user confirms before changes)
+- [x] **CHAT-04**: AI chat can create new shots via conversation (user confirms before creation)
+- [x] **CHAT-05**: AI chat can modify existing shot fields via conversation (user confirms before changes)
 
 ### Sync
 
@@ -144,8 +144,8 @@
 | CHAT-01 | Phase 24 | Complete |
 | CHAT-02 | Phase 24 | Complete |
 | CHAT-03 | Phase 24 | Complete |
-| CHAT-04 | Phase 24 | Pending |
-| CHAT-05 | Phase 24 | Pending |
+| CHAT-04 | Phase 24 | Complete |
+| CHAT-05 | Phase 24 | Complete |
 | SYNC-01 | Phase 25 | Pending |
 | SYNC-02 | Phase 25 | Pending |
 | SYNC-03 | Phase 25 | Pending |
