@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: unknown
-stopped_at: Phase 24 context gathered
-last_updated: "2026-03-20T13:25:03.982Z"
+stopped_at: Completed 24-01-PLAN.md
+last_updated: "2026-03-20T14:07:21.000Z"
 progress:
   total_phases: 9
   completed_phases: 7
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 12
+  completed_plans: 11
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 23 — assets-panel-media-display
+**Current focus:** Phase 24 — ai-chat-for-breakdown
 
 ## Current Position
 
-Phase: 23 (assets-panel-media-display) — EXECUTING
+Phase: 24 (ai-chat-for-breakdown) — EXECUTING
 Plan: 2 of 2
 
 ## Performance Metrics
@@ -57,6 +57,7 @@ Plan: 2 of 2
 | Phase 22 P01 | 4 | 3 tasks | 7 files |
 | Phase 23 P01 | 3 | 2 tasks | 7 files |
 | Phase 23 P02 | 3 | 2 tasks | 5 files |
+| Phase 24 P01 | 5 | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,9 @@ v3.0 decisions (from execution):
 - [Phase 23-assets-panel-media-display]: Empty categories hidden entirely rather than shown with zero count
 - [Phase 23-assets-panel-media-display]: uploadMedia uses Authorization-only header (no Content-Type) for browser multipart boundary
 - [Phase 23]: Audio overlap uses stopCurrentAudioRef pattern -- stores stop function, not tracking ID
+- [Phase 24-ai-chat-for-breakdown]: Stateless chat pattern -- full message history + context sent with every request, no backend session persistence
+- [Phase 24-ai-chat-for-breakdown]: System prompt injects shots as numbered list and elements grouped by category
+- [Phase 24-ai-chat-for-breakdown]: shot_action always None in Plan 01; extraction deferred to Plan 02
 
 ### Pending Todos
 
@@ -124,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T13:25:03.979Z
-Stopped at: Phase 24 context gathered
-Resume file: .planning/phases/24-ai-chat-for-breakdown/24-CONTEXT.md
+Last session: 2026-03-20T14:07:21.000Z
+Stopped at: Completed 24-01-PLAN.md
+Resume file: .planning/phases/24-ai-chat-for-breakdown/24-02-PLAN.md
