@@ -799,3 +799,34 @@ class AssetMediaResponse(BaseModel):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+# ============================================================
+# Breakdown Chat (v3.0 — Phase 24)
+# ============================================================
+
+class BreakdownChatShotContext(BaseModel):
+    id: str
+    shot_number: int
+    scene_item_id: Optional[str] = None
+    fields: Dict = Field(default_factory=dict)
+    source: str = "user"
+
+
+class BreakdownChatElementContext(BaseModel):
+    id: str
+    category: str
+    name: str
+    description: str = ""
+
+
+class BreakdownChatMessage(BaseModel):
+    role: str = Field(..., pattern="^(user|assistant)$")
+    content: str
+
+
+class BreakdownChatRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=10000)
+    message_history: List[BreakdownChatMessage] = Field(default_factory=list)
+    shots_context: List[BreakdownChatShotContext] = Field(default_factory=list)
+    elements_context: List[BreakdownChatElementContext] = Field(default_factory=list)

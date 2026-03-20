@@ -14,6 +14,7 @@ from .api.endpoints import wizards as wizards_ep, ai_chat as ai_chat_ep
 from .api.endpoints import breakdown as breakdown_ep
 from .api.endpoints import shots as shots_ep
 from .api.endpoints import media as media_ep
+from .api.endpoints import breakdown_chat as breakdown_chat_ep
 from .config import settings
 from .middleware import (
     LoggingMiddleware,
@@ -102,6 +103,7 @@ app.include_router(ai_chat_ep.router, prefix="/api/ai", tags=["ai"])
 app.include_router(breakdown_ep.router, prefix="/api/breakdown", tags=["breakdown"])
 app.include_router(shots_ep.router, prefix="/api/shots", tags=["shots"])
 app.include_router(media_ep.router, prefix="/api/media", tags=["media"])
+app.include_router(breakdown_chat_ep.router, prefix="/api/breakdown-chat", tags=["breakdown-chat"])
 
 # Serve uploaded media files
 os.makedirs(settings.MEDIA_DIR, exist_ok=True)
