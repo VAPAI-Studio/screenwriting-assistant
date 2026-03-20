@@ -54,7 +54,7 @@
 
 ### 🚧 v3.1 AI Shotlist Generation (In Progress)
 
-- [ ] **Phase 26: AI Shotlist Generation Service** - Backend service that reads script content and generates a complete shotlist with smart merge
+- [x] **Phase 26: AI Shotlist Generation Service** - Backend service that reads script content and generates a complete shotlist with smart merge
 - [ ] **Phase 27: Generate Shotlist UI & AI Badge** - Frontend trigger button, generation progress, and visual distinction for AI-generated shots
 - [ ] **Phase 28: UX Improvements** - Media deletion, drag-and-drop shot reorder, and scene reorder staleness fix
 
@@ -70,10 +70,10 @@
   3. Shots within each scene have a logical ordering (establishing shots before close-ups, action coverage before reactions)
   4. Regenerating the shotlist after a user has manually edited some shots preserves those edited shots unchanged while replacing/adding AI-generated ones
   5. The Shot model has a user_modified flag that is set to true on manual edit and an ai_generated flag that distinguishes AI-created shots from manual ones
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans executed
 Plans:
-- [ ] 26-01-PLAN.md — Schema foundation: delta migration, ORM + schema updates for user_modified/ai_generated, update endpoint flag
-- [ ] 26-02-PLAN.md — ShotlistGenerationService: AI context builder, structured output, smart merge, generate endpoint + tests
+- [x] 26-01-PLAN.md — Schema foundation: delta migration, ORM + schema updates for user_modified/ai_generated, update endpoint flag
+- [x] 26-02-PLAN.md — ShotlistGenerationService: AI context builder, structured output, smart merge, generate endpoint + tests
 
 ### Phase 27: Generate Shotlist UI & AI Badge
 **Goal**: Users can trigger shotlist generation from the breakdown panel and visually distinguish AI-generated shots from manually-created ones
@@ -126,6 +126,6 @@ Plans:
 | 23. Assets Panel & Media Display | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 24. AI Chat for Breakdown | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 25. Staleness & Sync | v3.0 | 2/2 | Complete | 2026-03-20 |
-| 26. AI Shotlist Generation Service | 1/2 | In Progress|  | - |
+| 26. AI Shotlist Generation Service | v3.1 | 2/2 | Complete | 2026-03-20 |
 | 27. Generate Shotlist UI & AI Badge | v3.1 | 0/? | Not started | - |
 | 28. UX Improvements | v3.1 | 0/? | Not started | - |

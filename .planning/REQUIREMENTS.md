@@ -8,11 +8,11 @@
 
 ### AI Shotlist Generation
 
-- [ ] **AISG-01**: User can trigger AI generation of a full shotlist via "Generate Shotlist" button in the breakdown panel
-- [ ] **AISG-02**: AI populates all standard shot fields for each generated shot (shot_size, camera_angle, camera_movement, description, action)
-- [ ] **AISG-03**: AI assigns each generated shot to the correct scene from the script
-- [ ] **AISG-04**: AI determines logical shot ordering within each scene
-- [ ] **AISG-05**: AI links each generated shot to the source script passage it covers (script_text field)
+- [x] **AISG-01**: User can trigger AI generation of a full shotlist via "Generate Shotlist" button in the breakdown panel
+- [x] **AISG-02**: AI populates all standard shot fields for each generated shot (shot_size, camera_angle, camera_movement, description, action)
+- [x] **AISG-03**: AI assigns each generated shot to the correct scene from the script
+- [x] **AISG-04**: AI determines logical shot ordering within each scene
+- [x] **AISG-05**: AI links each generated shot to the source script passage it covers (script_text field)
 - [x] **AISG-06**: Regenerating the shotlist preserves shots the user has manually edited (smart merge via user_modified flag)
 - [ ] **AISG-07**: AI-generated shots display a subtle visual indicator (sparkle icon badge) distinguishable from manually-created shots
 
@@ -49,11 +49,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AISG-01 | Phase 26, Phase 27 (frontend trigger) | Pending |
-| AISG-02 | Phase 26 | Pending |
-| AISG-03 | Phase 26 | Pending |
-| AISG-04 | Phase 26 | Pending |
-| AISG-05 | Phase 26 | Pending |
+| AISG-01 | Phase 26, Phase 27 (frontend trigger) | Complete |
+| AISG-02 | Phase 26 | Complete |
+| AISG-03 | Phase 26 | Complete |
+| AISG-04 | Phase 26 | Complete |
+| AISG-05 | Phase 26 | Complete |
 | AISG-06 | Phase 26 | Complete |
 | AISG-07 | Phase 27 | Pending |
 | MDIA-01 | Phase 28 | Pending |
