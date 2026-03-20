@@ -73,6 +73,36 @@ async def list_shots(
     return query.all()
 
 
+@router.get("/{project_id}/status")
+async def get_shotlist_status(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get shotlist staleness status and shot count."""
+    project = _verify_project_ownership(db, project_id, current_user.id)
+    shot_count = db.query(database.Shot).filter(
+        database.Shot.project_id == str(project_id)
+    ).count()
+    return {
+        "shotlist_stale": project.shotlist_stale or False,
+        "shot_count": shot_count,
+    }
+
+
+@router.post("/{project_id}/acknowledge-stale")
+async def acknowledge_shotlist_stale(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Clear shotlist_stale flag (user acknowledged the staleness)."""
+    project = _verify_project_ownership(db, project_id, current_user.id)
+    project.shotlist_stale = False
+    db.commit()
+    return {"status": "success"}
+
+
 @router.get("/{project_id}/{shot_id}", response_model=schemas.ShotResponse)
 async def get_shot(
     project_id: UUID,

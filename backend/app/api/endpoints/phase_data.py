@@ -15,6 +15,7 @@ router = APIRouter()
 
 # Phases that trigger breakdown_stale when their content is updated.
 BREAKDOWN_SENSITIVE_PHASES = {"write", "scenes"}
+SHOTLIST_SENSITIVE_PHASES = {"write", "scenes"}
 
 
 def _mark_breakdown_stale(db: Session, project_id) -> None:
@@ -33,6 +34,23 @@ def _mark_breakdown_stale(db: Session, project_id) -> None:
         ).first()
         if project:
             project.breakdown_stale = True
+
+
+def _mark_shotlist_stale(db: Session, project_id) -> None:
+    """Set shotlist_stale=True if shots exist for this project.
+
+    Does not commit -- caller's existing commit covers the change.
+    Only marks stale when at least one Shot exists.
+    """
+    has_shots = db.query(database.Shot).filter(
+        database.Shot.project_id == str(project_id),
+    ).first() is not None
+    if has_shots:
+        project = db.query(database.Project).filter(
+            database.Project.id == str(project_id)
+        ).first()
+        if project:
+            project.shotlist_stale = True
 
 
 def _verify_project_ownership(db: Session, project_id: UUID, user_id: UUID) -> database.Project:
@@ -198,6 +216,8 @@ async def update_subsection_data(
 
     if phase in BREAKDOWN_SENSITIVE_PHASES:
         _mark_breakdown_stale(db, project_id)
+    if phase in SHOTLIST_SENSITIVE_PHASES:
+        _mark_shotlist_stale(db, project_id)
 
     db.commit()
     db.refresh(data)

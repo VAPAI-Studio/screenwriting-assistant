@@ -7,7 +7,7 @@ from uuid import UUID
 
 from ...models import schemas, database
 from ..dependencies import get_db, get_current_user
-from .phase_data import _mark_breakdown_stale
+from .phase_data import _mark_breakdown_stale, _mark_shotlist_stale
 
 router = APIRouter()
 
@@ -49,6 +49,19 @@ def _is_scene_item(db: Session, phase_data_id) -> database.PhaseData | None:
         database.PhaseData.id == str(phase_data_id)
     ).first()
     if pd and str(pd.phase) == "scenes" and pd.subsection_key == "scene_list":
+        return pd
+    return None
+
+
+def _is_character_item(db: Session, phase_data_id) -> database.PhaseData | None:
+    """Return PhaseData if it represents story/characters subsection, else None.
+
+    Character name changes affect shot fields, so they trigger shotlist staleness.
+    """
+    pd = db.query(database.PhaseData).filter(
+        database.PhaseData.id == str(phase_data_id)
+    ).first()
+    if pd and str(pd.phase) == "story" and pd.subsection_key == "characters":
         return pd
     return None
 
@@ -112,6 +125,12 @@ async def create_list_item(
     scene_pd = _is_scene_item(db, phase_data_id)
     if scene_pd:
         _mark_breakdown_stale(db, scene_pd.project_id)
+        _mark_shotlist_stale(db, scene_pd.project_id)
+        db.commit()
+
+    char_pd = _is_character_item(db, phase_data_id)
+    if char_pd:
+        _mark_shotlist_stale(db, char_pd.project_id)
         db.commit()
 
     return db_item
@@ -142,6 +161,12 @@ async def update_list_item(
     scene_pd = _is_scene_item(db, item.phase_data_id)
     if scene_pd:
         _mark_breakdown_stale(db, scene_pd.project_id)
+        _mark_shotlist_stale(db, scene_pd.project_id)
+        db.commit()
+
+    char_pd = _is_character_item(db, item.phase_data_id)
+    if char_pd:
+        _mark_shotlist_stale(db, char_pd.project_id)
         db.commit()
 
     return item
@@ -163,6 +188,12 @@ async def delete_list_item(
     scene_pd = _is_scene_item(db, phase_data_id)
     if scene_pd:
         _mark_breakdown_stale(db, scene_pd.project_id)
+        _mark_shotlist_stale(db, scene_pd.project_id)
+        db.commit()
+
+    char_pd = _is_character_item(db, phase_data_id)
+    if char_pd:
+        _mark_shotlist_stale(db, char_pd.project_id)
         db.commit()
 
     return {"status": "success", "message": "Item deleted"}
