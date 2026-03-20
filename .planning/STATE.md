@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: AI Shotlist Generation
-status: roadmap_complete
-stopped_at: ~
-last_updated: "2026-03-20T19:00:00Z"
+status: unknown
+stopped_at: Completed 26-01-PLAN.md
+last_updated: "2026-03-20T20:07:37.354Z"
 progress:
   total_phases: 3
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 2
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,16 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v3.1 -- AI Shotlist Generation (roadmap complete, ready to plan Phase 26)
+**Current focus:** Phase 26 — ai-shotlist-generation-service
 
 ## Current Position
 
-Phase: 26 of 28 (AI Shotlist Generation Service)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-20 -- Roadmap created for v3.1
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 26 (ai-shotlist-generation-service) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -53,6 +49,8 @@ Progress: [░░░░░░░░░░] 0%
 - Last 5 plans: 19-01 (3min), 20-01 (4min), 20-02 (2min), 21-01 (2min), 22-01 (4min)
 - Trend: improving
 
+| Phase 26 P01 | 4min | 2 tasks | 5 files |
+
 ## Accumulated Context
 
 ### Decisions
@@ -60,10 +58,13 @@ Progress: [░░░░░░░░░░] 0%
 Decisions logged in PROJECT.md Key Decisions table.
 
 Relevant to v3.1:
+
 - JSONB `fields` column for shot properties -- freeform schema
 - Two-phase AI call pattern (stream then extract) from breakdown chat
 - Staleness flag pattern (save/generate triggers stale, user acknowledges)
 - Shot.scene_item_id uses ON DELETE SET NULL
+- [Phase 26]: user_modified not in ShotCreate; always starts False, only set by update endpoint
+- [Phase 26]: ai_generated passed through ShotCreate for AI generation service to set on creation
 
 ### Pending Todos
 
@@ -72,10 +73,10 @@ Relevant to v3.1:
 ### Blockers/Concerns
 
 - 3 pre-existing TypeScript build errors in unrelated files (IndividualEditorView, RepeatableCardsView, SidebarChat)
-- `user_modified` flag does not yet exist on Shot model -- Phase 26 must add it via delta migration
+- `user_modified` flag added to Shot model via delta migration 003 (Plan 26-01 complete)
 
 ## Session Continuity
 
-Last session: 2026-03-20
-Stopped at: v3.1 roadmap created, ready to plan Phase 26
+Last session: 2026-03-20T20:07:37.351Z
+Stopped at: Completed 26-01-PLAN.md
 Resume file: None
