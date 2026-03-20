@@ -736,6 +736,7 @@ class ShotCreate(BaseModel):
     fields: Dict = Field(default_factory=dict)
     sort_order: Optional[int] = None
     source: str = Field(default="user", pattern="^(user|ai)$")
+    ai_generated: bool = False
 
 
 class ShotUpdate(BaseModel):
@@ -757,6 +758,8 @@ class ShotResponse(BaseModel):
     fields: Dict = Field(default_factory=dict)
     sort_order: int = 0
     source: str = "user"
+    user_modified: bool = False
+    ai_generated: bool = False
     created_at: datetime
     updated_at: Optional[datetime] = None
 

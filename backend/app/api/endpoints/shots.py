@@ -45,6 +45,7 @@ async def create_shot(
         fields=body.fields or {},
         sort_order=body.sort_order if body.sort_order is not None else 0,
         source=body.source,
+        ai_generated=body.ai_generated,
     )
     db.add(db_shot)
     db.commit()

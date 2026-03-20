@@ -551,6 +551,8 @@ class Shot(Base):
     fields = Column(JSON, default=dict)
     sort_order = Column(Integer, default=0)
     source = Column(String(20), default="user")
+    user_modified = Column(Boolean, default=False)
+    ai_generated = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
