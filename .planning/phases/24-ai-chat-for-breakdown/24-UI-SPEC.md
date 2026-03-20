@@ -32,7 +32,7 @@ Declared values (must be multiples of 4):
 | Token | Value | Usage |
 |-------|-------|-------|
 | xs | 4px | Icon gaps, inline padding within message bubbles |
-| sm | 8px | Compact element spacing, gap between confirmation card fields |
+| sm | 8px | Compact element spacing, gap between confirmation card fields, ShotProposalCard header icon-to-label gap |
 | md | 16px | Default element spacing, message area padding (p-4) |
 | lg | 24px | Section padding, empty state vertical gaps |
 | xl | 32px | Layout gaps |
@@ -50,9 +50,9 @@ Exceptions: Touch target for send button is 40px (10 x 4) minimum hit area, cons
 | Body | 14px (text-sm) | 400 (normal) | 1.625 (leading-relaxed) |
 | Label | 10px (text-[10px]) | 600 (font-semibold) | 1.4 (leading-snug) |
 | Heading | 12px (text-xs) | 600 (font-semibold) | 1.5 |
-| Display | 14px (text-sm) | 500 (font-medium) | 1.5 |
+| Display | 14px (text-sm) | 400 (normal) | 1.5 |
 
-Source: These match the existing SidebarChat typography exactly. Body text at 14px with leading-relaxed is used for all message content. Labels at 10px semibold uppercase with tracking-wider are used for section headers ("PROPOSED CHANGES", status indicators). Headings at 12px semibold uppercase tracking-wider are used for panel titles ("AI CHAT"). Display at 14px medium is used for empty state primary text.
+Source: These match the existing SidebarChat typography exactly. Body text at 14px with leading-relaxed is used for all message content. Labels at 10px semibold uppercase with tracking-wider are used for section headers ("PROPOSED CHANGES", status indicators). Headings at 12px semibold uppercase tracking-wider are used for panel titles ("AI CHAT"). Display at 14px normal weight is used for empty state primary text, differentiated from Body by context (centered, muted color) rather than weight.
 
 ---
 
@@ -68,6 +68,8 @@ All colors use HSL CSS variables defined in `.breakdown-mode` scope in `index.cs
 | Destructive | `hsl(0 72% 51%)` / var(--destructive) | Error message bubbles only |
 
 Accent reserved for: send button, input focus ring (focus:ring-2 focus:ring-primary/20), "Create Shot" and "Apply Changes" confirmation buttons on ShotProposalCard, streaming loading spinner, post-confirmation success checkmark icon.
+
+Focal point: The send button (bg-primary, bottom-right of the chat panel) is the single dominant accent element and serves as the visual focal point of the BreakdownChat component.
 
 ### Breakdown-specific color mapping (from CONTEXT.md)
 
@@ -112,7 +114,7 @@ Accent reserved for: send button, input focus ring (focus:ring-2 focus:ring-prim
 BreakdownChat (flex flex-col h-full)
   +-- Header bar (px-3 py-2, border-b, flex-shrink-0)
   |     +-- Title: "Breakdown AI" (text-xs font-semibold uppercase tracking-wider)
-  |     +-- Clear button (RotateCcw icon, conditional on messages.length > 0)
+  |     +-- Clear button (RotateCcw icon, conditional on messages.length > 0, no confirmation -- instant clear)
   +-- Message area (flex-1 overflow-y-auto p-4 space-y-3)
   |     +-- Empty state (centered, py-8)
   |     +-- User message bubbles (justify-end, max-w-[85%], rounded-xl)
@@ -124,14 +126,14 @@ BreakdownChat (flex flex-col h-full)
   +-- ShotProposalCard (conditional, above input, mx-3 mb-3)
   +-- Input area (p-3 border-t border-border flex-shrink-0)
         +-- textarea (flex-1, bg-input, focus:ring-2 focus:ring-primary/20)
-        +-- Send button (px-3 py-2, bg-primary text-primary-foreground, rounded-lg)
+        +-- Send button (px-3 py-2, bg-primary text-primary-foreground, rounded-lg, aria-label="Send message")
 ```
 
 ### Component Anatomy: ShotProposalCard
 
 ```
 ShotProposalCard (mx-3 mb-3 rounded-xl border border-primary/25 bg-primary/5 p-3)
-  +-- Header row (flex items-center gap-1.5 mb-2)
+  +-- Header row (flex items-center gap-2 mb-2)
   |     +-- Icon: Camera or Plus (h-3.5 w-3.5 text-primary)
   |     +-- Label: "NEW SHOT" or "SHOT CHANGES" (text-xs font-semibold text-primary uppercase tracking-wider)
   +-- Fields section (space-y-2 mb-3 max-h-48 overflow-y-auto)
@@ -207,6 +209,7 @@ ShotProposalCard (mx-3 mb-3 rounded-xl border border-primary/25 bg-primary/5 p-3
 | Shot modification success | "Shot #{N} updated" |
 | Dismiss button | "Dismiss" |
 | Clear chat tooltip | "Clear conversation" |
+| Destructive confirmation | "Clear conversation": No confirmation dialog. Instant clear on click, matching existing SidebarChat behavior where conversation history is ephemeral and low-cost to regenerate. |
 | No project state heading | "No project selected" |
 | Streaming indicator | Loader2 spinner only, no text (matches SidebarChat) |
 
@@ -250,6 +253,7 @@ BreakdownChat renders inside the existing right panel of `BreakdownLayout`:
 | Keyboard send | Enter key sends message (Shift+Enter for newline) -- matches SidebarChat |
 | Focus management | Textarea auto-focuses on panel mount; after sending, focus returns to textarea |
 | Screen reader | Message area uses role="log" aria-live="polite" for streaming updates |
+| Send button | aria-label="Send message" on the icon-only send button |
 | Confirmation card | Primary action button uses aria-label="Create shot" or "Apply changes to shot" |
 | Color contrast | All text meets WCAG AA (4.5:1 minimum). Primary text on dark background: hsl(210 20% 95%) on hsl(220 13% 5%) = 14.8:1 |
 | Reduced motion | Streaming scroll uses `prefers-reduced-motion: reduce` media query to disable smooth scrolling |
