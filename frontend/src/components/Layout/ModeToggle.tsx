@@ -17,12 +17,17 @@ export function ModeToggle() {
 
   const isBreakdown = location.pathname.endsWith('/breakdown');
   const currentMode = isBreakdown ? 'breakdown' : 'screenwriting';
+  const lastScreenwritingKey = `lastScreenwritingPath_${projectId}`;
 
   const handleSelect = (mode: 'screenwriting' | 'breakdown') => {
     if (mode === 'breakdown') {
+      if (!isBreakdown) {
+        localStorage.setItem(lastScreenwritingKey, location.pathname);
+      }
       navigate(ROUTES.PROJECT_BREAKDOWN(projectId));
     } else {
-      navigate(ROUTES.PROJECT(projectId));
+      const last = localStorage.getItem(lastScreenwritingKey);
+      navigate(last ?? ROUTES.PROJECT(projectId));
     }
   };
 

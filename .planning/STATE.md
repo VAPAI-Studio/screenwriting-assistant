@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
-status: unknown
-stopped_at: Completed 25-02-PLAN.md
-last_updated: "2026-03-20T17:36:11.442Z"
+status: complete
+stopped_at: Milestone archived
+last_updated: "2026-03-20T17:56:09Z"
 progress:
   total_phases: 9
   completed_phases: 9
@@ -16,15 +16,14 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-18)
+See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 25 — staleness-sync (COMPLETE)
+**Current focus:** Planning next milestone (v4.0)
 
 ## Current Position
 
-Phase: 25 (staleness-sync) — COMPLETE
-Plan: 2 of 2 (all plans complete)
+v3.0 milestone complete — all 25 phases shipped, archived to .planning/milestones/
 
 ## Performance Metrics
 
@@ -130,15 +129,17 @@ v3.0 decisions (from execution):
 
 ### Pending Todos
 
-None yet.
+- Nyquist validation for phases 17-25 (all VALIDATION.md in draft state)
+- scene reorder → _mark_shotlist_stale (minor gap from v3.0 audit)
+- Media deletion UI (backend exists, no frontend component)
 
 ### Blockers/Concerns
 
-- Scene ListItem ID stability: element_scene_links cascades on ListItem deletion; links break if scenes regenerated (carried from v2.0)
-- Text Selection API cross-browser testing needed (Safari quirks) — research P2
+- Scene ListItem ID stability: element_scene_links cascades on ListItem deletion (carried from v2.0)
+- 3 pre-existing TypeScript build errors in unrelated files (IndividualEditorView, RepeatableCardsView, SidebarChat)
 
 ## Session Continuity
 
-Last session: 2026-03-20T17:28:09.709Z
-Stopped at: Completed 25-02-PLAN.md
+Last session: 2026-03-20
+Stopped at: v3.0 milestone archived
 Resume file: None

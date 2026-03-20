@@ -155,8 +155,6 @@ export function ProjectWorkspace() {
     );
   }
 
-  const isBreakdownActive = false; // ProjectWorkspace is never the breakdown page
-
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]">
       {/* Phase Navigation */}
@@ -168,8 +166,6 @@ export function ProjectWorkspace() {
         onYoloFill={handleYoloFill}
         isYoloRunning={isYoloRunning}
         yoloProgress={yoloProgress}
-        onBreakdownClick={() => navigate(`/projects/${projectId}/breakdown`)}
-        isBreakdownActive={isBreakdownActive}
       />
 
       <div className="flex flex-1 overflow-hidden">

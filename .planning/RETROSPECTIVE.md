@@ -55,15 +55,71 @@
 
 ---
 
+## Milestone: v3.0 — Shotlist & Production Breakdown
+
+**Shipped:** 2026-03-20
+**Phases:** 9 (17-25) | **Plans:** 14 | **Files changed:** 108 (+21,108 lines)
+
+### What Was Built
+
+- `shots`, `asset_media` tables with JSONB fields; `shotlist_stale` column on projects; idempotent delta migration 002
+- Two-mode UI shell: ModeToggle dropdown, `/projects/:id/breakdown` route, BreakdownLayout 3-panel layout, `.breakdown-mode` CSS palette (amber → steel-blue), panel resize/collapse with localStorage persistence
+- Full Shot CRUD API (6 endpoints) + scene-grouped shotlist panel with inline editing, two-click delete, arrow reorder, and optimistic cache mutations
+- ScriptReadView: read-only screenplay rendering with text selection detection, floating SelectionBar, and shot creation from selected text
+- Media upload backend: image/audio upload with Pillow WebP thumbnail generation, 20MB size limit, StaticFiles mount; AssetsPanel with Script/Assets toggle, category groups, thumbnails, audio playback with overlap prevention, drag-and-drop upload
+- AI breakdown chat: SSE streaming endpoint with shotlist + element context injection; ShotProposalCard confirmation flow for shot create/modify; two-phase AI call (stream then JSON-mode extraction)
+- Shotlist staleness hooks across 6 mutation paths (phase_data PATCH, wizards, character/scene CRUD); banner with React Query polling and dismiss
+
+### What Worked
+
+- **Tight phase scoping**: Each phase had exactly one responsibility — the 9-phase split (data → UI shell → CRUD → panel → script view → media backend → assets UI → AI chat → staleness) meant each phase verified cleanly and hand-offs were clear.
+- **Reusing v2.0 patterns**: The staleness flag pattern from v2.0 (`breakdown_stale`) was replicated verbatim for `shotlist_stale` — same hook locations, same polling approach, same acknowledge endpoint. Zero design work needed.
+- **Two-phase AI call for breakdown chat**: Streaming the response first, then running a separate JSON-mode extraction for shot actions, preserved the streaming UX while still enabling structured action parsing.
+- **React Query optimistic mutations**: Implementing optimistic cache updates with rollback for delete and reorder made the UI feel instant without any custom state management.
+- **AssetsPanel extract button**: Re-surfacing the breakdown extraction button inside the Assets panel (which was lost when BreakdownPage was replaced) was a quick post-audit fix that restored full feature parity.
+
+### What Was Inefficient
+
+- **BreakdownPage regression**: The v2.0 breakdown extraction UI was inadvertently removed when Phase 18 replaced the `/breakdown` route. Caught in manual testing after milestone audit, not during phase verification — a cross-phase regression that individual phase VERIFICATIONs couldn't detect.
+- **ModeToggle navigation**: Initial implementation navigated to `/projects/:id` (Editor) when switching to Screenwriting mode, losing the user's position. Fixed post-audit with localStorage persistence of last screenwriting path.
+- **Nyquist VALIDATION.md drafts**: All 9 VALIDATION.md files were created in draft state (`nyquist_compliant: false`) and never executed. Same pattern as v2.0 — Nyquist validation remains consistently deferred.
+- **Scene-to-sort_order heuristic**: The ScriptReadView maps screenplay entries to scene ListItems using `sort_order === idx`, which is fragile when sort_order values have gaps. Identified in audit but not fixed — acceptable risk for v3.0 scope.
+
+### Patterns Established
+
+- **Two-mode app pattern**: Separate route + CSS class on `<html>` for palette switching is a clean, zero-JS-overhead approach to distinct visual identities per mode.
+- **JSONB shot fields**: Storing all production fields (shot_size, camera_angle, etc.) in a single JSONB column lets the schema evolve without migrations — new field types just appear in the UI.
+- **Two-phase AI streaming + action extraction**: SSE stream for UX, second JSON-mode call for structured data extraction, ShotProposalCard for confirmation. Reusable pattern for any AI action that needs user confirmation.
+- **localStorage path memory for mode toggle**: Saving last screenwriting URL before switching modes lets users resume exactly where they were — applicable to any multi-mode app.
+
+### Key Lessons
+
+1. **Cross-phase regressions need integration testing**: The BreakdownPage removal wasn't caught by any phase verifier because each verifier only checks its own scope. The integration checker focused on wiring, not feature regressions from prior milestones. Manual testing post-audit caught it.
+2. **UX flows are not just wiring**: Mode switch navigation, scroll preservation, and path memory are UX flows that need explicit success criteria in plans — they're easy to miss in automated verification.
+3. **Audit before closing, not after**: Running the milestone audit before declaring "done" surfaced the two post-audit fixes (extraction button, mode toggle path). The audit earned its place as a gate.
+
+### Cost Observations
+
+- Model: claude-sonnet-4-6 for all agents
+- Sessions: ~8-10 GSD sessions across 2 days
+- Notable: Parallel phase execution (17+18+19+22 in parallel, then 20+21+23 in parallel) made v3.0 significantly faster than v2.0 despite similar scope
+
+---
+
 ## Cross-Milestone Trends
 
-| Trend | v1.0 | v2.0 |
-|-------|------|------|
-| Phases | 8 | 8 |
-| Plans | 16 | 16 |
-| Timeline | ~2 days | 17 days |
-| Verification gaps at audit | 0 | 2 (Phase 13 docs, scene_wizard) |
-| Phases needing gap closure | 0 | 2 (Phase 15, 16) |
-| Nyquist compliant phases | 1/8 | 1/8 |
+| Trend | v1.0 | v2.0 | v3.0 |
+|-------|------|------|------|
+| Phases | 8 | 8 | 9 |
+| Plans | 16 | 16 | 14 |
+| Timeline | ~2 days | 17 days | 2 days |
+| Files changed | — | — | 108 (+21k lines) |
+| Verification gaps at audit | 0 | 2 (Phase 13 docs, scene_wizard) | 2 (SELC-04 heuristic, SYNC-01 reorder) |
+| Post-audit fixes needed | 0 | 0 | 2 (extraction button, mode toggle path) |
+| Phases needing gap closure | 0 | 2 (Phase 15, 16) | 0 |
+| Nyquist compliant phases | 1/8 | 1/8 | 0/9 |
 
-**Pattern:** Both milestones completed with 1 Nyquist-compliant phase (Phase 7). Nyquist compliance is a persistent backlog item across both milestones.
+**Patterns across milestones:**
+- Nyquist compliance is consistently deferred — 0 phases fully compliant in v3.0, same as v1.0/v2.0. Worth addressing as a dedicated cleanup phase.
+- Integration checker catches code wiring but not behavioral regressions (BreakdownPage removal was invisible to it). Manual testing post-audit remains essential.
+- v3.0's 2-day timeline vs v2.0's 17 days reflects parallel phase execution and a more modular design — the two-mode split made phases independent.
