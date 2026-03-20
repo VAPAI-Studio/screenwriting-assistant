@@ -152,11 +152,11 @@ Plans:
   3. Each element displays its attached images as thumbnails and audio files with playable controls (play, pause, stop) (ASST-03, MDIA-03, MDIA-04)
   4. User can upload media directly from the assets panel via drag-and-drop or file picker (ASST-04)
   5. Toggling between Script and Assets preserves panel state including scroll position and expanded items (ASST-05)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 23-01: Left panel toggle (Script/Assets), AssetsPanel with category-grouped elements
-- [ ] 23-02: MediaThumbnail, audio player controls, drag-and-drop upload zone
+- [ ] 23-01-PLAN.md — AssetMedia types, media API functions, Vite proxy, Script/Assets toggle, AssetsPanel with category-grouped elements
+- [ ] 23-02-PLAN.md — MediaThumbnail, AudioPlayer, MediaUploadZone components wired into AssetElementCard
 
 ### Phase 24: AI Chat for Breakdown
 **Goal**: Users can converse with AI in breakdown mode to create and modify shots
