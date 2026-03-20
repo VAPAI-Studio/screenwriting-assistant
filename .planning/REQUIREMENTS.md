@@ -49,22 +49,24 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AISG-01 | Phase 26 | Pending |
+| AISG-01 | Phase 26, Phase 27 (frontend trigger) | Pending |
 | AISG-02 | Phase 26 | Pending |
 | AISG-03 | Phase 26 | Pending |
 | AISG-04 | Phase 26 | Pending |
 | AISG-05 | Phase 26 | Pending |
 | AISG-06 | Phase 26 | Pending |
-| AISG-07 | Phase 26 | Pending |
-| MDIA-01 | Phase 27 | Pending |
-| SMGT-01 | Phase 27 | Pending |
-| SYNC-01 | Phase 27 | Pending |
+| AISG-07 | Phase 27 | Pending |
+| MDIA-01 | Phase 28 | Pending |
+| SMGT-01 | Phase 28 | Pending |
+| SYNC-01 | Phase 28 | Pending |
 
 **Coverage:**
 - v1 requirements: 10 total
 - Mapped to phases: 10
-- Unmapped: 0 ✓
+- Unmapped: 0
+
+**Note on AISG-01:** This requirement spans two phases. Phase 26 delivers the backend endpoint (API + service). Phase 27 delivers the frontend trigger (button + loading state). The requirement is fully satisfied only when Phase 27 completes.
 
 ---
 *Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after initial definition*
+*Last updated: 2026-03-20 after roadmap creation*
