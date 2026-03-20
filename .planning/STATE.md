@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Shotlist & Production Breakdown
 status: unknown
-stopped_at: Completed 24-02-PLAN.md
-last_updated: "2026-03-20T14:16:29.055Z"
+stopped_at: Completed 25-01-PLAN.md
+last_updated: "2026-03-20T16:18:25.818Z"
 progress:
   total_phases: 9
   completed_phases: 8
-  total_plans: 12
-  completed_plans: 12
+  total_plans: 14
+  completed_plans: 13
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-18)
 
 **Core value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 24 — ai-chat-for-breakdown
+**Current focus:** Phase 25 — staleness-sync
 
 ## Current Position
 
-Phase: 24 (ai-chat-for-breakdown) — COMPLETE
-Plan: 2 of 2 (all done)
+Phase: 25 (staleness-sync) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Plan: 2 of 2 (all done)
 | Phase 23 P02 | 3 | 2 tasks | 5 files |
 | Phase 24 P01 | 5 | 2 tasks | 8 files |
 | Phase 24 P02 | 4 | 2 tasks | 4 files |
+| Phase 25 P01 | 5 | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -120,6 +121,8 @@ v3.0 decisions (from execution):
 - [Phase 24-ai-chat-for-breakdown]: Two-phase AI call: stream conversational response first, then JSON-mode extraction for shot action
 - [Phase 24-ai-chat-for-breakdown]: ShotProposalCard spreads existing fields before proposed changes to prevent JSONB wipe on modify
 - [Phase 24-ai-chat-for-breakdown]: Confirmation message added to chat thread after successful shot create/modify
+- [Phase 25]: Shotlist staleness follows identical pattern to breakdown_stale with Shot-exists guard condition
+- [Phase 25]: Scene mutations trigger both breakdown_stale and shotlist_stale; character mutations trigger shotlist_stale only
 
 ### Pending Todos
 
@@ -132,6 +135,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T14:16:29.052Z
-Stopped at: Completed 24-02-PLAN.md
+Last session: 2026-03-20T16:18:25.816Z
+Stopped at: Completed 25-01-PLAN.md
 Resume file: None

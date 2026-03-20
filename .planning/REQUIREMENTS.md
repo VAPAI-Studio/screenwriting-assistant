@@ -60,10 +60,10 @@
 
 ### Sync
 
-- [ ] **SYNC-01**: Script content changes (save/generate) set `shotlist_stale = true` on the project
+- [x] **SYNC-01**: Script content changes (save/generate) set `shotlist_stale = true` on the project
 - [ ] **SYNC-02**: Breakdown mode shows a staleness banner when shotlist is stale
-- [ ] **SYNC-03**: Character name changes in Screenwriting mode propagate to Breakdown (via existing staleness pattern)
-- [ ] **SYNC-04**: Staleness hooks are placed in the same locations as v2.0 breakdown_stale hooks
+- [x] **SYNC-03**: Character name changes in Screenwriting mode propagate to Breakdown (via existing staleness pattern)
+- [x] **SYNC-04**: Staleness hooks are placed in the same locations as v2.0 breakdown_stale hooks
 
 ### Data Model & API
 
@@ -146,10 +146,10 @@
 | CHAT-03 | Phase 24 | Complete |
 | CHAT-04 | Phase 24 | Complete |
 | CHAT-05 | Phase 24 | Complete |
-| SYNC-01 | Phase 25 | Pending |
+| SYNC-01 | Phase 25 | Complete |
 | SYNC-02 | Phase 25 | Pending |
-| SYNC-03 | Phase 25 | Pending |
-| SYNC-04 | Phase 25 | Pending |
+| SYNC-03 | Phase 25 | Complete |
+| SYNC-04 | Phase 25 | Complete |
 | DATA-01 | Phase 17 | Complete |
 | DATA-02 | Phase 17 | Complete |
 | DATA-03 | Phase 17 | Complete |
