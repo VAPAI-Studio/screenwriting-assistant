@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { FileText } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -11,9 +11,16 @@ interface AssetsPanelProps {
 }
 
 export function AssetsPanel({ projectId }: AssetsPanelProps) {
-  // Audio overlap prevention refs (MDIA-04) — passed to audio players in Plan 02
-  const currentlyPlayingId = useRef<string | null>(null);
-  const stopCurrentAudio = useRef<(() => void) | null>(null);
+  // Audio overlap prevention (MDIA-04)
+  const stopCurrentAudioRef = useRef<(() => void) | null>(null);
+
+  const handlePlaybackStart = useCallback((_mediaId: string, stopFn: () => void) => {
+    // Stop any currently-playing audio before starting new one
+    if (stopCurrentAudioRef.current) {
+      stopCurrentAudioRef.current();
+    }
+    stopCurrentAudioRef.current = stopFn;
+  }, []);
 
   const { data: allElements = [] } = useQuery<BreakdownElement[]>({
     queryKey: QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId),
@@ -27,10 +34,6 @@ export function AssetsPanel({ projectId }: AssetsPanelProps) {
       elements: allElements.filter(el => el.category === cat.value),
     }))
     .filter(cat => cat.elements.length > 0);
-
-  // Suppress unused-variable warnings — refs will be consumed in Plan 02
-  void currentlyPlayingId;
-  void stopCurrentAudio;
 
   // Empty state: no elements in any category
   if (groupedCategories.length === 0) {
@@ -66,6 +69,7 @@ export function AssetsPanel({ projectId }: AssetsPanelProps) {
                 key={element.id}
                 element={element}
                 projectId={projectId}
+                onPlaybackStart={handlePlaybackStart}
               />
             ))}
           </div>
