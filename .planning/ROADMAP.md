@@ -171,8 +171,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 24-01-PLAN.md — Backend streaming endpoint, BreakdownChat component with context injection (shotlist + elements)
-- [ ] 24-02-PLAN.md — Shot action extraction, ShotProposalCard confirmation flow for create and modify
+- [x] 24-01-PLAN.md — Backend streaming endpoint, BreakdownChat component with context injection (shotlist + elements)
+- [x] 24-02-PLAN.md — Shot action extraction, ShotProposalCard confirmation flow for create and modify
 
 ### Phase 25: Staleness & Sync
 **Goal**: Script changes are detected and the shotlist is flagged as stale, keeping breakdown mode in sync with screenplay edits
