@@ -36,7 +36,7 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ### Active (v3.1)
 
-- [ ] AI auto-generation of full shotlist from script content with smart merge and user_modified preservation (AUTO-01)
+- ✓ AI auto-generation of full shotlist from script content with smart merge and user_modified preservation (AUTO-01) — Validated in Phase 26: ai-shotlist-generation-service
 - [ ] AI-generated shots display subtle AI badge (sparkle icon) to distinguish from manually-created shots
 - [ ] Media deletion UI — delete button for uploaded assets (backend already exists)
 - [ ] Drag-and-drop shot reordering replacing arrow buttons (SMGT-01)
@@ -129,4 +129,4 @@ Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-
 
 ---
 
-*Last updated: 2026-03-20 after v3.0 milestone archived — starting v3.1*
+*Last updated: 2026-03-20 after Phase 26 (ai-shotlist-generation-service) complete*
