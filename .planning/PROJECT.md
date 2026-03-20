@@ -47,7 +47,7 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 - ✓ Shotlist data model and CRUD API — Validated in Phase 19-20: Shot model, CRUD endpoints, scene-grouped table UI with inline editing, create/delete/reorder — v3.0
 - ✓ Media uploads backend: file upload endpoint, WebP thumbnail generation (Pillow), media list/delete, StaticFiles serving — Validated in Phase 22: media-upload-backend — v3.0
 - ✓ AI chat in Breakdown mode with shotlist awareness and modification capability — Validated in Phase 24: ai-chat-for-breakdown — v3.0
-- [ ] Bidirectional sync between screenplay and shotlist (staleness pattern)
+- ✓ Bidirectional sync between screenplay and shotlist (staleness pattern) — Validated in Phase 25: staleness-sync — v3.0
 
 ### Out of Scope
 
@@ -111,4 +111,4 @@ Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-
 Phase 19 complete — Shot CRUD API (DATA-04, SHOT-01, SHOT-02 validated)
 Phase 23 complete — Assets Panel & Media Display (ASST-01, ASST-02, ASST-03, ASST-04, ASST-05, MDIA-03, MDIA-04 validated)
 
-*Last updated: 2026-03-20 after Phase 24: ai-chat-for-breakdown complete*
+*Last updated: 2026-03-20 after Phase 25: staleness-sync complete — v3.0 milestone all phases shipped*
