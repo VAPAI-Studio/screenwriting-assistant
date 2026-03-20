@@ -183,10 +183,11 @@ Plans:
   2. Breakdown mode displays a visible staleness banner when the shotlist is stale (SYNC-02)
   3. Character name changes in Screenwriting mode propagate to Breakdown via the existing staleness pattern (SYNC-03)
   4. Staleness hooks are placed in the same code locations as the existing v2.0 breakdown_stale hooks (SYNC-04)
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 25-01: Shotlist staleness hooks in save/generate paths, staleness banner in breakdown mode
+- [ ] 25-01-PLAN.md — Backend staleness hooks (_mark_shotlist_stale in all 6 mutation locations), character item detection, status/acknowledge endpoints, integration tests
+- [ ] 25-02-PLAN.md — ShotlistStalenessBar component, BreakdownLayout integration with React Query polling and dismiss
 
 ## Progress
 
@@ -221,4 +222,4 @@ Note: Phase 19 and Phase 22 can execute in parallel (both depend only on Phase 1
 | 22. Media Upload Backend | 1/1 | Complete    | 2026-03-19 | - |
 | 23. Assets Panel & Media Display | 2/2 | Complete    | 2026-03-20 | - |
 | 24. AI Chat for Breakdown | 2/2 | Complete   | 2026-03-20 | - |
-| 25. Staleness & Sync | v3.0 | 0/1 | Not started | - |
+| 25. Staleness & Sync | v3.0 | 0/2 | Not started | - |
