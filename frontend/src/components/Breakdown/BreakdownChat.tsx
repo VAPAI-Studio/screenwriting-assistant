@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Send, RotateCcw, Loader2, AlertCircle, MessageSquare } from 'lucide-react';
 import { MarkdownContent } from '../Shared/MarkdownContent';
+import { ShotProposalCard } from './ShotProposalCard';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import type { Shot, BreakdownElement, BreakdownChatMessage, ShotAction } from '../../types';
@@ -122,6 +123,25 @@ export function BreakdownChat({ projectId }: BreakdownChatProps) {
     textarea.style.height = textarea.scrollHeight + 'px';
   };
 
+  const getExistingShots = useCallback((): Shot[] => {
+    return queryClient.getQueryData<Shot[]>(QUERY_KEYS.SHOTS(projectId)) || [];
+  }, [projectId, queryClient]);
+
+  const handleShotConfirmed = useCallback((confirmationMessage: string) => {
+    // Add confirmation message to chat
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      role: 'assistant',
+      content: confirmationMessage,
+      created_at: new Date().toISOString(),
+    }]);
+    setShotAction(null);
+  }, []);
+
+  const handleShotDismiss = useCallback(() => {
+    setShotAction(null);
+  }, []);
+
   // Auto-scroll to bottom on new messages / streaming
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -233,7 +253,16 @@ export function BreakdownChat({ projectId }: BreakdownChatProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* ShotProposalCard renders here in Plan 02 */}
+      {/* Shot proposal confirmation card */}
+      {shotAction && (
+        <ShotProposalCard
+          projectId={projectId}
+          action={shotAction}
+          existingShots={getExistingShots()}
+          onDismiss={handleShotDismiss}
+          onConfirmed={handleShotConfirmed}
+        />
+      )}
 
       {/* Input area */}
       <div
