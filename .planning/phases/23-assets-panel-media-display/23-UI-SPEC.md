@@ -35,6 +35,7 @@ Declared values (must be multiples of 4):
 |-------|-------|-------|
 | xs | 4px | Icon gaps within audio player controls, inline badge padding |
 | sm | 8px | Gap between thumbnail images, gap between toggle buttons |
+| compact | 12px | Element card collapsed padding-y, audio player bar padding-x, upload zone margin-top. Tailwind `space-3`. Justified: 12px provides a tighter vertical rhythm for dense card-based layouts where 8px is too cramped and 16px wastes vertical space in a scrollable panel. |
 | md | 16px | Element card internal padding, category section padding |
 | lg | 24px | Gap between category groups, panel content padding-x |
 | xl | 32px | Gap between major panel sections |
@@ -116,7 +117,7 @@ Additional semantic colors used:
 - Background: `bg-card/30` (subtle, matches existing CategoryTabs pattern)
 - Text: `text-xs font-semibold uppercase tracking-wider text-muted-foreground`
 - Element count badge: `text-[10px] bg-muted/60 px-1.5 py-0.5 rounded-full tabular-nums` (matches CategoryTabs badge)
-- Padding: `px-4 py-2.5`
+- Padding: `px-4 py-2` (8px vertical padding, on-grid)
 - Position: `sticky top-0 z-10` within the scrollable container
 - Border: `border-b border-border`
 
@@ -133,7 +134,7 @@ Additional semantic colors used:
 
 **Collapsed state:**
 - Container: `rounded-lg border border-border/50 hover:border-border bg-card/40 hover:bg-card/60 transition-all cursor-pointer`
-- Padding: `px-4 py-3`
+- Padding: `px-4 py-3` (12px vertical — uses `compact` spacing token for dense card rhythm)
 - Name: `text-sm font-semibold text-foreground truncate`
 - Chevron: `lucide-react ChevronRight` (collapsed) / `ChevronDown` (expanded), size `h-4 w-4`, color `text-muted-foreground`
 - Media count badge: `text-[10px] bg-muted/60 px-1.5 py-0.5 rounded-full tabular-nums text-muted-foreground` showing total media count (e.g., "3")
@@ -141,7 +142,7 @@ Additional semantic colors used:
 
 **Expanded state:**
 - Container padding: `px-4 py-4`
-- Description: `text-xs text-muted-foreground line-clamp-2 mb-3` (matches ElementCard)
+- Description: `text-xs text-muted-foreground line-clamp-2 mb-3` (12px bottom margin — uses `compact` spacing token, matches ElementCard)
 - Media section and upload zone appear below description
 - Animate expand: `animate-accordion-down` (existing keyframe)
 - Animate collapse: `animate-accordion-up` (existing keyframe)
@@ -166,14 +167,14 @@ Additional semantic colors used:
 ### 5. AudioPlayer (MDIA-04)
 
 **Layout:**
-- Horizontal bar: `flex items-center gap-2 rounded-lg bg-card/60 border border-border/50 px-3 py-2`
+- Horizontal bar: `flex items-center gap-2 rounded-lg bg-card/60 border border-border/50 px-3 py-2` (12px horizontal padding — uses `compact` spacing token; 8px vertical padding)
 - Full width within the element card
 - Stack vertically below thumbnail grid with `mt-2` gap
 
 **Controls:**
-- Play button: `lucide-react Play` icon, `h-4 w-4`, wrapped in a 32px (`h-8 w-8`) touch target button
-- Pause button: `lucide-react Pause` icon (replaces Play when playing), same sizing
-- Stop button: `lucide-react Square` icon, `h-3.5 w-3.5`, wrapped in `h-8 w-8` button
+- Play button: `lucide-react Play` icon, `h-4 w-4`, wrapped in a 32px (`h-8 w-8`) touch target button, `aria-label="Play audio"`
+- Pause button: `lucide-react Pause` icon (replaces Play when playing), same sizing, `aria-label="Pause audio"`
+- Stop button: `lucide-react Square` icon, `h-3.5 w-3.5`, wrapped in `h-8 w-8` button, `aria-label="Stop audio"`
 - Button style: `text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted`
 - Active play state: Play/Pause icon uses `text-primary` (steel blue)
 
@@ -189,7 +190,7 @@ Additional semantic colors used:
 
 **Layout:**
 - Positioned at bottom of expanded AssetElementCard, below media items
-- Margin top: `mt-3`
+- Margin top: `mt-3` (12px — uses `compact` spacing token)
 - Container: `border-2 border-dashed border-border rounded-lg p-4 text-center transition-colors`
 - Min height: 80px (`min-h-[80px]`)
 
