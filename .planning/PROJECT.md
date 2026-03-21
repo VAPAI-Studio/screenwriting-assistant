@@ -37,7 +37,7 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 ### Active (v3.1)
 
 - ✓ AI auto-generation of full shotlist from script content with smart merge and user_modified preservation (AUTO-01) — Validated in Phase 26: ai-shotlist-generation-service
-- [ ] AI-generated shots display subtle AI badge (sparkle icon) to distinguish from manually-created shots
+- ✓ AI-generated shots display subtle AI badge (sparkle icon) to distinguish from manually-created shots — Validated in Phase 27: generate-shotlist-ui-ai-badge
 - [ ] Media deletion UI — delete button for uploaded assets (backend already exists)
 - [ ] Drag-and-drop shot reordering replacing arrow buttons (SMGT-01)
 - [ ] Scene reorder marks shotlist stale (SYNC-01 gap from v3.0 audit)
@@ -59,13 +59,15 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ## Context
 
-Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18), v3.0 (shotlist & production breakdown, 2026-03-20).
+Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18), v3.0 (shotlist & production breakdown, 2026-03-20). Phase 27 complete — AI shotlist generation frontend trigger + sparkle badge on AI shots.
 
 **Current codebase:**
 - ~30,237 total LOC (Python + TypeScript/TSX)
 - Tech stack: FastAPI, PostgreSQL, SQLAlchemy, React, React Query, Tailwind, Radix UI, OpenAI/Anthropic
-- 25 total phases shipped, 47 plans
+- 27 total phases shipped, 48 plans
 - 108 files changed in v3.0 (+21,108 lines)
+
+Last updated: 2026-03-21
 
 **Key files added in v3.0:**
 - `backend/app/api/endpoints/shots.py` — Shot CRUD + reorder + staleness status/acknowledge
