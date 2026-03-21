@@ -38,9 +38,9 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 - ✓ AI auto-generation of full shotlist from script content with smart merge and user_modified preservation (AUTO-01) — Validated in Phase 26: ai-shotlist-generation-service
 - ✓ AI-generated shots display subtle AI badge (sparkle icon) to distinguish from manually-created shots — Validated in Phase 27: generate-shotlist-ui-ai-badge
-- [ ] Media deletion UI — delete button for uploaded assets (backend already exists)
-- [ ] Drag-and-drop shot reordering replacing arrow buttons (SMGT-01)
-- [ ] Scene reorder marks shotlist stale (SYNC-01 gap from v3.0 audit)
+- ✓ Media deletion UI — trash button overlay on images/audio, window.confirm guard — Validated in Phase 28: ux-improvements
+- ✓ Drag-and-drop shot reordering replacing arrow buttons (SMGT-01) — Validated in Phase 28: ux-improvements
+- ✓ Scene reorder marks shotlist stale (SYNC-01 gap from v3.0 audit) — Validated in Phase 28: ux-improvements
 
 ### Deferred (v3.2+)
 
@@ -59,13 +59,15 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ## Context
 
-Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18), v3.0 (shotlist & production breakdown, 2026-03-20). Phase 27 complete — AI shotlist generation frontend trigger + sparkle badge on AI shots.
+Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18), v3.0 (shotlist & production breakdown, 2026-03-20), v3.1 complete (2026-03-21) — AI shotlist generation + UX improvements.
+
+**v3.1 additions:** AI shotlist generation from script content, sparkle badge on AI shots, media deletion UI, drag-and-drop shot reorder, scene reorder staleness fix.
 
 **Current codebase:**
 - ~30,237 total LOC (Python + TypeScript/TSX)
 - Tech stack: FastAPI, PostgreSQL, SQLAlchemy, React, React Query, Tailwind, Radix UI, OpenAI/Anthropic
-- 27 total phases shipped, 48 plans
-- 108 files changed in v3.0 (+21,108 lines)
+- 28 total phases shipped, 51 plans
+- All v3.1 milestone requirements satisfied
 
 Last updated: 2026-03-21
 
