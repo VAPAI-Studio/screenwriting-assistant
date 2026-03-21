@@ -216,4 +216,10 @@ async def reorder_list_items(
         ).update({"sort_order": reorder_item.sort_order})
 
     db.commit()
+
+    scene_pd = _is_scene_item(db, phase_data_id)
+    if scene_pd:
+        _mark_shotlist_stale(db, scene_pd.project_id)
+        db.commit()
+
     return {"status": "success", "message": "Items reordered"}
