@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { Sparkles } from 'lucide-react';
 import { InlineEditCell } from './InlineEditCell';
 import type { Shot, ShotFields } from '../../types';
 
@@ -30,8 +31,13 @@ export function ShotRow({ shot, onUpdateField, actionCell }: ShotRowProps) {
       }}
     >
       {/* Shot number - read-only */}
-      <div className="flex items-center justify-center px-1 py-2 text-xs font-semibold text-primary min-h-[40px]">
+      <div className="flex items-center justify-center gap-0.5 px-1 py-2 text-xs font-semibold text-primary min-h-[40px]">
         {shot.shot_number}
+        {shot.ai_generated && (
+          <span title="AI generated">
+            <Sparkles className="h-2.5 w-2.5 text-blue-400/60 flex-shrink-0" />
+          </span>
+        )}
       </div>
 
       {/* Editable field cells */}

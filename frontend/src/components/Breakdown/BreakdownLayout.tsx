@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, MessageSquare } from 'lucide-react';
+import { FileText, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { BreakdownChat } from './BreakdownChat';
 import { STORAGE_KEYS } from '../../lib/constants';
@@ -80,6 +80,13 @@ export function BreakdownLayout() {
       queryClient.invalidateQueries({ queryKey: ['shotlist-status', projectId] });
     },
   });
+
+  // Generate state lifted from ShotlistPanel
+  const [generateState, setGenerateState] = useState<{
+    isPending: boolean;
+    mutate: () => void;
+    error: string | null;
+  } | null>(null);
 
   // Drag refs
   const isDraggingLeft = useRef(false);
@@ -232,6 +239,20 @@ export function BreakdownLayout() {
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Shotlist
           </span>
+          {generateState && (
+            <button
+              onClick={() => generateState.mutate()}
+              disabled={generateState.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold
+                text-primary bg-primary/10 hover:bg-primary/20 rounded-lg
+                transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {generateState.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Sparkles className="h-3.5 w-3.5" />}
+              {generateState.isPending ? 'Generating...' : 'Generate Shotlist'}
+            </button>
+          )}
         </div>
         {shotlistStatus?.shotlist_stale && shotlistStatus.shot_count > 0 && (
           <ShotlistStalenessBar
@@ -239,7 +260,7 @@ export function BreakdownLayout() {
             isPending={dismissStaleMutation.isPending}
           />
         )}
-        <ShotlistPanel />
+        <ShotlistPanel onGenerateStateChange={setGenerateState} />
       </div>
 
       {/* Right drag handle */}
