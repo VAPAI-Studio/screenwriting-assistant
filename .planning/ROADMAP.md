@@ -97,7 +97,11 @@ Plans:
   2. Shots in the shotlist panel can be reordered by dragging and dropping (arrow buttons are removed)
   3. Drag-and-drop reorder persists the new sort_order to the backend and survives page refresh
   4. Reordering scenes in the screenplay editor marks the shotlist as stale (staleness banner appears in breakdown mode)
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 28-01-PLAN.md — Media asset deletion UI: trash button overlay on MediaThumbnail + AudioPlayer, window.confirm guard, deleteMedia mutation
+- [ ] 28-02-PLAN.md — Drag-and-drop shot reorder: install @hello-pangea/dnd, replace ReorderControls with DnD in SceneGroup, wire reorderMutation on drop
+- [ ] 28-03-PLAN.md — Scene reorder staleness fix: add _mark_shotlist_stale call to reorder_list_items endpoint
 
 ## Progress
 
@@ -130,4 +134,4 @@ Plans:
 | 25. Staleness & Sync | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 26. AI Shotlist Generation Service | v3.1 | Complete    | 2026-03-20 | 2026-03-20 |
 | 27. Generate Shotlist UI & AI Badge | 1/1 | Complete    | 2026-03-21 | - |
-| 28. UX Improvements | v3.1 | 0/? | Not started | - |
+| 28. UX Improvements | v3.1 | 0/3 | Not started | - |
