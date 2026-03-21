@@ -330,6 +330,8 @@ export interface Shot {
   fields: ShotFields;
   sort_order: number;
   source: 'user' | 'ai';
+  ai_generated: boolean;
+  user_modified: boolean;
   created_at: string;
   updated_at: string | null;
 }

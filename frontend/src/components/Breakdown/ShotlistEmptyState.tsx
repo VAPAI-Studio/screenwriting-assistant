@@ -4,6 +4,9 @@ import { Button } from '../UI/Button';
 interface ShotlistEmptyStateProps {
   onAddShot: () => void;
   isPending: boolean;
+  onGenerate?: () => void;
+  isGenerating?: boolean;
+  generateError?: string | null;
 }
 
 export function ShotlistEmptyState({ onAddShot, isPending }: ShotlistEmptyStateProps) {

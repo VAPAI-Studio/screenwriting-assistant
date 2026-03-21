@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlertCircle } from 'lucide-react';
@@ -55,7 +55,11 @@ const COLUMN_HEADERS = ['#', 'Size', 'Angle', 'Movement', 'Description', 'Action
 // ShotlistPanel
 // ============================================================
 
-export function ShotlistPanel() {
+interface ShotlistPanelProps {
+  onGenerateStateChange?: (state: { isPending: boolean; mutate: () => void; error: string | null }) => void;
+}
+
+export function ShotlistPanel({ onGenerateStateChange }: ShotlistPanelProps) {
   const { projectId } = useParams<{ projectId: string }>();
   const queryClient = useQueryClient();
 
@@ -117,6 +121,8 @@ export function ShotlistPanel() {
         fields: (data.fields ?? {}) as ShotFields,
         sort_order: data.sort_order ?? 0,
         source: (data.source ?? 'user') as 'user' | 'ai',
+        ai_generated: false,
+        user_modified: false,
         created_at: new Date().toISOString(),
         updated_at: null,
       };
@@ -188,6 +194,31 @@ export function ShotlistPanel() {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
     },
   });
+
+  // Generate mutation (no optimistic update — refetch on success)
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const generateMutation = useMutation({
+    mutationFn: () => api.generateShotlist(projectId!),
+    onSuccess: (data) => {
+      if (data.status === 'error') {
+        setGenerateError(data.message || 'Generation failed');
+        return;
+      }
+      setGenerateError(null);
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SHOTS(projectId!) });
+    },
+    onError: (err: Error) => {
+      setGenerateError(err.message || 'Generation failed');
+    },
+  });
+
+  useEffect(() => {
+    onGenerateStateChange?.({
+      isPending: generateMutation.isPending,
+      mutate: () => { setGenerateError(null); generateMutation.mutate(); },
+      error: generateError,
+    });
+  }, [generateMutation.isPending, generateError]);
 
   // Handler passed to SceneGroup -> ShotRow -> InlineEditCell
   const handleUpdateField = useCallback(
@@ -284,6 +315,9 @@ export function ShotlistPanel() {
       <ShotlistEmptyState
         onAddShot={() => handleCreateShot(null)}
         isPending={createMutation.isPending}
+        onGenerate={() => { setGenerateError(null); generateMutation.mutate(); }}
+        isGenerating={generateMutation.isPending}
+        generateError={generateError}
       />
     );
   }
@@ -312,6 +346,20 @@ export function ShotlistPanel() {
           </div>
         ))}
       </div>
+
+      {/* Generation error banner */}
+      {generateError && (
+        <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/20 flex items-center gap-2">
+          <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+          <p className="text-xs text-destructive">{generateError}</p>
+          <button
+            onClick={() => setGenerateError(null)}
+            className="ml-auto text-xs text-muted-foreground hover:text-foreground"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Scrollable scene groups */}
       <div className="flex-1 overflow-auto">

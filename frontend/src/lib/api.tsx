@@ -936,6 +936,31 @@ export const api = {
     return response.json();
   },
 
+  async generateShotlist(projectId: string): Promise<{
+    status: string;
+    shots_created?: number;
+    shots_deleted?: number;
+    shots_preserved?: number;
+    message?: string;
+  }> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/shots/${projectId}/generate`, {
+        method: 'POST',
+        headers: getHeaders(),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to generate shotlist');
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
+  },
+
   // ============================================================
   // Media (v3.0 — Phase 23)
   // ============================================================
