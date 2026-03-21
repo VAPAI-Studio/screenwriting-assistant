@@ -56,7 +56,7 @@
 
 - [x] **Phase 26: AI Shotlist Generation Service** - Backend service that reads script content and generates a complete shotlist with smart merge
 - [x] **Phase 27: Generate Shotlist UI & AI Badge** - Frontend trigger button, generation progress, and visual distinction for AI-generated shots (completed 2026-03-21)
-- [ ] **Phase 28: UX Improvements** - Media deletion, drag-and-drop shot reorder, and scene reorder staleness fix
+- [x] **Phase 28: UX Improvements** - Media deletion, drag-and-drop shot reorder, and scene reorder staleness fix (completed 2026-03-21)
 
 ## Phase Details
 
@@ -97,7 +97,7 @@ Plans:
   2. Shots in the shotlist panel can be reordered by dragging and dropping (arrow buttons are removed)
   3. Drag-and-drop reorder persists the new sort_order to the backend and survives page refresh
   4. Reordering scenes in the screenplay editor marks the shotlist as stale (staleness banner appears in breakdown mode)
-**Plans:** 3 plans
+**Plans:** 3/3 plans complete
 Plans:
 - [ ] 28-01-PLAN.md — Media asset deletion UI: trash button overlay on MediaThumbnail + AudioPlayer, window.confirm guard, deleteMedia mutation
 - [ ] 28-02-PLAN.md — Drag-and-drop shot reorder: install @hello-pangea/dnd, replace ReorderControls with DnD in SceneGroup, wire reorderMutation on drop
@@ -134,4 +134,4 @@ Plans:
 | 25. Staleness & Sync | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 26. AI Shotlist Generation Service | v3.1 | Complete    | 2026-03-20 | 2026-03-20 |
 | 27. Generate Shotlist UI & AI Badge | 1/1 | Complete    | 2026-03-21 | - |
-| 28. UX Improvements | v3.1 | 0/3 | Not started | - |
+| 28. UX Improvements | v3.1 | Complete    | 2026-03-21 | - |

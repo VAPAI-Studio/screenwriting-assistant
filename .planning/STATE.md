@@ -4,12 +4,12 @@ milestone: v3.1
 milestone_name: AI Shotlist Generation
 status: unknown
 stopped_at: Completed 27-01-PLAN.md (Phase 27 complete)
-last_updated: "2026-03-21T18:01:16.859Z"
+last_updated: "2026-03-21T22:11:29.698Z"
 progress:
   total_phases: 3
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 6
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 27 — generate-shotlist-ui-ai-badge
+**Current focus:** Phase 28 — ux-improvements
 
 ## Current Position
 
-Phase: 27 (generate-shotlist-ui-ai-badge) — EXECUTING
-Plan: 1 of 1
+Phase: 28 (ux-improvements) — EXECUTING
+Plan: 1 of 3
 
 ## Performance Metrics
 
