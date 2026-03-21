@@ -8,7 +8,6 @@ import { SceneGroup } from './SceneGroup';
 import { ShotlistEmptyState } from './ShotlistEmptyState';
 import { AddShotButton } from './AddShotButton';
 import { DeleteShotButton } from './DeleteShotButton';
-import { ReorderControls } from './ReorderControls';
 import type { SceneGroupData } from './SceneGroup';
 import type { Shot, ShotFields, ShotCreate } from '../../types';
 
@@ -249,22 +248,14 @@ export function ShotlistPanel({ onGenerateStateChange }: ShotlistPanelProps) {
     });
   }, [shots, createMutation]);
 
-  // Move shot handler — swaps sort_order with adjacent shot
-  const handleMoveShot = useCallback((shot: Shot, direction: 'up' | 'down', groupShots: Shot[]) => {
-    const sorted = [...groupShots].sort((a, b) => a.sort_order - b.sort_order);
-    const idx = sorted.findIndex(s => s.id === shot.id);
-
-    if (direction === 'up' && idx <= 0) return;
-    if (direction === 'down' && idx >= sorted.length - 1) return;
-
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    const other = sorted[swapIdx];
-
-    reorderMutation.mutate([
-      { id: shot.id, sort_order: other.sort_order },
-      { id: other.id, sort_order: shot.sort_order },
-    ]);
-  }, [reorderMutation]);
+  // Drag-and-drop reorder handler — called by SceneGroup on drop
+  const handleReorderGroup = useCallback(
+    (_sceneItemId: string | null, orderedShotIds: string[]) => {
+      const items = orderedShotIds.map((id, idx) => ({ id, sort_order: idx }));
+      reorderMutation.mutate(items);
+    },
+    [reorderMutation]
+  );
 
   // ---- Loading state ----
   if (isLoading) {
@@ -369,25 +360,15 @@ export function ShotlistPanel({ onGenerateStateChange }: ShotlistPanelProps) {
             group={group}
             groupIndex={idx}
             onUpdateField={handleUpdateField}
-            renderActionCell={(shot, groupShots) => {
-              const sorted = [...groupShots].sort((a, b) => a.sort_order - b.sort_order);
-              const sortedIdx = sorted.findIndex(s => s.id === shot.id);
-              return (
-                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ReorderControls
-                    onMoveUp={() => handleMoveShot(shot, 'up', groupShots)}
-                    onMoveDown={() => handleMoveShot(shot, 'down', groupShots)}
-                    isFirst={sortedIdx === 0}
-                    isLast={sortedIdx === sorted.length - 1}
-                    isPending={reorderMutation.isPending}
-                  />
-                  <DeleteShotButton
-                    onDelete={() => deleteMutation.mutate(shot.id)}
-                    isPending={deleteMutation.isPending}
-                  />
-                </div>
-              );
-            }}
+            onReorderGroup={handleReorderGroup}
+            renderActionCell={(shot) => (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <DeleteShotButton
+                  onDelete={() => deleteMutation.mutate(shot.id)}
+                  isPending={deleteMutation.isPending}
+                />
+              </div>
+            )}
             renderAddButton={(sceneItemId) => (
               <AddShotButton
                 onClick={() => handleCreateShot(sceneItemId)}
