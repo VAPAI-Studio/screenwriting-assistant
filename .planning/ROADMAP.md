@@ -129,5 +129,5 @@ Plans:
 | 24. AI Chat for Breakdown | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 25. Staleness & Sync | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 26. AI Shotlist Generation Service | v3.1 | Complete    | 2026-03-20 | 2026-03-20 |
-| 27. Generate Shotlist UI & AI Badge | 1/1 | Complete   | 2026-03-21 | - |
+| 27. Generate Shotlist UI & AI Badge | 1/1 | Complete    | 2026-03-21 | - |
 | 28. UX Improvements | v3.1 | 0/? | Not started | - |
