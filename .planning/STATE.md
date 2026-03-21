@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.1
 milestone_name: AI Shotlist Generation
 status: unknown
-stopped_at: Completed 26-02-PLAN.md (Phase 26 complete)
-last_updated: "2026-03-20T20:21:09.139Z"
+stopped_at: Completed 27-01-PLAN.md (Phase 27 complete)
+last_updated: "2026-03-21T17:51:48.269Z"
 progress:
   total_phases: 3
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 26 — ai-shotlist-generation-service
+**Current focus:** Phase 27 — generate-shotlist-ui-ai-badge
 
 ## Current Position
 
-Phase: 26 (ai-shotlist-generation-service) — COMPLETE
-Plan: 2 of 2 (all plans complete)
+Phase: 27 (generate-shotlist-ui-ai-badge) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -51,6 +51,7 @@ Plan: 2 of 2 (all plans complete)
 
 | Phase 26 P01 | 4min | 2 tasks | 5 files |
 | Phase 26 P02 | 6min | 2 tasks | 3 files |
+| Phase 27 P01 | 4min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,7 @@ Relevant to v3.1:
 - [Phase 26]: ShotlistGenerationService uses temperature=0.3, max_tokens=8000 for generation
 - [Phase 26]: Smart merge deletes stale AI shots, preserves user_modified and manual user shots
 - [Phase 26]: Generate endpoint at POST /api/shots/{project_id}/generate
+- [Phase 27]: Used useEffect callback to lift generate mutation state from ShotlistPanel to BreakdownLayout
 
 ### Pending Todos
 
@@ -81,6 +83,6 @@ Relevant to v3.1:
 
 ## Session Continuity
 
-Last session: 2026-03-20T20:17:27.800Z
-Stopped at: Completed 26-02-PLAN.md (Phase 26 complete)
+Last session: 2026-03-21T17:51:48.266Z
+Stopped at: Completed 27-01-PLAN.md (Phase 27 complete)
 Resume file: None

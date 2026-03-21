@@ -14,7 +14,7 @@
 - [x] **AISG-04**: AI determines logical shot ordering within each scene
 - [x] **AISG-05**: AI links each generated shot to the source script passage it covers (script_text field)
 - [x] **AISG-06**: Regenerating the shotlist preserves shots the user has manually edited (smart merge via user_modified flag)
-- [ ] **AISG-07**: AI-generated shots display a subtle visual indicator (sparkle icon badge) distinguishable from manually-created shots
+- [x] **AISG-07**: AI-generated shots display a subtle visual indicator (sparkle icon badge) distinguishable from manually-created shots
 
 ### Media Management
 
@@ -55,7 +55,7 @@
 | AISG-04 | Phase 26 | Complete |
 | AISG-05 | Phase 26 | Complete |
 | AISG-06 | Phase 26 | Complete |
-| AISG-07 | Phase 27 | Pending |
+| AISG-07 | Phase 27 | Complete |
 | MDIA-01 | Phase 28 | Pending |
 | SMGT-01 | Phase 28 | Pending |
 | SYNC-01 | Phase 28 | Pending |

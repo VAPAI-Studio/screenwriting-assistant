@@ -55,7 +55,7 @@
 ### 🚧 v3.1 AI Shotlist Generation (In Progress)
 
 - [x] **Phase 26: AI Shotlist Generation Service** - Backend service that reads script content and generates a complete shotlist with smart merge
-- [ ] **Phase 27: Generate Shotlist UI & AI Badge** - Frontend trigger button, generation progress, and visual distinction for AI-generated shots
+- [x] **Phase 27: Generate Shotlist UI & AI Badge** - Frontend trigger button, generation progress, and visual distinction for AI-generated shots (completed 2026-03-21)
 - [ ] **Phase 28: UX Improvements** - Media deletion, drag-and-drop shot reorder, and scene reorder staleness fix
 
 ## Phase Details
@@ -84,7 +84,7 @@ Plans:
   2. While generation is in progress, the UI shows a loading/progress state and the button is disabled
   3. After generation completes, the shotlist panel refreshes to show all generated shots grouped by scene
   4. AI-generated shots display a subtle sparkle icon badge that is not present on manually-created shots
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 27-01-PLAN.md — Type updates, API method, generate button + mutation, sparkle badge on AI shots
 
@@ -129,5 +129,5 @@ Plans:
 | 24. AI Chat for Breakdown | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 25. Staleness & Sync | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 26. AI Shotlist Generation Service | v3.1 | Complete    | 2026-03-20 | 2026-03-20 |
-| 27. Generate Shotlist UI & AI Badge | v3.1 | 0/1 | Not started | - |
+| 27. Generate Shotlist UI & AI Badge | 1/1 | Complete   | 2026-03-21 | - |
 | 28. UX Improvements | v3.1 | 0/? | Not started | - |
