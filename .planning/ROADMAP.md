@@ -84,7 +84,9 @@ Plans:
   2. While generation is in progress, the UI shows a loading/progress state and the button is disabled
   3. After generation completes, the shotlist panel refreshes to show all generated shots grouped by scene
   4. AI-generated shots display a subtle sparkle icon badge that is not present on manually-created shots
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 27-01-PLAN.md — Type updates, API method, generate button + mutation, sparkle badge on AI shots
 
 ### Phase 28: UX Improvements
 **Goal**: Users can delete media assets, reorder shots by dragging, and scene reordering correctly flags the shotlist as stale
@@ -127,5 +129,5 @@ Plans:
 | 24. AI Chat for Breakdown | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 25. Staleness & Sync | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 26. AI Shotlist Generation Service | v3.1 | Complete    | 2026-03-20 | 2026-03-20 |
-| 27. Generate Shotlist UI & AI Badge | v3.1 | 0/? | Not started | - |
+| 27. Generate Shotlist UI & AI Badge | v3.1 | 0/1 | Not started | - |
 | 28. UX Improvements | v3.1 | 0/? | Not started | - |
