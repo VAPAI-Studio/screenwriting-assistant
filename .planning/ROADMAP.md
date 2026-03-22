@@ -172,8 +172,8 @@ Plans:
   4. Changes to extended fields are saved and persist on refresh
 **Plans:** 2/2 plans complete
 Plans:
-- [ ] 32-01-PLAN.md — GET single-element endpoint with enriched scene titles, SceneLinkResponse scene_title field, backend tests (EDP-01)
-- [ ] 32-02-PLAN.md — Element detail page frontend: routing, extended fields form, scene list, reference image gallery with lightbox (EDP-01, EDP-02)
+- [x] 32-01-PLAN.md — GET single-element endpoint with enriched scene titles, SceneLinkResponse scene_title field, backend tests (EDP-01)
+- [x] 32-02-PLAN.md — Element detail page frontend: routing, extended fields form, scene list, reference image gallery with lightbox (EDP-01, EDP-02)
 
 #### Phase 33: Script-to-Element Highlighting
 **Goal**: In the script read view, every mention of a breakdown element is highlighted and links to its detail page
@@ -183,6 +183,9 @@ Plans:
   1. Character names, prop mentions, and location headings in the script are highlighted with a color-coded underline matching their element category
   2. Hovering a highlight shows a tooltip with the element name and category
   3. Clicking a highlight navigates to that element's detail page
+**Plans:** 1 plan
+Plans:
+- [ ] 33-01-PLAN.md — Text highlight utility, HighlightedScriptText component, CSS classes, wire into ScriptReadView (SEL-01)
 
 #### Phase 34: Script-to-Shot Overlay
 **Goal**: The script read view shows low-opacity framing marks indicating which passages are covered by shots in the shotlist
@@ -269,8 +272,8 @@ Plans:
 | 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
 | 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
-| 32. Element Detail Pages | 2/2 | Complete    | 2026-03-22 | - |
-| 33. Script-to-Element Highlighting | v4.0 | 0/? | Future | - |
+| 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
+| 33. Script-to-Element Highlighting | v4.0 | 0/1 | Planned | - |
 | 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
 | 36. API Key Management | v5.0 | 0/? | Future | - |
