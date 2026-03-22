@@ -810,6 +810,15 @@ export const api = {
     return response.json();
   },
 
+  async getBreakdownElement(elementId: string): Promise<import('../types').BreakdownElement> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/breakdown/element/${elementId}`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch element');
+    return response.json();
+  },
+
   async getBreakdownElements(projectId: string, category?: string): Promise<import('../types').BreakdownElement[]> {
     const url = category
       ? `${API_BASE_URL}/breakdown/elements/${projectId}?category=${category}`

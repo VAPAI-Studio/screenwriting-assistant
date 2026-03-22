@@ -12,6 +12,7 @@ import { SnippetManager } from './components/Snippets/SnippetManager';
 // import { BreakdownPage } from './components/Breakdown/BreakdownPage';
 import { BreakdownLayout } from './components/Breakdown/BreakdownLayout';
 import { StoryboardView } from './components/Storyboard/StoryboardView';
+import { ElementDetailPage } from './components/Breakdown/ElementDetailPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,6 +29,12 @@ function StoryboardViewRoute() {
   return <StoryboardView projectId={projectId} />;
 }
 
+function ElementDetailRoute() {
+  const { projectId, elementId } = useParams<{ projectId: string; elementId: string }>();
+  if (!projectId || !elementId) return null;
+  return <ElementDetailPage projectId={projectId} elementId={elementId} />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -37,6 +44,7 @@ function App() {
             <Route path="/" element={<ProjectList />} />
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/projects/:projectId" element={<Editor />} />
+            <Route path="/projects/:projectId/breakdown/elements/:elementId" element={<ElementDetailRoute />} />
             <Route path="/projects/:projectId/breakdown" element={<BreakdownLayout />} />
             <Route path="/projects/:projectId/storyboard" element={<StoryboardViewRoute />} />
             <Route path="/projects/:projectId/:phase" element={<ProjectWorkspace />} />

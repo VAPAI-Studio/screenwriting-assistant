@@ -191,6 +191,7 @@ export const QUERY_KEYS = {
   ELEMENT_MEDIA: (elementId: string) => ['element-media', elementId] as const,
   PROJECT_MEDIA: (projectId: string) => ['project-media', projectId] as const,
   STORYBOARD_FRAMES: (shotId: string) => ['storyboard-frames', shotId] as const,
+  BREAKDOWN_ELEMENT: (elementId: string) => ['breakdown-element', elementId] as const,
 } as const;
 
 // Theme Configuration
@@ -261,6 +262,7 @@ export const ROUTES = {
   RESET_PASSWORD: '/reset-password',
   PROJECT_BREAKDOWN: (id: string) => `/projects/${id}/breakdown`,
   PROJECT_STORYBOARD: (id: string) => `/projects/${id}/storyboard`,
+  ELEMENT_DETAIL: (projectId: string, elementId: string) => `/projects/${projectId}/breakdown/elements/${elementId}`,
 } as const;
 
 export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: string }> = [
@@ -270,6 +272,34 @@ export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: stri
   { value: 'wardrobe', label: 'Wardrobe' },
   { value: 'vehicle', label: 'Vehicles' },
 ];
+
+export const ELEMENT_EXTENDED_FIELDS: Record<BreakdownCategory, Array<{ key: string; label: string; type: 'text' | 'textarea' }>> = {
+  character: [
+    { key: 'bio', label: 'Biography', type: 'textarea' },
+    { key: 'age', label: 'Age', type: 'text' },
+    { key: 'role', label: 'Role', type: 'text' },
+  ],
+  location: [
+    { key: 'address', label: 'Address', type: 'text' },
+    { key: 'type', label: 'Type', type: 'text' },
+    { key: 'notes', label: 'Notes', type: 'textarea' },
+  ],
+  prop: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'owner', label: 'Owner', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+  wardrobe: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'owner', label: 'Owner / Wearer', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+  vehicle: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'owner', label: 'Owner / Driver', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+};
 
 export const ORCHESTRATOR_PROMPT_TEMPLATE = `You are {name}, an orchestrator agent that coordinates multiple specialized screenwriting consultants. You synthesize insights from book-based and tag-based agents to provide comprehensive, well-rounded guidance.
 

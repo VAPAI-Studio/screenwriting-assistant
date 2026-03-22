@@ -172,8 +172,8 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
         </div>
       ) : (
         <div
-          className="cursor-text"
-          onClick={() => setIsEditing(true)}
+          className="cursor-pointer"
+          onClick={() => navigate(ROUTES.ELEMENT_DETAIL(projectId, element.id))}
         >
           {/* Name row */}
           <div className="flex items-start justify-between gap-2 mb-1">
@@ -198,8 +198,14 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
               >
                 {element.source === 'ai' ? 'AI' : 'User'}
               </span>
-              {/* Edit icon on hover */}
-              <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+              {/* Quick edit button */}
+              <button
+                onClick={e => { e.stopPropagation(); setIsEditing(true); }}
+                className="text-muted-foreground/40 hover:text-amber-400 p-1 rounded transition-colors opacity-0 group-hover:opacity-100"
+                title="Quick edit"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
               {/* Delete controls */}
               <div
                 className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"

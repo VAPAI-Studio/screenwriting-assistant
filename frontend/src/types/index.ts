@@ -249,6 +249,7 @@ export interface SceneLink {
   scene_item_id: string;
   context: string;
   source: 'ai' | 'user';
+  scene_title?: string;
 }
 
 export interface BreakdownElement {
@@ -298,6 +299,13 @@ export interface BreakdownElementCreate {
 export interface BreakdownElementUpdate {
   name?: string;
   description?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ExtendedFieldDef {
+  key: string;
+  label: string;
+  type: 'text' | 'textarea';
 }
 
 // ============================================================
