@@ -217,7 +217,7 @@ class ShotlistGenerationService:
             messages=messages,
             response_model=ShotlistGenerationResponse,
             temperature=0.3,
-            max_tokens=8000,
+            max_tokens=16000,
         )
 
     def _map_scene_index_to_id(
