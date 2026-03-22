@@ -6,6 +6,7 @@ import { Film, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import { ShotCard } from './ShotCard';
+import { FrameGalleryModal } from './FrameGalleryModal';
 import type { Shot } from '../../types';
 
 interface StoryboardViewProps {
@@ -136,12 +137,19 @@ export function StoryboardView({ projectId }: StoryboardViewProps) {
             </div>
           </div>
         ))}
-        {/* TODO: FrameGalleryModal goes here — Plan 30-02 */}
+        {selectedShot && (
+          <FrameGalleryModal
+            shot={selectedShot}
+            projectId={projectId}
+            sceneLabel={selectedShotSceneLabel}
+            open={!!selectedShotId}
+            onOpenChange={(open) => {
+              if (!open) setSelectedShotId(null);
+            }}
+          />
+        )}
       </div>
     );
-
-    // selectedShot and selectedShotSceneLabel are used in Plan 30-02 (FrameGalleryModal wiring)
-    void selectedShot; void selectedShotSceneLabel;
   }
 
   return (
