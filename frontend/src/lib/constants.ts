@@ -273,6 +273,14 @@ export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: stri
   { value: 'vehicle', label: 'Vehicles' },
 ];
 
+export const CATEGORY_COLORS: Record<BreakdownCategory, string> = {
+  character: 'rgb(251, 191, 36)',   // amber-400
+  location:  'rgb(96, 165, 250)',   // blue-400
+  prop:      'rgb(74, 222, 128)',   // green-400
+  wardrobe:  'rgb(192, 132, 252)', // purple-400
+  vehicle:   'rgb(248, 113, 113)', // red-400
+};
+
 export const ELEMENT_EXTENDED_FIELDS: Record<BreakdownCategory, Array<{ key: string; label: string; type: 'text' | 'textarea' }>> = {
   character: [
     { key: 'bio', label: 'Biography', type: 'textarea' },
