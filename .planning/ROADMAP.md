@@ -60,21 +60,7 @@
 - [x] **Phase 27: Generate Shotlist UI & AI Badge** - Frontend trigger button, generation progress, and visual distinction for AI-generated shots (completed 2026-03-21)
 - [x] **Phase 28: UX Improvements** - Media deletion, drag-and-drop shot reorder, and scene reorder staleness fix (completed 2026-03-21)
 
-### 🚧 v3.2 Storyboard Mode (Planned)
-
-- [ ] **Phase 29: Storyboard Data Model & Mode Shell** - DB model for storyboard frames, CRUD API, third mode toggle (deep purple/violet identity), project-level style setting
-- [ ] **Phase 30: Storyboard Grid UI** - Grid of shot cards each with a frame slot, upload frames, mark one as selected/hero, multiple frames per shot gallery
-- [ ] **Phase 31: AI Frame Generation (Google Imagen)** - Vertex AI / Imagen integration, per-shot "Generate Frame" button using shot fields as prompt, Photorealistic / Cinematic / Animated styles
-
-### 🔮 v4.0 Element Detail Pages & Script Linking (Future)
-
-- [ ] **Phase 32: Element Detail Pages** - Dedicated full page per character/prop/location with extended fields (bio, notes, costume, specs) and reference image gallery beyond the current assets panel
-- [ ] **Phase 33: Script-to-Element Highlighting** - In the script read view, every appearance of a breakdown element (character name, prop mention, location) is highlighted; clicking navigates to the element detail page
-- [ ] **Phase 34: Script-to-Shot Overlay** - Low-opacity framing/highlight in the script view showing which passages are covered by shots in the shotlist; clicking a covered passage navigates to that shot
-
-## Phase Details
-
-### Phase 26: AI Shotlist Generation Service
+#### Phase 26: AI Shotlist Generation Service
 **Goal**: AI can generate a full shotlist from script content, assigning shots to scenes with all fields populated, and regeneration preserves user-edited shots
 **Depends on**: Phase 25 (existing Shot CRUD, staleness infrastructure)
 **Requirements**: AISG-01, AISG-02, AISG-03, AISG-04, AISG-05, AISG-06
@@ -89,7 +75,7 @@ Plans:
 - [x] 26-01-PLAN.md — Schema foundation: delta migration, ORM + schema updates for user_modified/ai_generated, update endpoint flag
 - [x] 26-02-PLAN.md — ShotlistGenerationService: AI context builder, structured output, smart merge, generate endpoint + tests
 
-### Phase 27: Generate Shotlist UI & AI Badge
+#### Phase 27: Generate Shotlist UI & AI Badge
 **Goal**: Users can trigger shotlist generation from the breakdown panel and visually distinguish AI-generated shots from manually-created ones
 **Depends on**: Phase 26
 **Requirements**: AISG-01 (frontend trigger), AISG-07
@@ -100,9 +86,9 @@ Plans:
   4. AI-generated shots display a subtle sparkle icon badge that is not present on manually-created shots
 **Plans:** 1/1 plans complete
 Plans:
-- [ ] 27-01-PLAN.md — Type updates, API method, generate button + mutation, sparkle badge on AI shots
+- [x] 27-01-PLAN.md — Type updates, API method, generate button + mutation, sparkle badge on AI shots
 
-### Phase 28: UX Improvements
+#### Phase 28: UX Improvements
 **Goal**: Users can delete media assets, reorder shots by dragging, and scene reordering correctly flags the shotlist as stale
 **Depends on**: Phase 25 (staleness infrastructure, existing shotlist panel)
 **Requirements**: MDIA-01, SMGT-01, SYNC-01
@@ -113,11 +99,17 @@ Plans:
   4. Reordering scenes in the screenplay editor marks the shotlist as stale (staleness banner appears in breakdown mode)
 **Plans:** 3/3 plans complete
 Plans:
-- [ ] 28-01-PLAN.md — Media asset deletion UI: trash button overlay on MediaThumbnail + AudioPlayer, window.confirm guard, deleteMedia mutation
-- [ ] 28-02-PLAN.md — Drag-and-drop shot reorder: install @hello-pangea/dnd, replace ReorderControls with DnD in SceneGroup, wire reorderMutation on drop
-- [ ] 28-03-PLAN.md — Scene reorder staleness fix: add _mark_shotlist_stale call to reorder_list_items endpoint
+- [x] 28-01-PLAN.md — Media asset deletion UI: trash button overlay on MediaThumbnail + AudioPlayer, window.confirm guard, deleteMedia mutation
+- [x] 28-02-PLAN.md — Drag-and-drop shot reorder: install @hello-pangea/dnd, replace ReorderControls with DnD in SceneGroup, wire reorderMutation on drop
+- [x] 28-03-PLAN.md — Scene reorder staleness fix: add _mark_shotlist_stale call to reorder_list_items endpoint
 
-### Phase 29: Storyboard Data Model & Mode Shell
+### 🚧 v3.2 Storyboard Mode (Planned)
+
+- [ ] **Phase 29: Storyboard Data Model & Mode Shell** - DB model for storyboard frames, CRUD API, third mode toggle (deep purple/violet identity), project-level style setting
+- [ ] **Phase 30: Storyboard Grid UI** - Grid of shot cards each with a frame slot, upload frames, mark one as selected/hero, multiple frames per shot gallery
+- [ ] **Phase 31: AI Frame Generation (Google Imagen)** - Vertex AI / Imagen integration, per-shot "Generate Frame" button using shot fields as prompt, Photorealistic / Cinematic / Animated styles
+
+#### Phase 29: Storyboard Data Model & Mode Shell
 **Goal**: A third "Storyboard" mode exists in the app (deep purple/violet identity), backed by a StoryboardFrame model that links frames to shots
 **Depends on**: Phase 19 (Shot model), Phase 22 (media upload infrastructure)
 **Requirements**: SB-01, SB-02
@@ -127,8 +119,12 @@ Plans:
   3. Full CRUD API exists for storyboard frames (create, list by project/shot, update is_selected, delete)
   4. Each project has a storyboard_style setting (photorealistic / cinematic / animated)
   5. The Storyboard page renders with correct purple identity (empty state acceptable)
+**Plans:** 2 plans
+Plans:
+- [ ] 29-01-PLAN.md — StoryboardFrame model, delta migration, schemas, CRUD API + tests (SB-02)
+- [ ] 29-02-PLAN.md — Three-mode toggle, purple CSS theme, StoryboardView shell, TypeScript types + API methods (SB-01)
 
-### Phase 30: Storyboard Grid UI
+#### Phase 30: Storyboard Grid UI
 **Goal**: Users can view all shots as a grid of frame cards, upload images/video per shot, and mark one frame as the selected/hero frame
 **Depends on**: Phase 29
 **Requirements**: SB-03, SB-04, SB-05
@@ -139,7 +135,7 @@ Plans:
   4. Uploaded frames appear as thumbnails; the selected frame is visually highlighted
   5. Empty shots show a placeholder frame with "Upload" and "Generate with AI" (disabled until Phase 31) actions
 
-### Phase 31: AI Frame Generation (Google Imagen)
+#### Phase 31: AI Frame Generation (Google Imagen)
 **Goal**: Users can generate a storyboard frame for any shot using Google Imagen, with the result stored and displayable in the grid
 **Depends on**: Phase 30
 **Requirements**: SB-06, SB-07
@@ -150,7 +146,13 @@ Plans:
   4. "Generate with AI" button in the frame gallery fires the endpoint, shows a spinner, and displays the result when done
   5. Generated frames are automatically set as selected if no frame was previously selected for that shot
 
-### Phase 32: Element Detail Pages
+### 🔮 v4.0 Element Detail Pages & Script Linking (Future)
+
+- [ ] **Phase 32: Element Detail Pages** - Dedicated full page per character/prop/location with extended fields (bio, notes, costume, specs) and reference image gallery beyond the current assets panel
+- [ ] **Phase 33: Script-to-Element Highlighting** - In the script read view, every appearance of a breakdown element (character name, prop mention, location) is highlighted; clicking navigates to the element detail page
+- [ ] **Phase 34: Script-to-Shot Overlay** - Low-opacity framing/highlight in the script view showing which passages are covered by shots in the shotlist; clicking a covered passage navigates to that shot
+
+#### Phase 32: Element Detail Pages
 **Goal**: Each breakdown element (character, prop, location, etc.) has a dedicated full page with extended fields and a reference image gallery
 **Depends on**: Phase 13 (Breakdown Page), Phase 23 (Assets Panel)
 **Requirements**: EDP-01, EDP-02
@@ -160,7 +162,7 @@ Plans:
   3. A full reference image gallery (larger than the current assets panel view) shows all uploaded media with upload, delete, and expand actions
   4. Changes to extended fields are saved and persist on refresh
 
-### Phase 33: Script-to-Element Highlighting
+#### Phase 33: Script-to-Element Highlighting
 **Goal**: In the script read view, every mention of a breakdown element is highlighted and links to its detail page
 **Depends on**: Phase 21 (Script Read View), Phase 32 (Element Detail Pages)
 **Requirements**: SEL-01
@@ -169,7 +171,7 @@ Plans:
   2. Hovering a highlight shows a tooltip with the element name and category
   3. Clicking a highlight navigates to that element's detail page
 
-### Phase 34: Script-to-Shot Overlay
+#### Phase 34: Script-to-Shot Overlay
 **Goal**: The script read view shows low-opacity framing marks indicating which passages are covered by shots in the shotlist
 **Depends on**: Phase 21 (Script Read View), Phase 20 (Shotlist)
 **Requirements**: SSO-01
@@ -211,7 +213,7 @@ Plans:
 | 26. AI Shotlist Generation Service | v3.1 | Complete | 2026-03-20 | 2026-03-20 |
 | 27. Generate Shotlist UI & AI Badge | v3.1 | Complete | 2026-03-21 | 2026-03-21 |
 | 28. UX Improvements | v3.1 | Complete | 2026-03-21 | 2026-03-21 |
-| 29. Storyboard Data Model & Mode Shell | v3.2 | 0/? | Planned | - |
+| 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
 | 30. Storyboard Grid UI | v3.2 | 0/? | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/? | Planned | - |
 | 32. Element Detail Pages | v4.0 | 0/? | Future | - |
