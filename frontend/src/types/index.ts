@@ -393,3 +393,23 @@ export interface ShotAction {
     fields?: Partial<ShotFields>;
   };
 }
+
+// ============================================================
+// Storyboard (v3.2 — Phase 29)
+// ============================================================
+
+export type GenerationSource = 'user' | 'ai';
+export type StoryboardStyle = 'photorealistic' | 'cinematic' | 'animated';
+
+export interface StoryboardFrame {
+  id: string;
+  shot_id: string;
+  file_path: string;
+  thumbnail_path: string | null;
+  file_type: 'image' | 'video';
+  is_selected: boolean;
+  generation_source: GenerationSource;
+  generation_style: StoryboardStyle | null;
+  created_at: string;
+  updated_at: string | null;
+}

@@ -87,6 +87,46 @@
     --phase-write: 160 84% 39%;
   }
 
+  .storyboard-mode {
+    /* Backgrounds — deep violet-noir */
+    --background: 263 15% 4%;
+    --foreground: 280 20% 95%;
+
+    --card: 263 14% 8%;
+    --card-foreground: 280 15% 92%;
+
+    --muted: 263 10% 15%;
+    --muted-foreground: 263 10% 52%;
+
+    /* Accent — deep purple/violet */
+    --accent: 263 70% 58%;
+    --accent-foreground: 0 0% 98%;
+
+    --primary: 263 70% 58%;
+    --primary-foreground: 263 20% 8%;
+
+    --secondary: 263 10% 15%;
+    --secondary-foreground: 280 15% 88%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 263 10% 18%;
+    --input: 263 14% 11%;
+    --ring: 263 70% 58%;
+
+    /* Extended palette */
+    --surface: 263 14% 11%;
+    --surface-hover: 263 10% 15%;
+    --border-strong: 263 10% 22%;
+
+    /* Phase colors — unchanged */
+    --phase-idea: 263 70% 58%;
+    --phase-story: 217 91% 60%;
+    --phase-scenes: 38 92% 50%;
+    --phase-write: 160 84% 39%;
+  }
+
   * {
     @apply border-border;
   }

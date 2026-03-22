@@ -1,6 +1,6 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { useLocation, useNavigate, useMatch } from 'react-router-dom';
-import { ChevronDown, PenLine, Clapperboard } from 'lucide-react';
+import { ChevronDown, PenLine, Clapperboard, Film } from 'lucide-react';
 import { ROUTES } from '../../lib/constants';
 
 export function ModeToggle() {
@@ -16,20 +16,38 @@ export function ModeToggle() {
   if (!projectId) return null;
 
   const isBreakdown = location.pathname.endsWith('/breakdown');
-  const currentMode = isBreakdown ? 'breakdown' : 'screenwriting';
+  const isStoryboard = location.pathname.endsWith('/storyboard');
+  const currentMode = isStoryboard ? 'storyboard' : isBreakdown ? 'breakdown' : 'screenwriting';
   const lastScreenwritingKey = `lastScreenwritingPath_${projectId}`;
 
-  const handleSelect = (mode: 'screenwriting' | 'breakdown') => {
+  const handleSelect = (mode: 'screenwriting' | 'breakdown' | 'storyboard') => {
     if (mode === 'breakdown') {
       if (!isBreakdown) {
         localStorage.setItem(lastScreenwritingKey, location.pathname);
       }
       navigate(ROUTES.PROJECT_BREAKDOWN(projectId));
+    } else if (mode === 'storyboard') {
+      if (!isStoryboard) {
+        localStorage.setItem(lastScreenwritingKey, location.pathname);
+      }
+      navigate(ROUTES.PROJECT_STORYBOARD(projectId));
     } else {
       const last = localStorage.getItem(lastScreenwritingKey);
       navigate(last ?? ROUTES.PROJECT(projectId));
     }
   };
+
+  const modeIcon = {
+    screenwriting: <PenLine className="h-3.5 w-3.5" />,
+    breakdown: <Clapperboard className="h-3.5 w-3.5" />,
+    storyboard: <Film className="h-3.5 w-3.5" />,
+  }[currentMode];
+
+  const modeLabel = {
+    screenwriting: 'Screenwriting',
+    breakdown: 'Script Breakdown',
+    storyboard: 'Storyboard',
+  }[currentMode];
 
   return (
     <DropdownMenu.Root>
@@ -38,12 +56,8 @@ export function ModeToggle() {
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md
             bg-muted/40 hover:bg-muted/70 text-foreground transition-colors"
         >
-          {currentMode === 'screenwriting'
-            ? <PenLine className="h-3.5 w-3.5" />
-            : <Clapperboard className="h-3.5 w-3.5" />}
-          <span>
-            {currentMode === 'screenwriting' ? 'Screenwriting' : 'Script Breakdown'}
-          </span>
+          {modeIcon}
+          <span>{modeLabel}</span>
           <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
       </DropdownMenu.Trigger>
@@ -71,6 +85,17 @@ export function ModeToggle() {
             <Clapperboard className="h-3.5 w-3.5" />
             <span>Script Breakdown</span>
             {currentMode === 'breakdown' && (
+              <span className="ml-auto text-xs" style={{ color: 'hsl(var(--accent))' }}>Active</span>
+            )}
+          </DropdownMenu.Item>
+          <DropdownMenu.Item
+            onSelect={() => handleSelect('storyboard')}
+            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md cursor-pointer
+              hover:bg-muted/60 text-foreground outline-none"
+          >
+            <Film className="h-3.5 w-3.5" />
+            <span>Storyboard</span>
+            {currentMode === 'storyboard' && (
               <span className="ml-auto text-xs" style={{ color: 'hsl(var(--accent))' }}>Active</span>
             )}
           </DropdownMenu.Item>

@@ -190,6 +190,7 @@ export const QUERY_KEYS = {
   SHOTS: (projectId: string) => ['shots', projectId] as const,
   ELEMENT_MEDIA: (elementId: string) => ['element-media', elementId] as const,
   PROJECT_MEDIA: (projectId: string) => ['project-media', projectId] as const,
+  STORYBOARD_FRAMES: (shotId: string) => ['storyboard-frames', shotId] as const,
 } as const;
 
 // Theme Configuration
@@ -259,6 +260,7 @@ export const ROUTES = {
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
   PROJECT_BREAKDOWN: (id: string) => `/projects/${id}/breakdown`,
+  PROJECT_STORYBOARD: (id: string) => `/projects/${id}/storyboard`,
 } as const;
 
 export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: string }> = [

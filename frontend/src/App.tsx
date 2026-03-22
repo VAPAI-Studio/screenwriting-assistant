@@ -1,6 +1,6 @@
 // frontend/src/App.tsx
 
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useParams } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Layout } from './components/Layout/Layout';
 import { ProjectList } from './components/Projects/ProjectList';
@@ -11,6 +11,7 @@ import { SnippetManager } from './components/Snippets/SnippetManager';
 // BreakdownPage retained for Phase 23 assets panel integration
 // import { BreakdownPage } from './components/Breakdown/BreakdownPage';
 import { BreakdownLayout } from './components/Breakdown/BreakdownLayout';
+import { StoryboardView } from './components/Storyboard/StoryboardView';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -20,6 +21,12 @@ const queryClient = new QueryClient({
     }
   }
 });
+
+function StoryboardViewRoute() {
+  const { projectId } = useParams<{ projectId: string }>();
+  if (!projectId) return null;
+  return <StoryboardView projectId={projectId} />;
+}
 
 function App() {
   return (
@@ -31,6 +38,7 @@ function App() {
             <Route path="/projects" element={<ProjectList />} />
             <Route path="/projects/:projectId" element={<Editor />} />
             <Route path="/projects/:projectId/breakdown" element={<BreakdownLayout />} />
+            <Route path="/projects/:projectId/storyboard" element={<StoryboardViewRoute />} />
             <Route path="/projects/:projectId/:phase" element={<ProjectWorkspace />} />
             <Route path="/projects/:projectId/:phase/:subsectionKey" element={<ProjectWorkspace />} />
             <Route path="/projects/:projectId/:phase/:subsectionKey/:itemId" element={<ProjectWorkspace />} />

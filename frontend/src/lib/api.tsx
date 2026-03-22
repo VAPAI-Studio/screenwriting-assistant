@@ -6,7 +6,7 @@ import {
   TemplateConfig, TemplateListItem, PhaseDataResponse, ListItemResponse,
   AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
   Snippet, SnippetListResponse, PipelineMapResponse,
-  Shot, ShotCreate, ShotUpdate, AssetMedia,
+  Shot, ShotCreate, ShotUpdate, AssetMedia, StoryboardFrame,
 } from '../types';
 import type { YoloEvent } from '../types/template';
 import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT, CHAT_TIMEOUT } from './constants';
@@ -1056,6 +1056,59 @@ export const api = {
       if (error.name === 'AbortError') throw new Error('Request timeout');
       throw error;
     }
+  },
+
+  // ============================================================
+  // Storyboard (v3.2 — Phase 29)
+  // ============================================================
+
+  async uploadFrame(projectId: string, shotId: string, formData: FormData): Promise<StoryboardFrame> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/storyboard/${projectId}/shots/${shotId}/frames`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': getAuthToken() },
+        body: formData,
+      }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Upload failed' }));
+      throw new Error(err.detail || 'Failed to upload frame');
+    }
+    return response.json();
+  },
+
+  async listFrames(projectId: string, shotId: string): Promise<StoryboardFrame[]> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/storyboard/${projectId}/shots/${shotId}/frames`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch frames');
+    return response.json();
+  },
+
+  async updateFrame(projectId: string, frameId: string, data: { is_selected?: boolean }): Promise<StoryboardFrame> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/storyboard/${projectId}/frames/${frameId}`,
+      {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      }
+    );
+    if (!response.ok) throw new Error('Failed to update frame');
+    return response.json();
+  },
+
+  async deleteFrame(projectId: string, frameId: string): Promise<void> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/storyboard/${projectId}/frames/${frameId}`,
+      {
+        method: 'DELETE',
+        headers: getHeaders(),
+      }
+    );
+    if (!response.ok) throw new Error('Failed to delete frame');
   },
 
   async yoloFill(
