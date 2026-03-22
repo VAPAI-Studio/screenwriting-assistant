@@ -158,7 +158,7 @@ Plans:
 ### 🔮 v4.0 Element Detail Pages & Script Linking (Future)
 
 - [x] **Phase 32: Element Detail Pages** - Dedicated full page per character/prop/location with extended fields (bio, notes, costume, specs) and reference image gallery beyond the current assets panel (completed 2026-03-22)
-- [ ] **Phase 33: Script-to-Element Highlighting** - In the script read view, every appearance of a breakdown element (character name, prop mention, location) is highlighted; clicking navigates to the element detail page
+- [x] **Phase 33: Script-to-Element Highlighting** - In the script read view, every appearance of a breakdown element (character name, prop mention, location) is highlighted; clicking navigates to the element detail page (completed 2026-03-22)
 - [ ] **Phase 34: Script-to-Shot Overlay** - Low-opacity framing/highlight in the script view showing which passages are covered by shots in the shotlist; clicking a covered passage navigates to that shot
 
 #### Phase 32: Element Detail Pages
@@ -183,7 +183,7 @@ Plans:
   1. Character names, prop mentions, and location headings in the script are highlighted with a color-coded underline matching their element category
   2. Hovering a highlight shows a tooltip with the element name and category
   3. Clicking a highlight navigates to that element's detail page
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 33-01-PLAN.md — Text highlight utility, HighlightedScriptText component, CSS classes, wire into ScriptReadView (SEL-01)
 
@@ -273,7 +273,7 @@ Plans:
 | 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
 | 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
-| 33. Script-to-Element Highlighting | v4.0 | 0/1 | Planned | - |
+| 33. Script-to-Element Highlighting | 1/1 | Complete   | 2026-03-22 | - |
 | 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
 | 36. API Key Management | v5.0 | 0/? | Future | - |

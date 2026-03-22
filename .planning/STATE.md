@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed 32-02-PLAN.md
-last_updated: "2026-03-22T17:06:24.839Z"
+stopped_at: Completed 33-01-PLAN.md
+last_updated: "2026-03-22T17:21:13.390Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 32 — element-detail-pages
+**Current focus:** Phase 33 — script-to-element-highlighting
 
 ## Current Position
 
-Phase: 32 (element-detail-pages) — COMPLETE
-Plan: 2 of 2 (all plans complete)
+Phase: 33 (script-to-element-highlighting) — COMPLETE
+Plan: 1 of 1 (done)
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Plan: 2 of 2 (all plans complete)
 | Phase 27 P01 | 4min | 2 tasks | 6 files |
 | Phase 32 P01 | 2min | 1 tasks | 3 files |
 | Phase 32 P02 | 4min | 3 tasks | 10 files |
+| Phase 33 P01 | 2min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,8 @@ Relevant to v3.1:
 - [Phase 32]: scene_title is Optional[str] to handle orphaned scene links gracefully
 - [Phase 32]: Extended fields auto-save on blur with read-modify-write pattern to preserve metadata keys
 - [Phase 32]: ElementCard primary click navigates to detail page; inline quick-edit preserved via pencil button
+- [Phase 33]: CSS-only tooltip via title attribute for zero-dependency hover hints
+- [Phase 33]: Word-boundary regex with longest-match-first ordering to avoid partial matches
 
 ### Pending Todos
 
@@ -89,6 +92,6 @@ Relevant to v3.1:
 
 ## Session Continuity
 
-Last session: 2026-03-22T17:01:48.852Z
-Stopped at: Completed 32-02-PLAN.md
+Last session: 2026-03-22T17:21:13.387Z
+Stopped at: Completed 33-01-PLAN.md
 Resume file: None
