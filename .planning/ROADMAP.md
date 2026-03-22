@@ -134,6 +134,10 @@ Plans:
   3. Clicking a card opens a frame gallery modal showing all frames for that shot with upload button and "mark as selected" action
   4. Uploaded frames appear as thumbnails; the selected frame is visually highlighted
   5. Empty shots show a placeholder frame with "Upload" and "Generate with AI" (disabled until Phase 31) actions
+**Plans:** 2 plans
+Plans:
+- [ ] 30-01-PLAN.md — ShotCard component and StoryboardView grid layout grouped by scene (SB-03, SB-04)
+- [ ] 30-02-PLAN.md — FrameGalleryModal with upload, mark-as-selected, delete, and disabled AI generate button (SB-04, SB-05)
 
 #### Phase 31: AI Frame Generation (Google Imagen)
 **Goal**: Users can generate a storyboard frame for any shot using Google Imagen, with the result stored and displayable in the grid
@@ -214,7 +218,7 @@ Plans:
 | 27. Generate Shotlist UI & AI Badge | v3.1 | Complete | 2026-03-21 | 2026-03-21 |
 | 28. UX Improvements | v3.1 | Complete | 2026-03-21 | 2026-03-21 |
 | 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
-| 30. Storyboard Grid UI | v3.2 | 0/? | Planned | - |
+| 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/? | Planned | - |
 | 32. Element Detail Pages | v4.0 | 0/? | Future | - |
 | 33. Script-to-Element Highlighting | v4.0 | 0/? | Future | - |
