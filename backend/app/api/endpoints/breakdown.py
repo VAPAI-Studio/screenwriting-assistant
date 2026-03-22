@@ -161,6 +161,43 @@ async def create_element(
     return db_element
 
 
+@router.get("/element/{element_id}", response_model=schemas.BreakdownElementResponse)
+async def get_element(
+    element_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get a single breakdown element with scene links and enriched scene titles."""
+    element = _verify_element_ownership(db, element_id, current_user.id)
+
+    # Eagerly load scene_links
+    element = db.query(database.BreakdownElement).options(
+        selectinload(database.BreakdownElement.scene_links)
+    ).filter(database.BreakdownElement.id == str(element.id)).first()
+
+    # Enrich scene_links with scene titles from ListItem.content["title"]
+    resp = schemas.BreakdownElementResponse.model_validate(element)
+
+    if resp.scene_links:
+        scene_item_ids = [str(link.scene_item_id) for link in resp.scene_links]
+        scene_items = db.query(database.ListItem).filter(
+            database.ListItem.id.in_(scene_item_ids)
+        ).all()
+        title_map = {
+            str(item.id): (item.content or {}).get("title", "")
+            for item in scene_items
+        }
+        for link in resp.scene_links:
+            link.scene_title = title_map.get(str(link.scene_item_id))
+
+    # Compute synced_to_characters for character elements
+    if element.category == "character":
+        synced_names = _get_synced_character_names(db, element.project_id)
+        resp.synced_to_characters = element.name.lower() in synced_names
+
+    return resp
+
+
 @router.put("/element/{element_id}", response_model=schemas.BreakdownElementResponse)
 async def update_element(
     element_id: UUID,

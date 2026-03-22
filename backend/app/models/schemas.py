@@ -666,6 +666,7 @@ class SceneLinkResponse(BaseModel):
     scene_item_id: UUID
     context: str = ""
     source: str
+    scene_title: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
