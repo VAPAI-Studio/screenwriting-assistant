@@ -200,6 +200,17 @@
   .element-highlight--prop      { text-decoration-color: rgb(74, 222, 128); }
   .element-highlight--wardrobe  { text-decoration-color: rgb(192, 132, 252); }
   .element-highlight--vehicle   { text-decoration-color: rgb(248, 113, 113); }
+
+  /* Shot overlay — script-to-shot coverage tint */
+  .shot-overlay {
+    background-color: hsl(213 80% 52% / 0.12);
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+  }
+  .shot-overlay:hover {
+    background-color: hsl(213 80% 52% / 0.22);
+  }
 }
 
 @layer utilities {
