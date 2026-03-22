@@ -269,7 +269,7 @@ Plans:
 | 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
 | 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
-| 32. Element Detail Pages | 2/2 | Complete   | 2026-03-22 | - |
+| 32. Element Detail Pages | 2/2 | Complete    | 2026-03-22 | - |
 | 33. Script-to-Element Highlighting | v4.0 | 0/? | Future | - |
 | 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
