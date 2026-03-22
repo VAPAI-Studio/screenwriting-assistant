@@ -10,7 +10,11 @@ export function DeleteShotButton({ onDelete, isPending }: DeleteShotButtonProps)
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const deleteConfirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    if (e.shiftKey) {
+      onDelete();
+      return;
+    }
     setDeleteConfirm(true);
     if (deleteConfirmTimerRef.current) clearTimeout(deleteConfirmTimerRef.current);
     deleteConfirmTimerRef.current = setTimeout(() => setDeleteConfirm(false), 3000);
@@ -50,6 +54,7 @@ export function DeleteShotButton({ onDelete, isPending }: DeleteShotButtonProps)
   return (
     <button
       onClick={handleDeleteClick}
+      title="Delete shot (Shift+click to skip confirmation)"
       disabled={isPending}
       className="text-muted-foreground/40 hover:text-red-400 p-1 rounded transition-colors
         disabled:opacity-30"
