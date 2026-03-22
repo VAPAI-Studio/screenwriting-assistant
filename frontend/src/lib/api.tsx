@@ -1111,6 +1111,21 @@ export const api = {
     if (!response.ok) throw new Error('Failed to delete frame');
   },
 
+  async generateFrame(projectId: string, shotId: string): Promise<StoryboardFrame> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/storyboard/${projectId}/shots/${shotId}/generate`,
+      {
+        method: 'POST',
+        headers: getHeaders(),
+      }
+    );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: 'Generation failed' }));
+      throw new Error(errorData.detail || `Generation failed (${response.status})`);
+    }
+    return response.json();
+  },
+
   async yoloFill(
     projectId: string,
     onEvent: (event: YoloEvent) => void,

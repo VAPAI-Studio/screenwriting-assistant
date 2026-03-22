@@ -47,6 +47,13 @@ export function FrameGalleryModal({ shot, projectId, sceneLabel, open, onOpenCha
     },
   });
 
+  const generateMutation = useMutation({
+    mutationFn: () => api.generateFrame(projectId, shot.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.STORYBOARD_FRAMES(shot.id) });
+    },
+  });
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -116,14 +123,16 @@ export function FrameGalleryModal({ shot, projectId, sceneLabel, open, onOpenCha
               {uploadMutation.isPending ? 'Uploading...' : 'Upload Frame'}
             </button>
             <button
-              disabled
-              title="Coming in Phase 31"
+              onClick={() => generateMutation.mutate()}
+              disabled={generateMutation.isPending}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold
-                text-muted-foreground/50 rounded-lg border border-border/50
-                cursor-not-allowed opacity-50"
+                bg-violet-500/10 hover:bg-violet-500/20 text-violet-400 rounded-lg transition-colors
+                disabled:opacity-50 disabled:cursor-not-allowed border border-violet-500/20"
             >
-              <Sparkles className="h-3.5 w-3.5" />
-              Generate with AI
+              {generateMutation.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Sparkles className="h-3.5 w-3.5" />}
+              {generateMutation.isPending ? 'Generating...' : 'Generate with AI'}
             </button>
           </div>
 
@@ -208,6 +217,13 @@ export function FrameGalleryModal({ shot, projectId, sceneLabel, open, onOpenCha
             {uploadMutation.isError && (
               <p className="text-xs text-red-400 mt-3">
                 Upload failed: {uploadMutation.error instanceof Error ? uploadMutation.error.message : 'Unknown error'}
+              </p>
+            )}
+
+            {/* Generate error */}
+            {generateMutation.isError && (
+              <p className="text-xs text-red-400 mt-3">
+                Generation failed: {generateMutation.error instanceof Error ? generateMutation.error.message : 'Unknown error'}
               </p>
             )}
           </div>
