@@ -8,6 +8,7 @@
 - ✅ **v3.1 AI Shotlist Generation** — Phases 26-28 (shipped 2026-03-21)
 - 🚧 **v3.2 Storyboard Mode** — Phases 29-31 (planned)
 - 🔮 **v4.0 Element Detail Pages & Script Linking** — Phases 32-34 (future)
+- 🔮 **v5.0 User Management & API Access** — Phases 35-37 (future)
 
 ## Phases
 
@@ -189,6 +190,46 @@ Plans:
   3. Clicking a highlighted passage opens a popover showing the linked shot(s) with their fields
   4. Shots with no script_text reference do not create any highlight
 
+### 🔮 v5.0 User Management & API Access (Future)
+
+- [ ] **Phase 35: Real Authentication & User Model** - Replace mock auth with proper JWT registration/login, persistent user records, bcrypt passwords, and email verification flow
+- [ ] **Phase 36: API Key Management** - Per-user API key generation (prefix+secret, hashed storage), scopes, optional expiry, revocation, and a management UI in user settings
+- [ ] **Phase 37: API Gateway, Docs & Usage Tracking** - Unified auth middleware that accepts both session JWTs and API keys for all endpoints, Swagger/OpenAPI docs exposed at `/docs`, per-key request count and last-used tracking
+
+#### Phase 35: Real Authentication & User Model
+**Goal**: Replace the MockAuthService with a production-ready auth system so users can register, log in, and own their data securely
+**Depends on**: Phase 1 (DB foundation), existing mock auth pattern
+**Requirements**: UM-01, UM-02, UM-03
+**Success Criteria** (what must be TRUE):
+  1. Users can register with email + password via POST /api/auth/register and receive a JWT on success
+  2. Users can log in via POST /api/auth/login and receive a JWT; passwords are stored as bcrypt hashes, never plaintext
+  3. A `users` table exists with: id, email (unique), hashed_password, display_name, created_at
+  4. All existing protected endpoints continue to work — the JWT from login is accepted everywhere mock-token was accepted
+  5. The frontend login/register flow is accessible at /login; authenticated users are redirected to /projects
+  6. A user profile page at /settings/profile shows email and display name with an edit form
+
+#### Phase 36: API Key Management
+**Goal**: Users can create named API keys with optional scopes and expiry dates, and use them to authenticate any endpoint
+**Depends on**: Phase 35 (real user model)
+**Requirements**: AK-01, AK-02, AK-03, AK-04
+**Success Criteria** (what must be TRUE):
+  1. An `api_keys` table exists with: id, user_id (FK), name, key_prefix (8 chars, shown in UI), key_hash (SHA-256 of full key, never stored in plaintext), scopes (JSON array), expires_at (nullable), created_at, last_used_at, is_active
+  2. POST /api/auth/api-keys creates a key, returns the full key string exactly once (format: `sa_<prefix>_<secret>`) — subsequent requests never return the secret again
+  3. All protected endpoints accept `Authorization: Bearer sa_<key>` and authenticate via the key_hash lookup
+  4. DELETE /api/auth/api-keys/{id} immediately revokes a key
+  5. A /settings/api-keys page in the frontend lists all active keys (name, prefix, created, last used, expiry), with a "Create Key" button that shows the full key in a one-time copy modal, and a "Revoke" action per key
+
+#### Phase 37: API Gateway, Docs & Usage Tracking
+**Goal**: The API is fully documented and accessible externally, with per-key usage visible to users
+**Depends on**: Phase 36 (API key auth)
+**Requirements**: AK-05, AK-06
+**Success Criteria** (what must be TRUE):
+  1. FastAPI's built-in Swagger UI is exposed at /docs (authenticated via session or API key) with all endpoints documented, correct response schemas, and example payloads
+  2. A unified auth middleware handles both `Bearer <jwt>` and `Bearer sa_<key>` transparently — no endpoint code changes required
+  3. Each authenticated API key request increments the key's `request_count` counter and updates `last_used_at`
+  4. The /settings/api-keys page shows request_count and last_used_at per key, updated in real time
+  5. Rate limiting applies per API key (configurable per-key limit, default 1000 req/hour) with 429 response and Retry-After header when exceeded
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -227,3 +268,6 @@ Plans:
 | 32. Element Detail Pages | v4.0 | 0/? | Future | - |
 | 33. Script-to-Element Highlighting | v4.0 | 0/? | Future | - |
 | 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
+| 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
+| 36. API Key Management | v5.0 | 0/? | Future | - |
+| 37. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
