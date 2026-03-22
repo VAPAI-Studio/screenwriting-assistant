@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import { SelectionBar } from './SelectionBar';
+import { HighlightedScriptText } from './HighlightedScriptText';
 import type { ShotCreate, Shot } from '../../types';
 
 interface ScriptReadViewProps {
@@ -68,6 +69,13 @@ export function ScriptReadView({ projectId }: ScriptReadViewProps) {
   const { data: shots } = useQuery({
     queryKey: QUERY_KEYS.SHOTS(projectId),
     queryFn: () => api.listShots(projectId),
+    enabled: !!projectId,
+  });
+
+  // 5. Breakdown elements (for highlighting in script text)
+  const { data: allElements } = useQuery({
+    queryKey: QUERY_KEYS.BREAKDOWN_ELEMENTS(projectId),
+    queryFn: () => api.getBreakdownElements(projectId),
     enabled: !!projectId,
   });
 
@@ -198,7 +206,11 @@ export function ScriptReadView({ projectId }: ScriptReadViewProps) {
               {sp.title || sceneItem?.content?.title || `Scene ${idx + 1}`}
             </div>
             <pre className="text-[13px] text-foreground/90 whitespace-pre-wrap break-words leading-relaxed font-mono">
-              {sp.content}
+              <HighlightedScriptText
+                text={sp.content}
+                elements={allElements ?? []}
+                projectId={projectId}
+              />
             </pre>
           </div>
         );
