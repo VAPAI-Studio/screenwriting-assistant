@@ -210,6 +210,7 @@ export function ScriptReadView({ projectId }: ScriptReadViewProps) {
                 text={sp.content}
                 elements={allElements ?? []}
                 projectId={projectId}
+                shots={shots ?? []}
               />
             </pre>
           </div>
