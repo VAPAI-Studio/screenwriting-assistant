@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed 32-01-PLAN.md
-last_updated: "2026-03-22T16:54:50.563Z"
+stopped_at: Completed 32-02-PLAN.md
+last_updated: "2026-03-22T17:01:48.856Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 32 (element-detail-pages) — EXECUTING
-Plan: 2 of 2
+Phase: 32 (element-detail-pages) — COMPLETE
+Plan: 2 of 2 (all plans complete)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: 2 of 2
 | Phase 26 P02 | 6min | 2 tasks | 3 files |
 | Phase 27 P01 | 4min | 2 tasks | 6 files |
 | Phase 32 P01 | 2min | 1 tasks | 3 files |
+| Phase 32 P02 | 4min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,8 @@ Relevant to v3.1:
 - [Phase 27]: Used useEffect callback to lift generate mutation state from ShotlistPanel to BreakdownLayout
 - [Phase 32]: Enrichment done at Pydantic level (not SQL join) for SQLite/PostgreSQL compat
 - [Phase 32]: scene_title is Optional[str] to handle orphaned scene links gracefully
+- [Phase 32]: Extended fields auto-save on blur with read-modify-write pattern to preserve metadata keys
+- [Phase 32]: ElementCard primary click navigates to detail page; inline quick-edit preserved via pencil button
 
 ### Pending Todos
 
@@ -86,6 +89,6 @@ Relevant to v3.1:
 
 ## Session Continuity
 
-Last session: 2026-03-22T16:54:50.560Z
-Stopped at: Completed 32-01-PLAN.md
+Last session: 2026-03-22T17:01:48.852Z
+Stopped at: Completed 32-02-PLAN.md
 Resume file: None

@@ -157,7 +157,7 @@ Plans:
 
 ### 🔮 v4.0 Element Detail Pages & Script Linking (Future)
 
-- [ ] **Phase 32: Element Detail Pages** - Dedicated full page per character/prop/location with extended fields (bio, notes, costume, specs) and reference image gallery beyond the current assets panel
+- [x] **Phase 32: Element Detail Pages** - Dedicated full page per character/prop/location with extended fields (bio, notes, costume, specs) and reference image gallery beyond the current assets panel (completed 2026-03-22)
 - [ ] **Phase 33: Script-to-Element Highlighting** - In the script read view, every appearance of a breakdown element (character name, prop mention, location) is highlighted; clicking navigates to the element detail page
 - [ ] **Phase 34: Script-to-Shot Overlay** - Low-opacity framing/highlight in the script view showing which passages are covered by shots in the shotlist; clicking a covered passage navigates to that shot
 
@@ -170,7 +170,7 @@ Plans:
   2. The detail page shows: name, category, description, all scenes where it appears, and an extended fields section (character: bio/age/role; location: address/type/notes; prop: specs/owner/status)
   3. A full reference image gallery (larger than the current assets panel view) shows all uploaded media with upload, delete, and expand actions
   4. Changes to extended fields are saved and persist on refresh
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 32-01-PLAN.md — GET single-element endpoint with enriched scene titles, SceneLinkResponse scene_title field, backend tests (EDP-01)
 - [ ] 32-02-PLAN.md — Element detail page frontend: routing, extended fields form, scene list, reference image gallery with lightbox (EDP-01, EDP-02)
@@ -269,7 +269,7 @@ Plans:
 | 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
 | 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
-| 32. Element Detail Pages | 1/2 | In Progress|  | - |
+| 32. Element Detail Pages | 2/2 | Complete   | 2026-03-22 | - |
 | 33. Script-to-Element Highlighting | v4.0 | 0/? | Future | - |
 | 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
