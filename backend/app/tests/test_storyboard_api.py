@@ -190,3 +190,58 @@ class TestStoryboardAPI:
             headers=mock_auth_headers,
         )
         assert resp.status_code == 404, f"Expected 404, got {resp.status_code}: {resp.json()}"
+
+    def test_generate_frame(self, client, db_session, mock_auth_headers, monkeypatch):
+        """POST to generate endpoint creates an AI frame with auto-selection."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        shot = _make_shot(db_session, project_id)
+
+        # Set up shot and project for generation
+        project = db_session.query(Project).filter(Project.id == project_id).first()
+        project.storyboard_style = "cinematic"
+        shot.fields = {
+            "description": "A dark alley at night",
+            "camera_angle": "Low Angle",
+            "shot_size": "Wide",
+        }
+        shot.script_text = "INT. ALLEY - NIGHT. Rain pours down on the empty street."
+        db_session.flush()
+
+        # Monkeypatch to avoid real API call
+        monkeypatch.setattr(
+            "app.api.endpoints.storyboard.ImagenService.generate_image",
+            lambda self, prompt: b"fake-png-bytes",
+        )
+
+        resp = client.post(
+            f"/api/storyboard/{project_id}/shots/{shot.id}/generate",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.json()}"
+        data = resp.json()
+        assert data["generation_source"] == "ai"
+        assert data["generation_style"] == "cinematic"
+        assert data["is_selected"] is True  # Auto-selected: no prior frames
+        assert "/storyboard/" in data["file_path"]
+        assert data["file_path"].endswith(".png")
+
+    def test_generate_frame_auto_select_false_when_existing(
+        self, client, db_session, mock_auth_headers, monkeypatch
+    ):
+        """Generated frame is NOT auto-selected when an existing selected frame exists."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        shot = _make_shot(db_session, project_id)
+        _make_frame(db_session, shot.id, file_path="/media/test/existing.png", is_selected=True)
+        db_session.commit()
+
+        monkeypatch.setattr(
+            "app.api.endpoints.storyboard.ImagenService.generate_image",
+            lambda self, prompt: b"fake-png-bytes",
+        )
+
+        resp = client.post(
+            f"/api/storyboard/{project_id}/shots/{shot.id}/generate",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201, f"Expected 201, got {resp.status_code}: {resp.json()}"
+        assert resp.json()["is_selected"] is False  # Existing selected frame: no auto-select

@@ -71,6 +71,11 @@ class Settings(BaseSettings):
     # Server
     PORT: int = 8000
 
+    # Google Cloud (Imagen AI image generation)
+    GOOGLE_CLOUD_PROJECT: str = ""
+    IMAGEN_MODEL: str = "imagen-3.0-generate-001"
+    IMAGEN_REGION: str = "us-central1"
+
     @field_validator('AI_PROVIDER')
     def validate_ai_provider(cls, v):
         if v not in ("openai", "anthropic"):
