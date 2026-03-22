@@ -149,6 +149,10 @@ Plans:
   3. The generation prompt is built from shot fields: description, action, camera_angle, shot_size, scene context, and project storyboard_style
   4. "Generate with AI" button in the frame gallery fires the endpoint, shows a spinner, and displays the result when done
   5. Generated frames are automatically set as selected if no frame was previously selected for that shot
+**Plans:** 2 plans
+Plans:
+- [ ] 31-01-PLAN.md — ImagenService with prompt builder, generate endpoint + tests (SB-06)
+- [ ] 31-02-PLAN.md — Frontend: api.generateFrame method, enable Generate button with loading/error states (SB-07)
 
 ### 🔮 v4.0 Element Detail Pages & Script Linking (Future)
 
@@ -219,7 +223,7 @@ Plans:
 | 28. UX Improvements | v3.1 | Complete | 2026-03-21 | 2026-03-21 |
 | 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
 | 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
-| 31. AI Frame Generation (Google Imagen) | v3.2 | 0/? | Planned | - |
+| 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
 | 32. Element Detail Pages | v4.0 | 0/? | Future | - |
 | 33. Script-to-Element Highlighting | v4.0 | 0/? | Future | - |
 | 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
