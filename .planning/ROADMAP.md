@@ -170,7 +170,7 @@ Plans:
   2. The detail page shows: name, category, description, all scenes where it appears, and an extended fields section (character: bio/age/role; location: address/type/notes; prop: specs/owner/status)
   3. A full reference image gallery (larger than the current assets panel view) shows all uploaded media with upload, delete, and expand actions
   4. Changes to extended fields are saved and persist on refresh
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 32-01-PLAN.md — GET single-element endpoint with enriched scene titles, SceneLinkResponse scene_title field, backend tests (EDP-01)
 - [ ] 32-02-PLAN.md — Element detail page frontend: routing, extended fields form, scene list, reference image gallery with lightbox (EDP-01, EDP-02)
@@ -269,7 +269,7 @@ Plans:
 | 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
 | 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
-| 32. Element Detail Pages | v4.0 | 0/2 | Planned | - |
+| 32. Element Detail Pages | 1/2 | In Progress|  | - |
 | 33. Script-to-Element Highlighting | v4.0 | 0/? | Future | - |
 | 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |

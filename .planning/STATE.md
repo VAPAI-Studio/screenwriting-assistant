@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed Phase 28 (v3.1 milestone complete)
-last_updated: "2026-03-21T22:30:00.000Z"
+stopped_at: Completed 32-01-PLAN.md
+last_updated: "2026-03-22T16:54:50.563Z"
 progress:
-  total_phases: 3
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 6
+  completed_phases: 6
+  total_plans: 12
+  completed_plans: 12
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 28 — ux-improvements
+**Current focus:** Phase 32 — element-detail-pages
 
 ## Current Position
 
-Phase: 28 (ux-improvements) — EXECUTING
-Plan: 1 of 3
+Phase: 32 (element-detail-pages) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: 1 of 3
 | Phase 26 P01 | 4min | 2 tasks | 5 files |
 | Phase 26 P02 | 6min | 2 tasks | 3 files |
 | Phase 27 P01 | 4min | 2 tasks | 6 files |
+| Phase 32 P01 | 2min | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -71,6 +72,8 @@ Relevant to v3.1:
 - [Phase 26]: Smart merge deletes stale AI shots, preserves user_modified and manual user shots
 - [Phase 26]: Generate endpoint at POST /api/shots/{project_id}/generate
 - [Phase 27]: Used useEffect callback to lift generate mutation state from ShotlistPanel to BreakdownLayout
+- [Phase 32]: Enrichment done at Pydantic level (not SQL join) for SQLite/PostgreSQL compat
+- [Phase 32]: scene_title is Optional[str] to handle orphaned scene links gracefully
 
 ### Pending Todos
 
@@ -83,6 +86,6 @@ Relevant to v3.1:
 
 ## Session Continuity
 
-Last session: 2026-03-21T17:51:48.266Z
-Stopped at: Completed 27-01-PLAN.md (Phase 27 complete)
+Last session: 2026-03-22T16:54:50.560Z
+Stopped at: Completed 32-01-PLAN.md
 Resume file: None
