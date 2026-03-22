@@ -277,7 +277,7 @@ Plans:
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
 | 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
 | 33. Script-to-Element Highlighting | 1/1 | Complete    | 2026-03-22 | - |
-| 34. Script-to-Shot Overlay | 1/1 | Complete   | 2026-03-22 | - |
+| 34. Script-to-Shot Overlay | 1/1 | Complete    | 2026-03-22 | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
 | 36. API Key Management | v5.0 | 0/? | Future | - |
 | 37. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
