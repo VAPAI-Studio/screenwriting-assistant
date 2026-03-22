@@ -196,6 +196,9 @@ Plans:
   2. The highlight color matches the breakdown mode steel-blue accent
   3. Clicking a highlighted passage opens a popover showing the linked shot(s) with their fields
   4. Shots with no script_text reference do not create any highlight
+**Plans:** 1 plan
+Plans:
+- [ ] 34-01-PLAN.md — Shot overlay utility, ShotOverlayPopover component, HighlightedScriptText integration, CSS classes (SSO-01)
 
 ### 🔮 v5.0 User Management & API Access (Future)
 
@@ -274,7 +277,7 @@ Plans:
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
 | 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
 | 33. Script-to-Element Highlighting | 1/1 | Complete    | 2026-03-22 | - |
-| 34. Script-to-Shot Overlay | v4.0 | 0/? | Future | - |
+| 34. Script-to-Shot Overlay | v4.0 | 0/1 | Planned | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
 | 36. API Key Management | v5.0 | 0/? | Future | - |
 | 37. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
