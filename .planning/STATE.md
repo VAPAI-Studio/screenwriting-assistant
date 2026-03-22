@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.1
-milestone_name: AI Shotlist Generation
+milestone: v3.2
+milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed 27-01-PLAN.md (Phase 27 complete)
-last_updated: "2026-03-21T22:11:29.698Z"
+stopped_at: Completed Phase 28 (v3.1 milestone complete)
+last_updated: "2026-03-21T22:30:00.000Z"
 progress:
   total_phases: 3
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
