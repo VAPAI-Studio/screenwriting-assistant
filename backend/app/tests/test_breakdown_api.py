@@ -757,3 +757,137 @@ def test_element_response_includes_scene_links(client, mock_auth_headers, db_ses
     # Verify the specific element also has scene_links (empty for manually created)
     target = next(e for e in elements if e["id"] == element_id)
     assert target["scene_links"] == []
+
+
+# ============================================================
+# GET single element (Phase 32 - EDP-01)
+# ============================================================
+
+class TestGetElement:
+    def test_get_element_returns_single(self, client, db_session, mock_auth_headers):
+        """GET /element/{id} returns single element with all fields."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="Jane")
+        elem.description = "A pilot"
+        elem.metadata_ = {"bio": "Former Navy pilot", "age": "32", "role": "Lead"}
+        db_session.commit()
+
+        resp = client.get(
+            f"/api/breakdown/element/{elem.id}",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["id"] == str(elem.id)
+        assert data["name"] == "Jane"
+        assert data["category"] == "character"
+        assert data["description"] == "A pilot"
+        assert data["metadata"]["bio"] == "Former Navy pilot"
+        assert data["metadata"]["age"] == "32"
+        assert data["metadata"]["role"] == "Lead"
+        assert "scene_links" in data
+
+    def test_get_element_includes_scene_title(self, client, db_session, mock_auth_headers):
+        """GET /element/{id} returns scene_links with scene_title from ListItem content."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, name="WithScenes")
+        pd = _make_phase_data(db_session, project_id)
+        item = _make_list_item(db_session, pd.id)
+        # _make_list_item creates with content={"title": "Scene 1"}
+        link = ElementSceneLink(
+            id=str(uuid.uuid4()),
+            element_id=elem.id,
+            scene_item_id=item.id,
+            context="test",
+            source="ai",
+        )
+        db_session.add(link)
+        db_session.commit()
+
+        resp = client.get(
+            f"/api/breakdown/element/{elem.id}",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["scene_links"]) == 1
+        assert data["scene_links"][0]["scene_title"] == "Scene 1"
+
+    def test_get_element_nonexistent_404(self, client, mock_auth_headers):
+        """GET with nonexistent element_id returns 404."""
+        fake_id = str(uuid.uuid4())
+        resp = client.get(
+            f"/api/breakdown/element/{fake_id}",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_get_element_wrong_owner_404(self, client, db_session, mock_auth_headers):
+        """GET element owned by a different user returns 404 (ownership check)."""
+        # Create element with a different owner via direct DB insert
+        from app.models.database import Project as ProjectModel
+        other_project = ProjectModel(
+            id=str(uuid.uuid4()),
+            owner_id=str(uuid.uuid4()),  # different owner
+            title="Other Project",
+            framework="three_act",
+        )
+        db_session.add(other_project)
+        db_session.flush()
+        elem = _make_element(db_session, other_project.id, name="Forbidden")
+        db_session.commit()
+
+        resp = client.get(
+            f"/api/breakdown/element/{elem.id}",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 404
+
+
+# ============================================================
+# Update element metadata persistence (Phase 32 - EDP-01)
+# ============================================================
+
+class TestUpdateElementMetadata:
+    def test_update_metadata_persists(self, client, db_session, mock_auth_headers):
+        """PUT with metadata dict saves and GET returns same metadata."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="character", name="MetaChar")
+        db_session.commit()
+
+        metadata = {"bio": "A mysterious figure", "age": "45", "role": "Antagonist"}
+        put_resp = client.put(
+            f"/api/breakdown/element/{elem.id}",
+            json={"metadata": metadata},
+            headers=mock_auth_headers,
+        )
+        assert put_resp.status_code == 200
+        assert put_resp.json()["metadata"] == metadata
+
+        # Verify via GET
+        get_resp = client.get(
+            f"/api/breakdown/element/{elem.id}",
+            headers=mock_auth_headers,
+        )
+        assert get_resp.status_code == 200
+        assert get_resp.json()["metadata"] == metadata
+
+    def test_update_metadata_full_replace(self, client, db_session, mock_auth_headers):
+        """PUT with new metadata replaces entire metadata object."""
+        project_id = _create_project_via_api(client, mock_auth_headers)
+        elem = _make_element(db_session, project_id, category="location", name="MetaLoc")
+        elem.metadata_ = {"address": "123 Oak St", "type": "Interior", "notes": "Old house"}
+        db_session.commit()
+
+        # Replace with partial metadata (only address and type)
+        new_metadata = {"address": "456 Elm St", "type": "Exterior"}
+        put_resp = client.put(
+            f"/api/breakdown/element/{elem.id}",
+            json={"metadata": new_metadata},
+            headers=mock_auth_headers,
+        )
+        assert put_resp.status_code == 200
+        result_meta = put_resp.json()["metadata"]
+        assert result_meta == new_metadata
+        # "notes" key should NOT be present (full replace, not merge)
+        assert "notes" not in result_meta
