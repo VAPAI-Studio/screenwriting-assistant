@@ -98,6 +98,7 @@ class Project(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     breakdown_stale = Column(Boolean, default=False)
     shotlist_stale = Column(Boolean, default=False)
+    storyboard_style = Column(String(30), nullable=True)
 
     sections = sa_relationship("Section", back_populates="project", cascade="all, delete-orphan")
     phase_data = sa_relationship("PhaseData", back_populates="project", cascade="all, delete-orphan")
@@ -559,6 +560,7 @@ class Shot(Base):
     project = sa_relationship("Project", back_populates="shots")
     shot_elements = sa_relationship("ShotElement", back_populates="shot", cascade="all, delete-orphan")
     media = sa_relationship("AssetMedia", back_populates="shot", cascade="all, delete-orphan")
+    storyboard_frames = sa_relationship("StoryboardFrame", back_populates="shot", cascade="all, delete-orphan")
 
 
 class ShotElement(Base):
@@ -594,3 +596,24 @@ class AssetMedia(Base):
     project = sa_relationship("Project", back_populates="asset_media")
     element = sa_relationship("BreakdownElement")
     shot = sa_relationship("Shot", back_populates="media")
+
+
+# ============================================================
+# Storyboard models (v3.2 -- Phase 29)
+# ============================================================
+
+class StoryboardFrame(Base):
+    __tablename__ = "storyboard_frames"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    shot_id = Column(UUID(as_uuid=True), ForeignKey("shots.id", ondelete="CASCADE"), nullable=False, index=True)
+    file_path = Column(String(1000), nullable=False)
+    thumbnail_path = Column(String(1000), nullable=True)
+    file_type = Column(String(20), nullable=False)
+    is_selected = Column(Boolean, default=False)
+    generation_source = Column(String(20), default="user")
+    generation_style = Column(String(30), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    shot = sa_relationship("Shot", back_populates="storyboard_frames")

@@ -15,6 +15,7 @@ from .api.endpoints import breakdown as breakdown_ep
 from .api.endpoints import shots as shots_ep
 from .api.endpoints import media as media_ep
 from .api.endpoints import breakdown_chat as breakdown_chat_ep
+from .api.endpoints import storyboard as storyboard_ep
 from .config import settings
 from .middleware import (
     LoggingMiddleware,
@@ -104,6 +105,7 @@ app.include_router(breakdown_ep.router, prefix="/api/breakdown", tags=["breakdow
 app.include_router(shots_ep.router, prefix="/api/shots", tags=["shots"])
 app.include_router(media_ep.router, prefix="/api/media", tags=["media"])
 app.include_router(breakdown_chat_ep.router, prefix="/api/breakdown-chat", tags=["breakdown-chat"])
+app.include_router(storyboard_ep.router, prefix="/api/storyboard", tags=["storyboard"])
 
 # Serve uploaded media files
 os.makedirs(settings.MEDIA_DIR, exist_ok=True)

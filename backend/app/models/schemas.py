@@ -833,3 +833,26 @@ class BreakdownChatRequest(BaseModel):
     message_history: List[BreakdownChatMessage] = Field(default_factory=list)
     shots_context: List[BreakdownChatShotContext] = Field(default_factory=list)
     elements_context: List[BreakdownChatElementContext] = Field(default_factory=list)
+
+
+# ============================================================
+# Storyboard Schemas (v3.2 -- Phase 29)
+# ============================================================
+
+class StoryboardFrameResponse(BaseModel):
+    id: UUID
+    shot_id: UUID
+    file_path: str
+    thumbnail_path: Optional[str] = None
+    file_type: str
+    is_selected: bool = False
+    generation_source: str = "user"
+    generation_style: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StoryboardFrameUpdate(BaseModel):
+    is_selected: Optional[bool] = None
