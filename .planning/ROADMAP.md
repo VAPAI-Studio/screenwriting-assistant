@@ -159,7 +159,7 @@ Plans:
 
 - [x] **Phase 32: Element Detail Pages** - Dedicated full page per character/prop/location with extended fields (bio, notes, costume, specs) and reference image gallery beyond the current assets panel (completed 2026-03-22)
 - [x] **Phase 33: Script-to-Element Highlighting** - In the script read view, every appearance of a breakdown element (character name, prop mention, location) is highlighted; clicking navigates to the element detail page (completed 2026-03-22)
-- [ ] **Phase 34: Script-to-Shot Overlay** - Low-opacity framing/highlight in the script view showing which passages are covered by shots in the shotlist; clicking a covered passage navigates to that shot
+- [x] **Phase 34: Script-to-Shot Overlay** - Low-opacity framing/highlight in the script view showing which passages are covered by shots in the shotlist; clicking a covered passage navigates to that shot (completed 2026-03-22)
 
 #### Phase 32: Element Detail Pages
 **Goal**: Each breakdown element (character, prop, location, etc.) has a dedicated full page with extended fields and a reference image gallery
@@ -196,7 +196,7 @@ Plans:
   2. The highlight color matches the breakdown mode steel-blue accent
   3. Clicking a highlighted passage opens a popover showing the linked shot(s) with their fields
   4. Shots with no script_text reference do not create any highlight
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 34-01-PLAN.md — Shot overlay utility, ShotOverlayPopover component, HighlightedScriptText integration, CSS classes (SSO-01)
 
@@ -277,7 +277,7 @@ Plans:
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
 | 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
 | 33. Script-to-Element Highlighting | 1/1 | Complete    | 2026-03-22 | - |
-| 34. Script-to-Shot Overlay | v4.0 | 0/1 | Planned | - |
+| 34. Script-to-Shot Overlay | 1/1 | Complete   | 2026-03-22 | - |
 | 35. Real Authentication & User Model | v5.0 | 0/? | Future | - |
 | 36. API Key Management | v5.0 | 0/? | Future | - |
 | 37. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
