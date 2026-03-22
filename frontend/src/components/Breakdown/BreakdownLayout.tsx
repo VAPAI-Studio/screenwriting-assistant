@@ -88,6 +88,9 @@ export function BreakdownLayout() {
     error: string | null;
   } | null>(null);
 
+  // Hovered shot ID — shared between ShotlistPanel and ScriptReadView
+  const [hoveredShotId, setHoveredShotId] = useState<string | null>(null);
+
   // Drag refs
   const isDraggingLeft = useRef(false);
   const isDraggingRight = useRef(false);
@@ -209,7 +212,7 @@ export function BreakdownLayout() {
             </div>
             {/* Views -- both mounted, only one visible (ASST-05: preserves scroll + state) */}
             <div className="flex-1 overflow-hidden" style={{ display: leftPanelView === 'script' ? 'contents' : 'none' }}>
-              <ScriptReadView projectId={projectId} />
+              <ScriptReadView projectId={projectId} hoveredShotId={hoveredShotId} />
             </div>
             <div className="flex-1 overflow-hidden" style={{ display: leftPanelView === 'assets' ? 'contents' : 'none' }}>
               <AssetsPanel projectId={projectId} />
@@ -260,7 +263,7 @@ export function BreakdownLayout() {
             isPending={dismissStaleMutation.isPending}
           />
         )}
-        <ShotlistPanel onGenerateStateChange={setGenerateState} />
+        <ShotlistPanel onGenerateStateChange={setGenerateState} onShotHover={setHoveredShotId} />
       </div>
 
       {/* Right drag handle */}

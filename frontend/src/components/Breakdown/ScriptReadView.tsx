@@ -9,6 +9,7 @@ import type { ShotCreate, Shot } from '../../types';
 
 interface ScriptReadViewProps {
   projectId: string;
+  hoveredShotId?: string | null;
 }
 
 // ============================================================
@@ -38,7 +39,7 @@ function getSceneIdFromSelection(selection: Selection): string | null {
 // ScriptReadView
 // ============================================================
 
-export function ScriptReadView({ projectId }: ScriptReadViewProps) {
+export function ScriptReadView({ projectId, hoveredShotId }: ScriptReadViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectionState, setSelectionState] = useState<SelectionState | null>(null);
   const queryClient = useQueryClient();
@@ -211,6 +212,7 @@ export function ScriptReadView({ projectId }: ScriptReadViewProps) {
                 elements={allElements ?? []}
                 projectId={projectId}
                 shots={shots ?? []}
+                hoveredShotId={hoveredShotId}
               />
             </pre>
           </div>

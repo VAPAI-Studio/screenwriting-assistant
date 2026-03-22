@@ -56,9 +56,10 @@ const COLUMN_HEADERS = ['#', 'Size', 'Angle', 'Movement', 'Description', 'Action
 
 interface ShotlistPanelProps {
   onGenerateStateChange?: (state: { isPending: boolean; mutate: () => void; error: string | null }) => void;
+  onShotHover?: (shotId: string | null) => void;
 }
 
-export function ShotlistPanel({ onGenerateStateChange }: ShotlistPanelProps) {
+export function ShotlistPanel({ onGenerateStateChange, onShotHover }: ShotlistPanelProps) {
   const { projectId } = useParams<{ projectId: string }>();
   const queryClient = useQueryClient();
 
@@ -353,7 +354,14 @@ export function ShotlistPanel({ onGenerateStateChange }: ShotlistPanelProps) {
       )}
 
       {/* Scrollable scene groups */}
-      <div className="flex-1 overflow-auto">
+      <div
+        className="flex-1 overflow-auto"
+        onMouseOver={(e) => {
+          const row = (e.target as HTMLElement).closest('[data-shot-id]');
+          onShotHover?.(row ? (row as HTMLElement).dataset.shotId ?? null : null);
+        }}
+        onMouseLeave={() => onShotHover?.(null)}
+      >
         {groups.map((group, idx) => (
           <SceneGroup
             key={group.sceneItemId ?? 'unassigned'}

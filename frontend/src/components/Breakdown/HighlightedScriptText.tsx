@@ -11,6 +11,7 @@ interface HighlightedScriptTextProps {
   elements: BreakdownElement[];
   projectId: string;
   shots?: Shot[];
+  hoveredShotId?: string | null;
 }
 
 /**
@@ -66,7 +67,7 @@ function splitSegmentByShotRanges(
   return pieces;
 }
 
-export function HighlightedScriptText({ text, elements, projectId, shots }: HighlightedScriptTextProps) {
+export function HighlightedScriptText({ text, elements, projectId, shots, hoveredShotId }: HighlightedScriptTextProps) {
   const navigate = useNavigate();
   const [popoverState, setPopoverState] = useState<{ shots: Shot[]; rect: DOMRect } | null>(null);
 
@@ -103,6 +104,9 @@ export function HighlightedScriptText({ text, elements, projectId, shots }: High
     }
     if (hasShotOverlay) {
       classNames.push('shot-overlay');
+      if (hoveredShotId && piece.shotRange!.shots.some(s => s.id === hoveredShotId)) {
+        classNames.push('shot-overlay--hovered');
+      }
     }
 
     const className = classNames.length > 0 ? classNames.join(' ') : undefined;

@@ -211,6 +211,11 @@
   .shot-overlay:hover {
     background-color: hsl(213 80% 52% / 0.22);
   }
+  .shot-overlay--hovered {
+    background-color: hsl(213 80% 52% / 0.35) !important;
+    outline: 1px solid hsl(213 80% 52% / 0.5);
+    border-radius: 2px;
+  }
 }
 
 @layer utilities {

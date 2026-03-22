@@ -25,6 +25,7 @@ export function ShotRow({ shot, onUpdateField, actionCell }: ShotRowProps) {
 
   return (
     <div
+      data-shot-id={shot.id}
       className="grid hover:bg-card/30 transition-colors group"
       style={{
         gridTemplateColumns: '48px repeat(2, minmax(80px, 1fr)) minmax(80px, 1fr) repeat(2, minmax(120px, 2fr)) 80px',
