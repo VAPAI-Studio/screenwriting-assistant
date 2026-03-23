@@ -8,6 +8,7 @@ import {
   Snippet, SnippetListResponse, PipelineMapResponse,
   Shot, ShotCreate, ShotUpdate, AssetMedia, StoryboardFrame,
 } from '../types';
+import type { AuthResponse, LoginRequest, RegisterRequest, UserUpdate, User } from '../types';
 import type { YoloEvent } from '../types/template';
 import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT, CHAT_TIMEOUT } from './constants';
 
@@ -71,6 +72,50 @@ export const api = {
       body: JSON.stringify({ token })
     });
     if (!response.ok) throw new Error('Failed to verify magic link');
+    return response.json();
+  },
+
+  async register(data: RegisterRequest): Promise<AuthResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Registration failed' }));
+      throw new Error(error.detail || 'Registration failed');
+    }
+    return response.json();
+  },
+
+  async login(data: LoginRequest): Promise<AuthResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: 'Login failed' }));
+      throw new Error(error.detail || 'Login failed');
+    }
+    return response.json();
+  },
+
+  async getProfile(): Promise<User> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/me`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to fetch profile');
+    return response.json();
+  },
+
+  async updateProfile(data: UserUpdate): Promise<User> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/me`, {
+      method: 'PATCH',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update profile');
     return response.json();
   },
 

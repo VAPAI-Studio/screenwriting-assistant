@@ -192,6 +192,7 @@ export const QUERY_KEYS = {
   PROJECT_MEDIA: (projectId: string) => ['project-media', projectId] as const,
   STORYBOARD_FRAMES: (shotId: string) => ['storyboard-frames', shotId] as const,
   BREAKDOWN_ELEMENT: (elementId: string) => ['breakdown-element', elementId] as const,
+  PROFILE: 'profile',
 } as const;
 
 // Theme Configuration
@@ -258,6 +259,8 @@ export const ROUTES = {
   HELP: '/help',
   LOGIN: '/login',
   SIGNUP: '/signup',
+  REGISTER: '/register',
+  PROFILE: '/settings/profile',
   FORGOT_PASSWORD: '/forgot-password',
   RESET_PASSWORD: '/reset-password',
   PROJECT_BREAKDOWN: (id: string) => `/projects/${id}/breakdown`,
