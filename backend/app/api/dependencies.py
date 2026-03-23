@@ -23,7 +23,7 @@ async def get_current_user(
         # Mock authentication - only available in development
         if settings.ENVIRONMENT == "development" and credentials.credentials == "mock-token":
             return mock_auth_service.get_current_user()
-        
+
         # Production authentication flow
         user_id = auth_service.verify_token(credentials.credentials)
         if user_id is None:
@@ -32,15 +32,25 @@ async def get_current_user(
                 detail="Invalid authentication credentials",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
-        # In production, you would query the user from database here
-        # For MVP, return mock user
+
+        # Query real user from database
+        user = db.query(database.User).filter(database.User.id == user_id).first()
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
         return schemas.User(
-            id=UUID(user_id),
-            email="user@example.com",
-            created_at=datetime.utcnow()
+            id=user.id,
+            email=user.email,
+            display_name=user.display_name,
+            created_at=user.created_at,
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
