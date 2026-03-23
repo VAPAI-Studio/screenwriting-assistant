@@ -13,6 +13,10 @@ import { SnippetManager } from './components/Snippets/SnippetManager';
 import { BreakdownLayout } from './components/Breakdown/BreakdownLayout';
 import { StoryboardView } from './components/Storyboard/StoryboardView';
 import { ElementDetailPage } from './components/Breakdown/ElementDetailPage';
+import { LoginPage } from './components/Auth/LoginPage';
+import { RegisterPage } from './components/Auth/RegisterPage';
+import { ProtectedRoute } from './components/Auth/ProtectedRoute';
+import { ProfilePage } from './components/Settings/ProfilePage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -41,17 +45,23 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={<ProjectList />} />
-            <Route path="/projects" element={<ProjectList />} />
-            <Route path="/projects/:projectId" element={<Editor />} />
-            <Route path="/projects/:projectId/breakdown/elements/:elementId" element={<ElementDetailRoute />} />
-            <Route path="/projects/:projectId/breakdown" element={<BreakdownLayout />} />
-            <Route path="/projects/:projectId/storyboard" element={<StoryboardViewRoute />} />
-            <Route path="/projects/:projectId/:phase" element={<ProjectWorkspace />} />
-            <Route path="/projects/:projectId/:phase/:subsectionKey" element={<ProjectWorkspace />} />
-            <Route path="/projects/:projectId/:phase/:subsectionKey/:itemId" element={<ProjectWorkspace />} />
-            <Route path="/books" element={<BookManager />} />
-            <Route path="/snippets" element={<SnippetManager />} />
+            {/* Public routes -- NO ProtectedRoute wrapper */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+
+            {/* Protected routes -- require authentication */}
+            <Route path="/" element={<ProtectedRoute><ProjectList /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute><ProjectList /></ProtectedRoute>} />
+            <Route path="/projects/:projectId" element={<ProtectedRoute><Editor /></ProtectedRoute>} />
+            <Route path="/projects/:projectId/breakdown/elements/:elementId" element={<ProtectedRoute><ElementDetailRoute /></ProtectedRoute>} />
+            <Route path="/projects/:projectId/breakdown" element={<ProtectedRoute><BreakdownLayout /></ProtectedRoute>} />
+            <Route path="/projects/:projectId/storyboard" element={<ProtectedRoute><StoryboardViewRoute /></ProtectedRoute>} />
+            <Route path="/projects/:projectId/:phase" element={<ProtectedRoute><ProjectWorkspace /></ProtectedRoute>} />
+            <Route path="/projects/:projectId/:phase/:subsectionKey" element={<ProtectedRoute><ProjectWorkspace /></ProtectedRoute>} />
+            <Route path="/projects/:projectId/:phase/:subsectionKey/:itemId" element={<ProtectedRoute><ProjectWorkspace /></ProtectedRoute>} />
+            <Route path="/books" element={<ProtectedRoute><BookManager /></ProtectedRoute>} />
+            <Route path="/snippets" element={<ProtectedRoute><SnippetManager /></ProtectedRoute>} />
+            <Route path="/settings/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           </Routes>
         </Layout>
       </Router>
