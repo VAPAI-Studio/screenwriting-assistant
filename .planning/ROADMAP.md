@@ -202,7 +202,7 @@ Plans:
 
 ### 🔮 v5.0 User Management & API Access (Future)
 
-- [ ] **Phase 35: Real Authentication & User Model** - Replace mock auth with proper JWT registration/login, persistent user records, bcrypt passwords, and email verification flow
+- [x] **Phase 35: Real Authentication & User Model** - Replace mock auth with proper JWT registration/login, persistent user records, bcrypt passwords, and email verification flow (completed 2026-03-23)
 - [ ] **Phase 36: API Key Management** - Per-user API key generation (prefix+secret, hashed storage), scopes, optional expiry, revocation, and a management UI in user settings
 - [ ] **Phase 37: API Gateway, Docs & Usage Tracking** - Unified auth middleware that accepts both session JWTs and API keys for all endpoints, Swagger/OpenAPI docs exposed at `/docs`, per-key request count and last-used tracking
 
@@ -217,10 +217,10 @@ Plans:
   4. All existing protected endpoints continue to work — the JWT from login is accepted everywhere mock-token was accepted
   5. The frontend login/register flow is accessible at /login; authenticated users are redirected to /projects
   6. A user profile page at /settings/profile shows email and display name with an edit form
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
-- [ ] 35-01-PLAN.md — Backend: TDD test stubs, User model + migration 005, schemas, register/login endpoints, get_current_user DB query (UM-01, UM-02, UM-03)
-- [ ] 35-02-PLAN.md — Frontend: auth helpers, API methods, LoginPage, RegisterPage, ProtectedRoute, ProfilePage, App.tsx routing (UM-01, UM-02, UM-03)
+- [x] 35-01-PLAN.md — Backend: TDD test stubs, User model + migration 005, schemas, register/login endpoints, get_current_user DB query (UM-01, UM-02, UM-03)
+- [x] 35-02-PLAN.md — Frontend: auth helpers, API methods, LoginPage, RegisterPage, ProtectedRoute, ProfilePage, App.tsx routing (UM-01, UM-02, UM-03)
 
 #### Phase 36: API Key Management
 **Goal**: Users can create named API keys with optional scopes and expiry dates, and use them to authenticate any endpoint
@@ -282,6 +282,6 @@ Plans:
 | 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
 | 33. Script-to-Element Highlighting | 1/1 | Complete    | 2026-03-22 | - |
 | 34. Script-to-Shot Overlay | 1/1 | Complete    | 2026-03-22 | - |
-| 35. Real Authentication & User Model | 1/2 | In Progress|  | - |
+| 35. Real Authentication & User Model | 2/2 | Complete    | 2026-03-23 | 2026-03-23 |
 | 36. API Key Management | v5.0 | 0/? | Future | - |
 | 37. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |

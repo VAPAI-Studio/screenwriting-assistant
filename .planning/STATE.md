@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed 35-01-PLAN.md
-last_updated: "2026-03-23T14:39:26.073Z"
+stopped_at: Completed 35-02-PLAN.md (Phase 35 complete)
+last_updated: "2026-03-23T18:36:19.991Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -23,14 +23,14 @@ See: .planning/PROJECT.md (updated 2026-03-20)
 
 ## Current Position
 
-Phase: 35 (real-authentication-user-model) — EXECUTING
-Plan: 2 of 2
+Phase: 35 (real-authentication-user-model) — COMPLETE
+Plan: 2 of 2 (all plans complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 47 (lifetime)
+- Total plans completed: 49 (lifetime)
 - Average duration: ~3min (v3.0)
 - Total execution time: 0.33 hours (v3.0)
 
@@ -57,6 +57,7 @@ Plan: 2 of 2
 | Phase 33 P01 | 2min | 2 tasks | 5 files |
 | Phase 34 P01 | 2min | 2 tasks | 5 files |
 | Phase 35 P01 | 3min | 3 tasks | 7 files |
+| Phase 35 P02 | 5min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,9 @@ Relevant to v3.1:
 - [Phase 35]: Real user DB query in get_current_user via JWT sub claim; mock-token preserved in dev mode
 - [Phase 35]: Kept legacy magic-link endpoints for backward compatibility
 - [Phase 35]: Added HTTPException re-raise in get_current_user to avoid swallowing specific 401s
+- [Phase 35]: Login/register routes outside ProtectedRoute wrapper to avoid infinite redirect loop
+- [Phase 35]: Auth helpers in separate lib/auth.ts module for cross-component reuse
+- [Phase 35]: ProfilePage uses React Query useQuery/useMutation for profile data lifecycle
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ Relevant to v3.1:
 
 ## Session Continuity
 
-Last session: 2026-03-23T14:39:26.069Z
-Stopped at: Completed 35-01-PLAN.md
+Last session: 2026-03-23T15:19:06.166Z
+Stopped at: Completed 35-02-PLAN.md (Phase 35 complete)
 Resume file: None
