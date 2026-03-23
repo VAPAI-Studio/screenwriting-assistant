@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed 34-01-PLAN.md
-last_updated: "2026-03-22T17:43:00.321Z"
+stopped_at: Completed 35-01-PLAN.md
+last_updated: "2026-03-23T14:39:26.073Z"
 progress:
   total_phases: 6
   completed_phases: 6
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 34 — script-to-shot-overlay
+**Current focus:** Phase 35 — real-authentication-user-model
 
 ## Current Position
 
-Phase: 34 (script-to-shot-overlay) — COMPLETE
-Plan: 1 of 1 (DONE)
+Phase: 35 (real-authentication-user-model) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Plan: 1 of 1 (DONE)
 | Phase 32 P02 | 4min | 3 tasks | 10 files |
 | Phase 33 P01 | 2min | 2 tasks | 5 files |
 | Phase 34 P01 | 2min | 2 tasks | 5 files |
+| Phase 35 P01 | 3min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,9 @@ Relevant to v3.1:
 - [Phase 34]: Character-level Set<Shot> coverage array merged into contiguous ranges
 - [Phase 34]: Element-highlight click priority over shot-overlay click via stopPropagation
 - [Phase 34]: Segment sub-splitting for partial overlap between element highlights and shot ranges
+- [Phase 35]: Real user DB query in get_current_user via JWT sub claim; mock-token preserved in dev mode
+- [Phase 35]: Kept legacy magic-link endpoints for backward compatibility
+- [Phase 35]: Added HTTPException re-raise in get_current_user to avoid swallowing specific 401s
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ Relevant to v3.1:
 
 ## Session Continuity
 
-Last session: 2026-03-22T17:39:46.405Z
-Stopped at: Completed 34-01-PLAN.md
+Last session: 2026-03-23T14:39:26.069Z
+Stopped at: Completed 35-01-PLAN.md
 Resume file: None
