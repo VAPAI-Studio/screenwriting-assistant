@@ -125,13 +125,26 @@ class ReviewResponse(BaseModel):
 class User(BaseModel):
     id: UUID
     email: EmailStr
+    display_name: Optional[str] = None
     created_at: datetime
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: Optional[str] = Field(None, max_length=255)
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=1)
+
+class UserUpdate(BaseModel):
+    display_name: Optional[str] = Field(None, max_length=255)
 
 class MagicLinkRequest(BaseModel):
     email: EmailStr

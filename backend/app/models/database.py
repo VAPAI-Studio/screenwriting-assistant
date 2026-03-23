@@ -47,6 +47,22 @@ class SafeVector(UserDefinedType):
 
 Base = declarative_base()
 
+# ============================================================
+# User model (v5.0 -- Phase 35)
+# ============================================================
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    display_name = Column(String(255), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class SectionType(str, enum.Enum):
     INCITING_INCIDENT = "inciting_incident"
     PLOT_POINT_1 = "plot_point_1"

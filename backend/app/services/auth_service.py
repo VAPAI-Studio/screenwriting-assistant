@@ -91,6 +91,7 @@ class MockAuthService:
         return User(
             id=UUID("12345678-1234-5678-1234-567812345678"),
             email="user@example.com",
+            display_name="Dev User",
             created_at=datetime.utcnow()
         )
     
