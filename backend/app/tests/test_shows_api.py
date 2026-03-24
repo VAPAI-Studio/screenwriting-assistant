@@ -245,3 +245,158 @@ class TestBibleModel:
         assert show.bible_season_arc == "Descent into criminality"
         assert show.bible_tone_style == "Dark, tense, morally ambiguous"
         assert show.episode_duration_minutes == 44
+
+
+class TestBibleAPI:
+    """Test Bible GET/PUT endpoints."""
+
+    def _create_show(self, client, mock_auth_headers):
+        resp = client.post(
+            "/api/shows/",
+            json={"title": "Bible Test Show"},
+            headers=mock_auth_headers,
+        )
+        return resp.json()["id"]
+
+    def test_get_bible_defaults(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.get(f"/api/shows/{show_id}/bible", headers=mock_auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["show_id"] == show_id
+        assert data["bible_characters"] == ""
+        assert data["bible_world_setting"] == ""
+        assert data["bible_season_arc"] == ""
+        assert data["bible_tone_style"] == ""
+        assert data["episode_duration_minutes"] is None
+
+    def test_get_bible_not_found(self, client, mock_auth_headers):
+        resp = client.get(
+            "/api/shows/00000000-0000-0000-0000-000000000000/bible",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_update_bible_partial(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"bible_characters": "Walter White - chemistry teacher turned drug lord"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["bible_characters"] == "Walter White - chemistry teacher turned drug lord"
+        assert data["bible_world_setting"] == ""  # unchanged
+        assert data["bible_season_arc"] == ""  # unchanged
+        assert data["bible_tone_style"] == ""  # unchanged
+        assert data["episode_duration_minutes"] is None  # unchanged
+
+    def test_update_bible_full(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.put(
+            f"/api/shows/{show_id}/bible",
+            json={
+                "bible_characters": "Jesse Pinkman - partner",
+                "bible_world_setting": "Southwest USA",
+                "bible_season_arc": "Rise and fall",
+                "bible_tone_style": "Gritty realism",
+                "episode_duration_minutes": 60,
+            },
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["bible_characters"] == "Jesse Pinkman - partner"
+        assert data["bible_world_setting"] == "Southwest USA"
+        assert data["bible_season_arc"] == "Rise and fall"
+        assert data["bible_tone_style"] == "Gritty realism"
+        assert data["episode_duration_minutes"] == 60
+
+    def test_update_bible_round_trip(self, client, mock_auth_headers):
+        """PUT then GET to verify persistence."""
+        show_id = self._create_show(client, mock_auth_headers)
+        client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"bible_characters": "Persisted character notes", "episode_duration_minutes": 22},
+            headers=mock_auth_headers,
+        )
+        resp = client.get(f"/api/shows/{show_id}/bible", headers=mock_auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["bible_characters"] == "Persisted character notes"
+        assert data["episode_duration_minutes"] == 22
+
+    def test_update_duration_preset(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        for preset in [10, 22, 44, 60]:
+            resp = client.put(
+                f"/api/shows/{show_id}/bible",
+                json={"episode_duration_minutes": preset},
+                headers=mock_auth_headers,
+            )
+            assert resp.status_code == 200
+            assert resp.json()["episode_duration_minutes"] == preset
+
+    def test_update_duration_custom(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"episode_duration_minutes": 35},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["episode_duration_minutes"] == 35
+
+    def test_update_duration_invalid_zero(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"episode_duration_minutes": 0},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 422
+
+    def test_update_duration_invalid_negative(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"episode_duration_minutes": -5},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 422
+
+    def test_update_duration_invalid_too_high(self, client, mock_auth_headers):
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"episode_duration_minutes": 481},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 422
+
+    def test_update_bible_not_found(self, client, mock_auth_headers):
+        resp = client.put(
+            "/api/shows/00000000-0000-0000-0000-000000000000/bible",
+            json={"bible_characters": "Nobody"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_update_duration_clear_to_null(self, client, mock_auth_headers):
+        """Setting duration to null clears it."""
+        show_id = self._create_show(client, mock_auth_headers)
+        # Set it first
+        client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"episode_duration_minutes": 22},
+            headers=mock_auth_headers,
+        )
+        # Clear it
+        resp = client.put(
+            f"/api/shows/{show_id}/bible",
+            json={"episode_duration_minutes": None},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["episode_duration_minutes"] is None

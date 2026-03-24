@@ -99,3 +99,57 @@ async def delete_show(
     db.delete(show)
     db.commit()
     return {"status": "success", "message": "Show deleted"}
+
+
+@router.get("/{show_id}/bible", response_model=schemas.BibleResponse)
+async def get_bible(
+    show_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get bible sections and episode duration for a show."""
+    show = (
+        db.query(database.Show)
+        .filter(database.Show.id == str(show_id), database.Show.owner_id == str(current_user.id))
+        .first()
+    )
+    if not show:
+        raise NotFoundException(resource="Show", identifier=str(show_id))
+    return schemas.BibleResponse(
+        show_id=show.id,
+        bible_characters=show.bible_characters or "",
+        bible_world_setting=show.bible_world_setting or "",
+        bible_season_arc=show.bible_season_arc or "",
+        bible_tone_style=show.bible_tone_style or "",
+        episode_duration_minutes=show.episode_duration_minutes,
+    )
+
+
+@router.put("/{show_id}/bible", response_model=schemas.BibleResponse)
+async def update_bible(
+    show_id: UUID,
+    body: schemas.BibleUpdate,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update bible sections and/or episode duration for a show."""
+    show = (
+        db.query(database.Show)
+        .filter(database.Show.id == str(show_id), database.Show.owner_id == str(current_user.id))
+        .first()
+    )
+    if not show:
+        raise NotFoundException(resource="Show", identifier=str(show_id))
+    update_data = body.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(show, field, value)
+    db.commit()
+    db.refresh(show)
+    return schemas.BibleResponse(
+        show_id=show.id,
+        bible_characters=show.bible_characters or "",
+        bible_world_setting=show.bible_world_setting or "",
+        bible_season_arc=show.bible_season_arc or "",
+        bible_tone_style=show.bible_tone_style or "",
+        episode_duration_minutes=show.episode_duration_minutes,
+    )
