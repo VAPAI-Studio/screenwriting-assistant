@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
@@ -153,3 +154,62 @@ async def update_bible(
         bible_tone_style=show.bible_tone_style or "",
         episode_duration_minutes=show.episode_duration_minutes,
     )
+
+
+@router.post("/{show_id}/episodes", response_model=schemas.Project, status_code=status.HTTP_201_CREATED)
+async def create_episode(
+    show_id: UUID,
+    body: schemas.EpisodeCreate,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new episode (project) under a show."""
+    # 1. Verify show exists and is owned by user
+    show = (
+        db.query(database.Show)
+        .filter(database.Show.id == str(show_id), database.Show.owner_id == str(current_user.id))
+        .first()
+    )
+    if not show:
+        raise NotFoundException(resource="Show", identifier=str(show_id))
+
+    # 2. Auto-calculate episode number if not provided
+    episode_number = body.episode_number
+    if episode_number is None:
+        max_num = (
+            db.query(func.max(database.Project.episode_number))
+            .filter(database.Project.show_id == str(show_id))
+            .scalar()
+        )
+        episode_number = (max_num or 0) + 1
+
+    # 3. Create project with show linkage
+    db_project = database.Project(
+        title=body.title,
+        framework=body.framework,
+        show_id=str(show_id),
+        episode_number=episode_number,
+        owner_id=str(current_user.id),
+    )
+    db.add(db_project)
+    db.flush()
+
+    # 4. Create default sections (identical to standalone project creation)
+    section_types = [
+        database.SectionType.INCITING_INCIDENT,
+        database.SectionType.PLOT_POINT_1,
+        database.SectionType.MIDPOINT,
+        database.SectionType.PLOT_POINT_2,
+        database.SectionType.CLIMAX,
+        database.SectionType.RESOLUTION,
+    ]
+    for section_type in section_types:
+        db.add(database.Section(
+            project_id=db_project.id,
+            type=section_type,
+            ai_suggestions={"issues": [], "suggestions": []},
+        ))
+
+    db.commit()
+    db.refresh(db_project)
+    return db_project

@@ -487,3 +487,97 @@ class TestEpisodeModel:
         # episode_number must be >= 1
         with pytest.raises(Exception):
             EpisodeCreate(title="Test", episode_number=0)
+
+
+class TestEpisodesAPI:
+    """Test POST /api/shows/{show_id}/episodes endpoint."""
+
+    def _create_show(self, client, mock_auth_headers):
+        resp = client.post(
+            "/api/shows/",
+            json={"title": "Episode Test Show"},
+            headers=mock_auth_headers,
+        )
+        return resp.json()["id"]
+
+    def test_create_episode(self, client, mock_auth_headers):
+        """POST with title and episode_number returns 201 with show_id, episode_number, and 6 sections."""
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": "Pilot", "episode_number": 1},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["title"] == "Pilot"
+        assert data["show_id"] == show_id
+        assert data["episode_number"] == 1
+        assert len(data["sections"]) == 6
+
+    def test_create_episode_auto_number(self, client, mock_auth_headers):
+        """POST without episode_number auto-assigns 1 for first, 2 for second."""
+        show_id = self._create_show(client, mock_auth_headers)
+        resp1 = client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": "Episode One"},
+            headers=mock_auth_headers,
+        )
+        assert resp1.status_code == 201
+        assert resp1.json()["episode_number"] == 1
+
+        resp2 = client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": "Episode Two"},
+            headers=mock_auth_headers,
+        )
+        assert resp2.status_code == 201
+        assert resp2.json()["episode_number"] == 2
+
+    def test_create_episode_custom_framework(self, client, mock_auth_headers):
+        """POST with framework=hero_journey creates episode with that framework."""
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": "Hero Ep", "framework": "hero_journey"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201
+        assert resp.json()["framework"] == "hero_journey"
+
+    def test_create_episode_show_not_found(self, client, mock_auth_headers):
+        """POST to non-existent show returns 404."""
+        resp = client.post(
+            "/api/shows/00000000-0000-0000-0000-000000000000/episodes",
+            json={"title": "Orphan"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 404
+
+    def test_create_episode_sections_count(self, client, mock_auth_headers):
+        """Create episode and verify exactly 6 sections returned."""
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": "Section Count Ep"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201
+        sections = resp.json()["sections"]
+        assert len(sections) == 6
+        section_types = [s["type"] for s in sections]
+        assert "inciting_incident" in section_types
+        assert "climax" in section_types
+        assert "resolution" in section_types
+
+    def test_standalone_projects_unaffected(self, client, mock_auth_headers):
+        """POST /api/projects/ still works, returns show_id=null, episode_number=null."""
+        resp = client.post(
+            "/api/projects/",
+            json={"title": "My Film", "framework": "three_act"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["show_id"] is None
+        assert data["episode_number"] is None
