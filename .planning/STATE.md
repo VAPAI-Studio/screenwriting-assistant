@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
-status: unknown
-stopped_at: Completed 38-01-PLAN.md
-last_updated: "2026-03-24T19:27:48.767Z"
+status: phase-complete
+stopped_at: Completed 38-02-PLAN.md
+last_updated: "2026-03-24T19:32:41Z"
 progress:
   total_phases: 21
-  completed_phases: 20
+  completed_phases: 21
   total_plans: 38
-  completed_plans: 37
+  completed_plans: 38
 ---
 
 # Project State
@@ -23,20 +23,20 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 38 (show-management-ui) — EXECUTING
-Plan: 2 of 2
+Phase: 38 (show-management-ui) — COMPLETE
+Plan: 2 of 2 (all complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 54 (lifetime)
+- Total plans completed: 55 (lifetime)
 - Average duration: ~3min (recent)
-- Total execution time: ~2.7 hours (lifetime)
+- Total execution time: ~2.75 hours (lifetime)
 
 **Recent Trend:**
 
-- Last 5 plans: 35-01 (3min), 35-02 (5min), 36-01 (9min), 37-01 (5min), 38-01 (4min)
+- Last 5 plans: 35-02 (5min), 36-01 (9min), 37-01 (5min), 38-01 (4min), 38-02 (3min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -58,6 +58,9 @@ Relevant to v4.2:
 - ShowCard displays hardcoded "0 episodes" -- actual count comes in Phase 39
 - Home page split into "Shows" (indigo) and "Films" (amber) sections
 - Show components live in frontend/src/components/Shows/ directory
+- No query invalidation on bible mutation -- prevents refetch from overwriting local state
+- Used loaded ref pattern for bible editor initial state
+- Duration changes save immediately (select is discrete, not blur-based)
 
 ### Pending Todos
 
@@ -70,6 +73,6 @@ Relevant to v4.2:
 
 ## Session Continuity
 
-Last session: 2026-03-24T19:27:48.764Z
-Stopped at: Completed 38-01-PLAN.md
+Last session: 2026-03-24T19:32:41Z
+Stopped at: Completed 38-02-PLAN.md (Phase 38 complete)
 Resume file: None
