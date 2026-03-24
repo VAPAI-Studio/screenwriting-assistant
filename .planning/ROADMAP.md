@@ -164,7 +164,9 @@ Plans:
   2. A "New Episode" button opens a create dialog with episode number (auto-incremented) and title fields
   3. Clicking an episode navigates to the standard project editor (/projects/{id}) which renders the full pipeline
   4. Each episode row has a delete action that removes the episode after confirmation
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 40-01-PLAN.md — GET episodes endpoint, EpisodeList and CreateEpisodeModal components, ShowDetail wiring
 
 ### Phase 41: Bible AI Injection
 **Goal**: All AI generation for episodes automatically includes the show's bible content and target duration as context
@@ -255,8 +257,8 @@ Plans:
 | 36. Show Data Model & CRUD API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 37. Series Bible Data & API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 38. Show Management UI | v4.2 | 2/2 | Complete | 2026-03-24 |
-| 39. Episode Data Model & Linking | 1/1 | Complete    | 2026-03-24 | - |
-| 40. Episode Management UI | v4.2 | 0/? | Not started | - |
+| 39. Episode Data Model & Linking | v4.2 | 1/1 | Complete | 2026-03-24 |
+| 40. Episode Management UI | v4.2 | 0/1 | Not started | - |
 | 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
 | 42. Breadcrumb Navigation | v4.2 | 0/? | Not started | - |
 | 43. API Key Management | v5.0 | 0/? | Future | - |
