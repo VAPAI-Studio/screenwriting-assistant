@@ -7,6 +7,7 @@ import {
   AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
   Snippet, SnippetListResponse, PipelineMapResponse,
   Shot, ShotCreate, ShotUpdate, AssetMedia, StoryboardFrame,
+  Show, ShowCreate, BibleResponse, BibleUpdate,
 } from '../types';
 import type { AuthResponse, LoginRequest, RegisterRequest, UserUpdate, User } from '../types';
 import type { YoloEvent } from '../types/template';
@@ -1226,5 +1227,65 @@ export const api = {
       if (error.name === 'AbortError') throw new Error('Request timeout');
       throw error;
     }
+  },
+
+  // ============================================================
+  // Shows (v4.2 -- Phase 38)
+  // ============================================================
+
+  async getShows(): Promise<Show[]> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch shows');
+    return response.json();
+  },
+
+  async getShow(id: string): Promise<Show> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/${id}`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch show');
+    return response.json();
+  },
+
+  async createShow(data: ShowCreate): Promise<Show> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create show');
+    return response.json();
+  },
+
+  async updateShow(id: string, data: Partial<ShowCreate>): Promise<Show> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update show');
+    return response.json();
+  },
+
+  async deleteShow(id: string): Promise<void> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete show');
+  },
+
+  async getBible(showId: string): Promise<BibleResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/${showId}/bible`, { headers: getHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch bible');
+    return response.json();
+  },
+
+  async updateBible(showId: string, data: Partial<BibleUpdate>): Promise<BibleResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/${showId}/bible`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to update bible');
+    return response.json();
   },
 };

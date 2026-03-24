@@ -442,3 +442,38 @@ export interface StoryboardFrame {
   created_at: string;
   updated_at: string | null;
 }
+
+// ============================================================
+// Show types (v4.2 -- Phase 38)
+// ============================================================
+
+export interface Show {
+  id: string;
+  owner_id: string;
+  title: string;
+  description: string;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface ShowCreate {
+  title: string;
+  description?: string;
+}
+
+export interface BibleResponse {
+  show_id: string;
+  bible_characters: string;
+  bible_world_setting: string;
+  bible_season_arc: string;
+  bible_tone_style: string;
+  episode_duration_minutes: number | null;
+}
+
+export interface BibleUpdate {
+  bible_characters?: string;
+  bible_world_setting?: string;
+  bible_season_arc?: string;
+  bible_tone_style?: string;
+  episode_duration_minutes?: number | null;
+}

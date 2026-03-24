@@ -193,6 +193,9 @@ export const QUERY_KEYS = {
   STORYBOARD_FRAMES: (shotId: string) => ['storyboard-frames', shotId] as const,
   BREAKDOWN_ELEMENT: (elementId: string) => ['breakdown-element', elementId] as const,
   PROFILE: 'profile',
+  SHOWS: 'shows',
+  SHOW: (id: string) => ['show', id] as const,
+  BIBLE: (id: string) => ['bible', id] as const,
 } as const;
 
 // Theme Configuration
@@ -266,6 +269,7 @@ export const ROUTES = {
   PROJECT_BREAKDOWN: (id: string) => `/projects/${id}/breakdown`,
   PROJECT_STORYBOARD: (id: string) => `/projects/${id}/storyboard`,
   ELEMENT_DETAIL: (projectId: string, elementId: string) => `/projects/${projectId}/breakdown/elements/${elementId}`,
+  SHOW: (id: string) => `/shows/${id}`,
 } as const;
 
 export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: string }> = [
@@ -311,6 +315,21 @@ export const ELEMENT_EXTENDED_FIELDS: Record<BreakdownCategory, Array<{ key: str
     { key: 'status', label: 'Status', type: 'text' },
   ],
 };
+
+export const BIBLE_SECTIONS = [
+  { key: 'bible_characters', label: 'Characters', placeholder: 'Describe your main and recurring characters...' },
+  { key: 'bible_world_setting', label: 'World / Setting', placeholder: 'Describe the world, time period, and locations...' },
+  { key: 'bible_season_arc', label: 'Season Arc', placeholder: 'Outline the overarching story arc for the season...' },
+  { key: 'bible_tone_style', label: 'Tone & Style', placeholder: 'Describe the visual style, tone, and mood...' },
+] as const;
+
+export const DURATION_PRESETS = [
+  { value: 10, label: '10 min' },
+  { value: 22, label: '22 min' },
+  { value: 44, label: '44 min' },
+  { value: 60, label: '60 min' },
+  { value: -1, label: 'Custom...' },
+] as const;
 
 export const ORCHESTRATOR_PROMPT_TEMPLATE = `You are {name}, an orchestrator agent that coordinates multiple specialized screenwriting consultants. You synthesize insights from book-based and tag-based agents to provide comprehensive, well-rounded guidance.
 
