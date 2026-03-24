@@ -178,7 +178,9 @@ Plans:
   3. Agent reviews for episodes also receive bible context in their review prompts
   4. Breakdown extraction for episodes receives bible context (so the AI knows which characters/locations are series regulars)
   5. Standalone film projects are unaffected — no bible context is injected for projects without a show_id
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 41-01-PLAN.md — Bible context helper, service method threading, endpoint wiring, and tests
 
 ### Phase 42: Breadcrumb Navigation
 **Goal**: Episode views provide clear navigation context showing the parent show hierarchy
@@ -258,8 +260,8 @@ Plans:
 | 37. Series Bible Data & API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 38. Show Management UI | v4.2 | 2/2 | Complete | 2026-03-24 |
 | 39. Episode Data Model & Linking | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 40. Episode Management UI | 1/1 | Complete    | 2026-03-24 | - |
-| 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
+| 40. Episode Management UI | v4.2 | 1/1 | Complete | 2026-03-24 |
+| 41. Bible AI Injection | v4.2 | 0/1 | Not started | - |
 | 42. Breadcrumb Navigation | v4.2 | 0/? | Not started | - |
 | 43. API Key Management | v5.0 | 0/? | Future | - |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
