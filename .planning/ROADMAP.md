@@ -252,7 +252,7 @@ Plans:
 | 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
 | 36. Show Data Model & CRUD API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 37. Series Bible Data & API | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 38. Show Management UI | 2/2 | Complete   | 2026-03-24 | - |
+| 38. Show Management UI | 2/2 | Complete    | 2026-03-24 | - |
 | 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
 | 40. Episode Management UI | v4.2 | 0/? | Not started | - |
 | 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
