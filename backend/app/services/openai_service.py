@@ -4,7 +4,7 @@ import hashlib
 import json
 import logging
 from collections import OrderedDict
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from ..config import settings
 from ..models.database import SectionType, Framework
@@ -22,7 +22,8 @@ class OpenAIService:
         content = f"{section_id}:{text}:{framework}"
         return hashlib.md5(content.encode()).hexdigest()
 
-    def _get_system_prompt(self, framework: Framework, section_type: SectionType) -> str:
+    def _get_system_prompt(self, framework: Framework, section_type: SectionType,
+                           bible_context: Optional[str] = None) -> str:
         """Generate system prompt based on framework and section type"""
         framework_context = {
             Framework.THREE_ACT: "You are analyzing a screenplay using the Three-Act Structure.",
@@ -39,7 +40,7 @@ class OpenAIService:
             SectionType.RESOLUTION: "This is the Resolution - how the story wraps up."
         }
 
-        return f"""{framework_context[framework]}
+        base_prompt = f"""{framework_context[framework]}
 
         {section_context[section_type]}
 
@@ -53,13 +54,17 @@ class OpenAIService:
         - Pacing and tension
         - Clarity of conflict/stakes
         """
+        if bible_context:
+            return f"{bible_context}\n---\n{base_prompt}"
+        return base_prompt
 
     async def review_section(
         self,
         section_id: str,
         text: str,
         framework: Framework,
-        section_type: SectionType
+        section_type: SectionType,
+        bible_context: Optional[str] = None,
     ) -> Dict[str, List[str]]:
         """Send section text to OpenAI for review"""
 
@@ -76,7 +81,7 @@ class OpenAIService:
         try:
             ai_text = await chat_completion(
                 messages=[
-                    {"role": "system", "content": self._get_system_prompt(framework, section_type)},
+                    {"role": "system", "content": self._get_system_prompt(framework, section_type, bible_context=bible_context)},
                     {"role": "user", "content": f"Analyze this section:\n\n{text}"}
                 ],
                 temperature=0.7,

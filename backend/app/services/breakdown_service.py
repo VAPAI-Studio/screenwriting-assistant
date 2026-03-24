@@ -12,7 +12,7 @@ user prompt formatter. Plan 11-02 implements the full extraction pipeline.
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, List
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -206,11 +206,15 @@ class BreakdownService:
         parts.append("\nExtract all production elements from this screenplay.")
         return "\n".join(parts)
 
-    async def _call_ai_extraction(self, ctx: ExtractionContext) -> ExtractionResponse:
+    async def _call_ai_extraction(self, ctx: ExtractionContext,
+                                   bible_context: Optional[str] = None) -> ExtractionResponse:
         """Call AI with structured output to extract production elements."""
+        user_prompt = self._build_user_prompt(ctx)
+        if bible_context:
+            user_prompt = f"{bible_context}\n---\n{user_prompt}"
         messages = [
             {"role": "system", "content": EXTRACTION_SYSTEM_PROMPT},
-            {"role": "user", "content": self._build_user_prompt(ctx)},
+            {"role": "user", "content": user_prompt},
         ]
         return await chat_completion_structured(
             messages=messages,
@@ -409,7 +413,8 @@ class BreakdownService:
         db.add(run)
         return run
 
-    async def extract(self, db: Session, project_id: UUID) -> database.BreakdownRun:
+    async def extract(self, db: Session, project_id: UUID,
+                       bible_context: Optional[str] = None) -> database.BreakdownRun:
         """
         Full extraction pipeline in a single transaction:
 
@@ -436,7 +441,7 @@ class BreakdownService:
                 return run
 
             # 3. Call AI
-            response = await self._call_ai_extraction(ctx)
+            response = await self._call_ai_extraction(ctx, bible_context=bible_context)
 
             # 3b. Post-processing deduplication
             deduplicated = self._deduplicate_elements(response.elements)

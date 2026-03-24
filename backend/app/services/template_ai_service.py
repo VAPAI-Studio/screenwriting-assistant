@@ -19,10 +19,14 @@ class TemplateAIService:
         template_id: str,
         list_items: Optional[Dict[str, list]] = None,
         project_title: Optional[str] = None,
+        bible_context: Optional[str] = None,
     ) -> str:
         """Build comprehensive project context string from all phase data and list items."""
         template = get_template(template_id)
         context_parts = []
+        if bible_context:
+            context_parts.append(bible_context)
+            context_parts.append("---")
         if project_title:
             context_parts.append(f"Project: {project_title}")
         context_parts.append(f"Template: {template['name']}")
