@@ -1,5 +1,5 @@
 import pytest
-from app.models.database import Show as ShowModel, User as UserModel
+from app.models.database import Show as ShowModel, User as UserModel, Project as ProjectModel
 
 
 MOCK_USER_ID = "12345678-1234-5678-1234-567812345678"
@@ -400,3 +400,90 @@ class TestBibleAPI:
         )
         assert resp.status_code == 200
         assert resp.json()["episode_duration_minutes"] is None
+
+
+class TestEpisodeModel:
+    """Test Project model with episode columns (show_id, episode_number)."""
+
+    def _ensure_user(self, db_session):
+        existing = db_session.query(UserModel).filter(UserModel.id == MOCK_USER_ID).first()
+        if not existing:
+            user = UserModel(
+                id=MOCK_USER_ID,
+                email="episodetest@example.com",
+                hashed_password="fakehash",
+                display_name="EpisodeTest",
+            )
+            db_session.add(user)
+            db_session.flush()
+
+    def test_project_with_show_id_and_episode_number(self, db_session):
+        """Test that a Project can be created with show_id and episode_number."""
+        self._ensure_user(db_session)
+        show = ShowModel(
+            owner_id=MOCK_USER_ID,
+            title="Episode Model Test Show",
+        )
+        db_session.add(show)
+        db_session.flush()
+
+        project = ProjectModel(
+            owner_id=MOCK_USER_ID,
+            title="Pilot Episode",
+            show_id=str(show.id),
+            episode_number=1,
+        )
+        db_session.add(project)
+        db_session.commit()
+        db_session.refresh(project)
+
+        assert project.id is not None
+        assert project.show_id == str(show.id)
+        assert project.episode_number == 1
+        assert project.title == "Pilot Episode"
+
+    def test_project_standalone_no_show(self, db_session):
+        """Test that a standalone Project works with show_id=None."""
+        self._ensure_user(db_session)
+        project = ProjectModel(
+            owner_id=MOCK_USER_ID,
+            title="Standalone Film",
+        )
+        db_session.add(project)
+        db_session.commit()
+        db_session.refresh(project)
+
+        assert project.show_id is None
+        assert project.episode_number is None
+
+    def test_project_response_schema_includes_episode_fields(self):
+        """Test that the Project response schema includes show_id and episode_number."""
+        from app.models.schemas import Project as ProjectSchema
+        fields = ProjectSchema.model_fields
+        assert "show_id" in fields, "show_id missing from Project response schema"
+        assert "episode_number" in fields, "episode_number missing from Project response schema"
+
+    def test_episode_create_schema_validation(self):
+        """Test EpisodeCreate schema validates correctly."""
+        from app.models.schemas import EpisodeCreate
+        # Valid input
+        ep = EpisodeCreate(title="Pilot")
+        assert ep.title == "Pilot"
+        assert ep.episode_number is None
+        assert ep.framework.value == "three_act"
+
+        # With episode_number
+        ep2 = EpisodeCreate(title="Episode Two", episode_number=2)
+        assert ep2.episode_number == 2
+
+        # Title too short
+        with pytest.raises(Exception):
+            EpisodeCreate(title="X")
+
+        # Whitespace-only title
+        with pytest.raises(Exception):
+            EpisodeCreate(title="   ")
+
+        # episode_number must be >= 1
+        with pytest.raises(Exception):
+            EpisodeCreate(title="Test", episode_number=0)

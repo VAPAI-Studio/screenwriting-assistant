@@ -99,6 +99,8 @@ class Project(ProjectBase):
     template_config: Dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: Optional[datetime] = None
+    show_id: Optional[UUID] = None
+    episode_number: Optional[int] = None
     sections: List[Section] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
@@ -930,3 +932,15 @@ class BibleResponse(BaseModel):
     episode_duration_minutes: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class EpisodeCreate(BaseModel):
+    title: str = Field(..., min_length=2, max_length=255)
+    episode_number: Optional[int] = Field(None, ge=1)
+    framework: Framework = Framework.THREE_ACT
+
+    @field_validator('title')
+    def validate_title(cls, v):
+        if not v.strip():
+            raise ValueError("Title cannot be empty or just whitespace")
+        return v.strip()

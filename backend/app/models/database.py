@@ -138,6 +138,10 @@ class Project(Base):
     shotlist_stale = Column(Boolean, default=False)
     storyboard_style = Column(String(30), nullable=True)
 
+    # Episode linking (Phase 39, v4.2)
+    show_id = Column(UUID(as_uuid=True), ForeignKey("shows.id", ondelete="CASCADE"), nullable=True, index=True)
+    episode_number = Column(Integer, nullable=True)
+
     sections = sa_relationship("Section", back_populates="project", cascade="all, delete-orphan")
     phase_data = sa_relationship("PhaseData", back_populates="project", cascade="all, delete-orphan")
     breakdown_elements = sa_relationship("BreakdownElement", back_populates="project",
