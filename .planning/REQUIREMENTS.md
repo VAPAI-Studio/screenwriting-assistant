@@ -26,7 +26,7 @@
 - [x] **EPIS-02**: Each episode has the full screenplay → breakdown → shotlist → storyboard pipeline identical to standalone projects
 - [x] **EPIS-03**: User can view, open, and delete episodes from the show page
 - [x] **EPIS-04**: Existing standalone projects are unaffected — no data migration required
-- [ ] **EPIS-05**: Episode views include breadcrumb navigation back to the parent show (Show > Episode N: Title)
+- [x] **EPIS-05**: Episode views include breadcrumb navigation back to the parent show (Show > Episode N: Title)
 
 ## v5.0 Requirements (Deferred)
 
@@ -63,7 +63,7 @@
 | EPIS-02 | Phase 39 | Complete |
 | EPIS-03 | Phase 40 | Complete |
 | EPIS-04 | Phase 39 | Complete |
-| EPIS-05 | Phase 42 | Pending |
+| EPIS-05 | Phase 42 | Complete |
 
 **Coverage:**
 - v4.2 requirements: 13 total

@@ -96,7 +96,7 @@
 - [x] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility (completed 2026-03-24)
 - [x] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline (completed 2026-03-24)
 - [x] **Phase 41: Bible AI Injection** - Modify generation services to prepend bible content and duration when generating for an episode (completed 2026-03-24)
-- [ ] **Phase 42: Breadcrumb Navigation** - Episode views include breadcrumb trail back to parent show
+- [x] **Phase 42: Breadcrumb Navigation** - Episode views include breadcrumb trail back to parent show (completed 2026-03-24)
 
 ## Phase Details
 
@@ -191,7 +191,7 @@ Plans:
   2. Clicking the show name in the breadcrumb navigates back to the show detail page
   3. The breadcrumb is visible in all episode modes (screenwriting, breakdown) — not just the editor
   4. Standalone film projects do not display any breadcrumb (no visual change for existing workflows)
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 42-01-PLAN.md — EpisodeBreadcrumb component with integration into Editor, BreakdownLayout, and StoryboardView
 
@@ -264,6 +264,6 @@ Plans:
 | 39. Episode Data Model & Linking | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 40. Episode Management UI | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 41. Bible AI Injection | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 42. Breadcrumb Navigation | v4.2 | 0/1 | Planned | - |
+| 42. Breadcrumb Navigation | 1/1 | Complete   | 2026-03-24 | - |
 | 43. API Key Management | v5.0 | 0/? | Future | - |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |

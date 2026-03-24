@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed 41-01-PLAN.md (Phase 41 complete)
-last_updated: "2026-03-24T21:12:29.679Z"
+stopped_at: Completed 42-01-PLAN.md (Phase 42 complete)
+last_updated: "2026-03-24T21:43:25.819Z"
 progress:
-  total_phases: 24
-  completed_phases: 24
-  total_plans: 41
-  completed_plans: 41
+  total_phases: 25
+  completed_phases: 25
+  total_plans: 42
+  completed_plans: 42
 ---
 
 # Project State
@@ -19,11 +19,11 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 41 — bible-ai-injection
+**Current focus:** Phase 42 — Breadcrumb Navigation
 
 ## Current Position
 
-Phase: 41 (bible-ai-injection) — COMPLETE
+Phase: 42 (Breadcrumb Navigation) — COMPLETE
 Plan: 1 of 1 (done)
 
 ## Performance Metrics
@@ -64,6 +64,8 @@ Relevant to v4.2:
 - [Phase 39]: Episodes reuse Project model with nullable show_id FK -- episode_number auto-increments via MAX+1
 - [Phase 40]: Reuse deleteProject API for episode deletion since episodes are Projects with show_id FK
 - [Phase 41]: Bible context built once in request handler, passed as string to background tasks (avoids DB re-fetch)
+- [Phase 42]: Show title fetched with staleTime: Infinity in breadcrumb (stable within session)
+- [Phase 42]: Breadcrumb height adjustment uses fixed 89px calc (56px header + 33px breadcrumb)
 
 ### Pending Todos
 
@@ -76,6 +78,6 @@ Relevant to v4.2:
 
 ## Session Continuity
 
-Last session: 2026-03-24T21:12:29.672Z
-Stopped at: Completed 41-01-PLAN.md (Phase 41 complete)
+Last session: 2026-03-24T21:43:25.815Z
+Stopped at: Completed 42-01-PLAN.md (Phase 42 complete)
 Resume file: None
