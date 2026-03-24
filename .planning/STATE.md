@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
-status: executing
-stopped_at: Completed 36-01-PLAN.md
-last_updated: "2026-03-24T16:02:22Z"
+status: unknown
+stopped_at: Completed 37-01-PLAN.md
+last_updated: "2026-03-24T18:52:24.572Z"
 progress:
-  total_phases: 7
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  total_phases: 20
+  completed_phases: 20
+  total_plans: 36
+  completed_plans: 36
 ---
 
 # Project State
@@ -19,24 +19,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 36 — show-data-model-crud-api (COMPLETE)
+**Current focus:** Phase 37 — series-bible-data-api
 
 ## Current Position
 
-Phase: 36 (show-data-model-crud-api) — COMPLETE
-Plan: 1 of 1 (all complete)
+Phase: 37 (series-bible-data-api) — COMPLETE
+Plan: 1 of 1 (done)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 52 (lifetime)
+- Total plans completed: 53 (lifetime)
 - Average duration: ~3min (recent)
-- Total execution time: ~2.6 hours (lifetime)
+- Total execution time: ~2.7 hours (lifetime)
 
 **Recent Trend:**
 
-- Last 5 plans: 34-01 (2min), 35-01 (3min), 35-02 (5min), 36-01 (9min)
+- Last 5 plans: 35-01 (3min), 35-02 (5min), 36-01 (9min), 37-01 (5min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -53,6 +53,8 @@ Relevant to v4.2:
 - Standalone projects unaffected -- show_id = NULL means no bible context
 - Used str() cast on UUID filters in shows router for SQLite/PostgreSQL compatibility
 - Show model has no relationships yet -- Phase 37 adds bible columns, Phase 39 adds episodes
+- Bible data accessed via dedicated /bible sub-resource endpoints, not mixed into ShowResponse
+- Episode duration accepts any integer 1-480 (not restricted to presets)
 
 ### Pending Todos
 
@@ -65,6 +67,6 @@ Relevant to v4.2:
 
 ## Session Continuity
 
-Last session: 2026-03-24
-Stopped at: Completed 36-01-PLAN.md (Show Data Model & CRUD API)
+Last session: 2026-03-24T18:52:24.568Z
+Stopped at: Completed 37-01-PLAN.md
 Resume file: None

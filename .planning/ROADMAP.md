@@ -91,7 +91,7 @@
 ### v4.2 TV Show Mode (In Progress)
 
 - [x] **Phase 36: Show Data Model & CRUD API** - Show entity with DB model, delta migration, Pydantic schemas, full CRUD endpoints (completed 2026-03-24)
-- [ ] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content
+- [x] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content (completed 2026-03-24)
 - [ ] **Phase 38: Show Management UI** - Home page split (Shows vs Films), show detail page shell with bible editor and episode list area
 - [ ] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility
 - [ ] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline
@@ -123,7 +123,7 @@ Plans:
   2. GET /api/shows/{id}/bible returns all four sections and the episode duration
   3. PUT /api/shows/{id}/bible saves edits to any combination of bible sections and duration
   4. Episode duration supports preset values (10, 22, 44, 60 min) and custom integer entry
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 37-01-PLAN.md — Bible columns, schemas, migration, GET/PUT endpoints, and tests
 
@@ -248,7 +248,7 @@ Plans:
 | 34. Script-to-Shot Overlay | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
 | 36. Show Data Model & CRUD API | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 37. Series Bible Data & API | v4.2 | 0/1 | Planned | - |
+| 37. Series Bible Data & API | 1/1 | Complete   | 2026-03-24 | - |
 | 38. Show Management UI | v4.2 | 0/? | Not started | - |
 | 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
 | 40. Episode Management UI | v4.2 | 0/? | Not started | - |

@@ -15,9 +15,9 @@
 
 ### Series Bible
 
-- [ ] **BIBL-01**: Each show has four bible sections: Characters, World/Setting, Season Arc, Tone & Style
-- [ ] **BIBL-02**: User can write and edit each bible section as freeform text
-- [ ] **BIBL-03**: Each show has a target episode duration setting (10 min, 22 min, 44 min, 60 min, or custom)
+- [x] **BIBL-01**: Each show has four bible sections: Characters, World/Setting, Season Arc, Tone & Style
+- [x] **BIBL-02**: User can write and edit each bible section as freeform text
+- [x] **BIBL-03**: Each show has a target episode duration setting (10 min, 22 min, 44 min, 60 min, or custom)
 - [ ] **BIBL-04**: Bible content (all four sections) and episode duration are automatically injected into AI context for episode script generation, agent reviews, and breakdown extraction
 
 ### Episodes
@@ -55,9 +55,9 @@
 | SHOW-02 | Phase 38 | Pending |
 | SHOW-03 | Phase 38 | Pending |
 | SHOW-04 | Phase 36 | Complete |
-| BIBL-01 | Phase 37 | Pending |
-| BIBL-02 | Phase 37 | Pending |
-| BIBL-03 | Phase 37 | Pending |
+| BIBL-01 | Phase 37 | Complete |
+| BIBL-02 | Phase 37 | Complete |
+| BIBL-03 | Phase 37 | Complete |
 | BIBL-04 | Phase 41 | Pending |
 | EPIS-01 | Phase 39 | Pending |
 | EPIS-02 | Phase 39 | Pending |
