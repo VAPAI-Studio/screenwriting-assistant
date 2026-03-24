@@ -67,10 +67,10 @@ Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-
 **Current codebase:**
 - ~30,237 total LOC (Python + TypeScript/TSX)
 - Tech stack: FastAPI, PostgreSQL, SQLAlchemy, React, React Query, Tailwind, Radix UI, OpenAI/Anthropic
-- 28 total phases shipped, 51 plans
-- All v3.1 milestone requirements satisfied
+- 29 total phases shipped, 52 plans
+- All v3.1 milestone requirements satisfied; Phase 36 (Show Data Model & CRUD API) complete
 
-Last updated: 2026-03-21
+Last updated: 2026-03-24
 
 **Key files added in v3.0:**
 - `backend/app/api/endpoints/shots.py` — Shot CRUD + reorder + staleness status/acknowledge
