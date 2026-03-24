@@ -63,6 +63,23 @@ class User(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+# ============================================================
+# Show model (v4.2 -- Phase 36)
+# ============================================================
+
+class Show(Base):
+    __tablename__ = "shows"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    owner_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, default="")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships added by Phase 37 (bible columns) and Phase 39 (episodes)
+
+
 class SectionType(str, enum.Enum):
     INCITING_INCIDENT = "inciting_incident"
     PLOT_POINT_1 = "plot_point_1"

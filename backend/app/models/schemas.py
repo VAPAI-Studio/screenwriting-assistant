@@ -870,3 +870,42 @@ class StoryboardFrameResponse(BaseModel):
 
 class StoryboardFrameUpdate(BaseModel):
     is_selected: Optional[bool] = None
+
+
+# ============================================================
+# Show Schemas (v4.2 -- Phase 36)
+# ============================================================
+
+class ShowCreate(BaseModel):
+    title: str = Field(..., min_length=2, max_length=255)
+    description: str = Field(default="", max_length=5000)
+
+    @field_validator('title')
+    def validate_title(cls, v):
+        if not v.strip():
+            raise ValueError("Title cannot be empty or just whitespace")
+        return v.strip()
+
+
+class ShowUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=2, max_length=255)
+    description: Optional[str] = Field(None, max_length=5000)
+
+    @field_validator('title')
+    def validate_title(cls, v):
+        if v is None:
+            return v
+        if not v.strip():
+            raise ValueError("Title cannot be empty or just whitespace")
+        return v.strip()
+
+
+class ShowResponse(BaseModel):
+    id: UUID
+    owner_id: UUID
+    title: str
+    description: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
