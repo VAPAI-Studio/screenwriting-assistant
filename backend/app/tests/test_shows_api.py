@@ -570,6 +570,42 @@ class TestEpisodesAPI:
         assert "climax" in section_types
         assert "resolution" in section_types
 
+    def test_list_episodes(self, client, mock_auth_headers):
+        """GET /api/shows/{show_id}/episodes returns episodes ordered by episode_number."""
+        show_id = self._create_show(client, mock_auth_headers)
+        # Create two episodes
+        client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": "Ep 1"},
+            headers=mock_auth_headers,
+        )
+        client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": "Ep 2"},
+            headers=mock_auth_headers,
+        )
+        resp = client.get(f"/api/shows/{show_id}/episodes", headers=mock_auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data) == 2
+        assert data[0]["episode_number"] == 1
+        assert data[1]["episode_number"] == 2
+
+    def test_list_episodes_empty(self, client, mock_auth_headers):
+        """GET for show with no episodes returns 200 with empty list."""
+        show_id = self._create_show(client, mock_auth_headers)
+        resp = client.get(f"/api/shows/{show_id}/episodes", headers=mock_auth_headers)
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_list_episodes_not_found(self, client, mock_auth_headers):
+        """GET for non-existent show_id returns 404."""
+        resp = client.get(
+            "/api/shows/00000000-0000-0000-0000-000000000000/episodes",
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 404
+
     def test_standalone_projects_unaffected(self, client, mock_auth_headers):
         """POST /api/projects/ still works, returns show_id=null, episode_number=null."""
         resp = client.post(
