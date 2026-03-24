@@ -130,14 +130,17 @@ Plans:
 ### Phase 38: Show Management UI
 **Goal**: Users can see their shows and films as separate sections on the home page, and can open a show to view its bible and episode list
 **Depends on**: Phase 37 (Bible API), Phase 36 (Show CRUD)
-**Requirements**: SHOW-02, SHOW-03
+**Requirements**: SHOW-02, SHOW-03, BIBL-01, BIBL-02, BIBL-03
 **Success Criteria** (what must be TRUE):
   1. The home page displays a "Shows" section listing all shows (title, description, episode count) and a "Films" section listing standalone projects
   2. Clicking a show navigates to a show detail page at /shows/{id}
   3. The show detail page displays the show title, description, and an editable series bible with four sections (Characters, World/Setting, Season Arc, Tone & Style) and the episode duration selector
   4. The show detail page has an episode list area (empty until Phase 40 wires episode management)
   5. Bible edits auto-save and persist on page refresh
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 38-01-PLAN.md — Types, API methods, constants, home page split with ShowCard and CreateShowModal
+- [ ] 38-02-PLAN.md — ShowDetail page with BibleEditor, EpisodeDurationPicker, and route wiring
 
 ### Phase 39: Episode Data Model & Linking
 **Goal**: Episodes are projects that belong to a show, with the existing project pipeline fully intact and standalone projects unaffected
@@ -248,8 +251,8 @@ Plans:
 | 34. Script-to-Shot Overlay | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
 | 36. Show Data Model & CRUD API | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 37. Series Bible Data & API | 1/1 | Complete    | 2026-03-24 | - |
-| 38. Show Management UI | v4.2 | 0/? | Not started | - |
+| 37. Series Bible Data & API | v4.2 | 1/1 | Complete | 2026-03-24 |
+| 38. Show Management UI | v4.2 | 0/2 | Not started | - |
 | 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
 | 40. Episode Management UI | v4.2 | 0/? | Not started | - |
 | 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
