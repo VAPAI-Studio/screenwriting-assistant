@@ -1,36 +1,36 @@
 # Requirements: Screenwriting Assistant
 
-**Defined:** 2026-03-20
-**Milestone:** v3.1 — AI Shotlist Generation
+**Defined:** 2026-03-24
+**Milestone:** v4.0 — TV Show Mode
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
 
-## v1 Requirements
+## v4.0 Requirements
 
-### AI Shotlist Generation
+### Show Management
 
-- [x] **AISG-01**: User can trigger AI generation of a full shotlist via "Generate Shotlist" button in the breakdown panel
-- [x] **AISG-02**: AI populates all standard shot fields for each generated shot (shot_size, camera_angle, camera_movement, description, action)
-- [x] **AISG-03**: AI assigns each generated shot to the correct scene from the script
-- [x] **AISG-04**: AI determines logical shot ordering within each scene
-- [x] **AISG-05**: AI links each generated shot to the source script passage it covers (script_text field)
-- [x] **AISG-06**: Regenerating the shotlist preserves shots the user has manually edited (smart merge via user_modified flag)
-- [x] **AISG-07**: AI-generated shots display a subtle visual indicator (sparkle icon badge) distinguishable from manually-created shots
+- [ ] **SHOW-01**: User can create a new show with a title and description
+- [ ] **SHOW-02**: Home page displays Shows and standalone Films as separate sections
+- [ ] **SHOW-03**: User can open a show to view its series bible and episode list
+- [ ] **SHOW-04**: User can edit a show's title and description, and delete a show
 
-### Media Management
+### Series Bible
 
-- [ ] **MDIA-01**: User can delete an uploaded media asset from the assets panel (backend endpoint `DELETE /api/media/{id}` already exists)
+- [ ] **BIBL-01**: Each show has four bible sections: Characters, World/Setting, Season Arc, Tone & Style
+- [ ] **BIBL-02**: User can write and edit each bible section as freeform text
+- [ ] **BIBL-03**: Each show has a target episode duration setting (10 min, 22 min, 44 min, 60 min, or custom)
+- [ ] **BIBL-04**: Bible content (all four sections) and episode duration are automatically injected into AI context for episode script generation, agent reviews, and breakdown extraction
 
-### Shot Management
+### Episodes
 
-- [ ] **SMGT-01**: User can reorder shots via drag-and-drop within the shotlist panel (replacing existing arrow buttons)
+- [ ] **EPIS-01**: User can create a new episode inside a show with an episode number and title
+- [ ] **EPIS-02**: Each episode has the full screenplay → breakdown → shotlist → storyboard pipeline identical to standalone projects
+- [ ] **EPIS-03**: User can view, open, and delete episodes from the show page
+- [ ] **EPIS-04**: Existing standalone projects are unaffected — no data migration required
+- [ ] **EPIS-05**: Episode views include breadcrumb navigation back to the parent show (Show > Episode N: Title)
 
-### Staleness Sync
+## v5.0 Requirements (Deferred)
 
-- [ ] **SYNC-01**: Reordering scenes in the screenplay marks the shotlist as stale
-
-## v2 Requirements
-
-### AI Shotlist Generation (deferred)
+### AI Shotlist Generation (deferred from v3.1)
 
 - **AISG-08**: AI auto-generates shotlist on script save (YOLO mode)
 - **AISG-09**: Shot duplication — user can duplicate an existing shot
@@ -44,29 +44,32 @@
 | Department assignments per shot | Production management feature, out of MVP scope |
 | Real-time AI suggestions while typing | Too complex, staleness-flag pattern is sufficient |
 | Movie Magic / Final Draft export | Industry format integration deferred indefinitely |
+| Cross-episode shared breakdown elements | High complexity, per-episode breakdown is sufficient for v4.0 |
+| Episode scheduling / production calendar | Different product domain |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AISG-01 | Phase 26, Phase 27 (frontend trigger) | Complete |
-| AISG-02 | Phase 26 | Complete |
-| AISG-03 | Phase 26 | Complete |
-| AISG-04 | Phase 26 | Complete |
-| AISG-05 | Phase 26 | Complete |
-| AISG-06 | Phase 26 | Complete |
-| AISG-07 | Phase 27 | Complete |
-| MDIA-01 | Phase 28 | Pending |
-| SMGT-01 | Phase 28 | Pending |
-| SYNC-01 | Phase 28 | Pending |
+| SHOW-01 | TBD | Pending |
+| SHOW-02 | TBD | Pending |
+| SHOW-03 | TBD | Pending |
+| SHOW-04 | TBD | Pending |
+| BIBL-01 | TBD | Pending |
+| BIBL-02 | TBD | Pending |
+| BIBL-03 | TBD | Pending |
+| BIBL-04 | TBD | Pending |
+| EPIS-01 | TBD | Pending |
+| EPIS-02 | TBD | Pending |
+| EPIS-03 | TBD | Pending |
+| EPIS-04 | TBD | Pending |
+| EPIS-05 | TBD | Pending |
 
 **Coverage:**
-- v1 requirements: 10 total
-- Mapped to phases: 10
-- Unmapped: 0
-
-**Note on AISG-01:** This requirement spans two phases. Phase 26 delivers the backend endpoint (API + service). Phase 27 delivers the frontend trigger (button + loading state). The requirement is fully satisfied only when Phase 27 completes.
+- v4.0 requirements: 13 total
+- Mapped to phases: 0 (roadmap pending)
+- Unmapped: 13 ⚠️
 
 ---
-*Requirements defined: 2026-03-20*
-*Last updated: 2026-03-20 after roadmap creation*
+*Requirements defined: 2026-03-24*
+*Last updated: 2026-03-24 after milestone v4.0 definition*
