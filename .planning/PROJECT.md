@@ -34,14 +34,14 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 - ✓ AI chat in Breakdown mode with shotlist + element context awareness, shot create/modify via conversation — v3.0
 - ✓ Bidirectional sync between screenplay and shotlist (staleness banner + acknowledge) — v3.0
 
-### Active (v4.0)
+### Active (v4.2 — complete)
 
-- [ ] Show entity with create/edit/delete (SHOW-01, SHOW-02, SHOW-03, SHOW-04)
+- ✓ Show entity with create/edit/delete (SHOW-01, SHOW-02, SHOW-03, SHOW-04) — Validated in Phase 36/38: show-data-model-api + show-management-ui
 - ✓ Series bible: Characters, World/Setting, Season Arc, Tone & Style (BIBL-01, BIBL-02) — Validated in Phase 37: series-bible-data-api
 - ✓ Target episode duration setting per show (BIBL-03) — Validated in Phase 37: series-bible-data-api
-- [ ] Bible + duration injected into all AI generation for episodes (BIBL-04)
-- [ ] Episode creation and management inside a show (EPIS-01, EPIS-02, EPIS-03, EPIS-04)
-- [ ] Breadcrumb navigation from episode back to show (EPIS-05)
+- ✓ Bible + duration injected into all AI generation for episodes (BIBL-04) — Validated in Phase 41: bible-ai-injection
+- ✓ Episode creation and management inside a show (EPIS-01, EPIS-02, EPIS-03, EPIS-04) — Validated in Phases 39/40: episodes + episode-management-ui
+- ✓ Breadcrumb navigation from episode back to show (EPIS-05) — Validated in Phase 42: breadcrumb-navigation
 
 ### Deferred (v5.0+)
 
@@ -60,15 +60,14 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 
 ## Context
 
-Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18), v3.0 (shotlist & production breakdown, 2026-03-20), v3.1 complete (2026-03-21) — AI shotlist generation + UX improvements.
+Shipped v1.0 (agent orchestration, 2026-03-12), v2.0 (script breakdown, 2026-03-18), v3.0 (shotlist & production breakdown, 2026-03-20), v3.1 complete (2026-03-21) — AI shotlist generation + UX improvements. v4.2 complete (2026-03-24) — TV Show Mode.
 
-**v3.1 additions:** AI shotlist generation from script content, sparkle badge on AI shots, media deletion UI, drag-and-drop shot reorder, scene reorder staleness fix.
+**v4.2 additions:** Show entity with CRUD, series bible editor (characters, world, arc, tone), episode management per show, bible context injected into all AI generation for episodes, breadcrumb navigation from episode back to show.
 
 **Current codebase:**
-- ~30,237 total LOC (Python + TypeScript/TSX)
 - Tech stack: FastAPI, PostgreSQL, SQLAlchemy, React, React Query, Tailwind, Radix UI, OpenAI/Anthropic
-- 29 total phases shipped, 52 plans
-- All v3.1 milestone requirements satisfied; Phase 36 (Show Data Model & CRUD API) complete
+- 35 total phases shipped (phases 36–42 = v4.2 TV Show Mode)
+- All v4.2 milestone requirements satisfied
 
 Last updated: 2026-03-24
 
