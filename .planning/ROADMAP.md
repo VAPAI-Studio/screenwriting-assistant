@@ -123,7 +123,9 @@ Plans:
   2. GET /api/shows/{id}/bible returns all four sections and the episode duration
   3. PUT /api/shows/{id}/bible saves edits to any combination of bible sections and duration
   4. Episode duration supports preset values (10, 22, 44, 60 min) and custom integer entry
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 37-01-PLAN.md — Bible columns, schemas, migration, GET/PUT endpoints, and tests
 
 ### Phase 38: Show Management UI
 **Goal**: Users can see their shows and films as separate sections on the home page, and can open a show to view its bible and episode list
@@ -245,8 +247,8 @@ Plans:
 | 33. Script-to-Element Highlighting | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 34. Script-to-Shot Overlay | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
-| 36. Show Data Model & CRUD API | 1/1 | Complete   | 2026-03-24 | - |
-| 37. Series Bible Data & API | v4.2 | 0/? | Not started | - |
+| 36. Show Data Model & CRUD API | v4.2 | 1/1 | Complete | 2026-03-24 |
+| 37. Series Bible Data & API | v4.2 | 0/1 | Planned | - |
 | 38. Show Management UI | v4.2 | 0/? | Not started | - |
 | 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
 | 40. Episode Management UI | v4.2 | 0/? | Not started | - |
