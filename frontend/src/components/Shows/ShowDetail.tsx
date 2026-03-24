@@ -4,6 +4,7 @@ import { ArrowLeft, Tv, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import { BibleEditor } from './BibleEditor';
+import { EpisodeList } from './EpisodeList';
 
 interface ShowDetailProps {
   showId: string;
@@ -79,13 +80,10 @@ export function ShowDetail({ showId }: ShowDetailProps) {
         {bible && <BibleEditor showId={showId} bible={bible} />}
       </section>
 
-      {/* Episode List Placeholder */}
+      {/* Episode List */}
       <section>
         <h2 className="text-xl font-semibold text-foreground mb-4">Episodes</h2>
-        <div className="text-center py-10 border border-dashed border-border rounded-xl">
-          <p className="text-sm text-muted-foreground">Episodes coming soon</p>
-          <p className="text-xs text-muted-foreground/60 mt-1">Episode management will be added in a future update</p>
-        </div>
+        <EpisodeList showId={showId} />
       </section>
     </div>
   );

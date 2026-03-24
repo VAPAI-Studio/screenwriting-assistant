@@ -196,6 +196,7 @@ export const QUERY_KEYS = {
   SHOWS: 'shows',
   SHOW: (id: string) => ['show', id] as const,
   BIBLE: (id: string) => ['bible', id] as const,
+  EPISODES: (showId: string) => ['episodes', showId] as const,
 } as const;
 
 // Theme Configuration

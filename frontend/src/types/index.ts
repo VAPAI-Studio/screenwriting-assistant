@@ -51,6 +51,8 @@ export interface Project {
   framework: Framework;
   created_at: string;
   updated_at: string | null;
+  show_id?: string | null;
+  episode_number?: number | null;
   sections: Section[];
 }
 

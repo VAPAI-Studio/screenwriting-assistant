@@ -1288,4 +1288,26 @@ export const api = {
     if (!response.ok) throw new Error('Failed to update bible');
     return response.json();
   },
+
+  async getEpisodes(showId: string): Promise<Project[]> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/shows/${showId}/episodes`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch episodes');
+    return response.json();
+  },
+
+  async createEpisode(showId: string, data: { title: string; framework?: string }): Promise<Project> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/shows/${showId}/episodes`,
+      {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+      }
+    );
+    if (!response.ok) throw new Error('Failed to create episode');
+    return response.json();
+  },
 };
