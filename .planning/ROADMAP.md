@@ -95,7 +95,7 @@
 - [x] **Phase 38: Show Management UI** - Home page split (Shows vs Films), show detail page shell with bible editor and episode list area (completed 2026-03-24)
 - [x] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility (completed 2026-03-24)
 - [x] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline (completed 2026-03-24)
-- [ ] **Phase 41: Bible AI Injection** - Modify generation services to prepend bible content and duration when generating for an episode
+- [x] **Phase 41: Bible AI Injection** - Modify generation services to prepend bible content and duration when generating for an episode (completed 2026-03-24)
 - [ ] **Phase 42: Breadcrumb Navigation** - Episode views include breadcrumb trail back to parent show
 
 ## Phase Details
@@ -178,7 +178,7 @@ Plans:
   3. Agent reviews for episodes also receive bible context in their review prompts
   4. Breakdown extraction for episodes receives bible context (so the AI knows which characters/locations are series regulars)
   5. Standalone film projects are unaffected — no bible context is injected for projects without a show_id
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 41-01-PLAN.md — Bible context helper, service method threading, endpoint wiring, and tests
 
@@ -261,7 +261,7 @@ Plans:
 | 38. Show Management UI | v4.2 | 2/2 | Complete | 2026-03-24 |
 | 39. Episode Data Model & Linking | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 40. Episode Management UI | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 41. Bible AI Injection | v4.2 | 0/1 | Not started | - |
+| 41. Bible AI Injection | 1/1 | Complete   | 2026-03-24 | - |
 | 42. Breadcrumb Navigation | v4.2 | 0/? | Not started | - |
 | 43. API Key Management | v5.0 | 0/? | Future | - |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
