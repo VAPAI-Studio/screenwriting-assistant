@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v3.2
 milestone_name: Storyboard Mode
 status: unknown
-stopped_at: Completed 38-02-PLAN.md (Phase 38 complete)
-last_updated: "2026-03-24T19:39:13.988Z"
+stopped_at: Completed 39-01-PLAN.md (Phase 39 complete)
+last_updated: "2026-03-24T20:20:59.245Z"
 progress:
-  total_phases: 21
-  completed_phases: 21
-  total_plans: 38
-  completed_plans: 38
+  total_phases: 22
+  completed_phases: 22
+  total_plans: 39
+  completed_plans: 39
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 38 — show-management-ui
+**Current focus:** Phase 39 — episode-data-model-linking
 
 ## Current Position
 
-Phase: 38 (show-management-ui) — COMPLETE
-Plan: 2 of 2 (all complete)
+Phase: 39 (episode-data-model-linking) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Relevant to v4.2:
 - No query invalidation on bible mutation -- prevents refetch from overwriting local state
 - Used loaded ref pattern for bible editor initial state
 - Duration changes save immediately (select is discrete, not blur-based)
+- [Phase 39]: Episodes reuse Project model with nullable show_id FK -- episode_number auto-increments via MAX+1
 
 ### Pending Todos
 
@@ -73,6 +74,6 @@ Relevant to v4.2:
 
 ## Session Continuity
 
-Last session: 2026-03-24T19:32:41Z
-Stopped at: Completed 38-02-PLAN.md (Phase 38 complete)
+Last session: 2026-03-24T20:20:59.241Z
+Stopped at: Completed 39-01-PLAN.md (Phase 39 complete)
 Resume file: None

@@ -93,7 +93,7 @@
 - [x] **Phase 36: Show Data Model & CRUD API** - Show entity with DB model, delta migration, Pydantic schemas, full CRUD endpoints (completed 2026-03-24)
 - [x] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content (completed 2026-03-24)
 - [x] **Phase 38: Show Management UI** - Home page split (Shows vs Films), show detail page shell with bible editor and episode list area (completed 2026-03-24)
-- [ ] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility
+- [x] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility (completed 2026-03-24)
 - [ ] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline
 - [ ] **Phase 41: Bible AI Injection** - Modify generation services to prepend bible content and duration when generating for an episode
 - [ ] **Phase 42: Breadcrumb Navigation** - Episode views include breadcrumb trail back to parent show
@@ -151,7 +151,7 @@ Plans:
   2. POST /api/shows/{show_id}/episodes creates a new project linked to the show with an episode number and title
   3. An episode project has the full screenplay, breakdown, shotlist, and storyboard pipeline — identical to standalone projects
   4. Existing standalone projects (show_id = NULL) continue to work exactly as before with zero data migration
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 39-01-PLAN.md — Project model extension, EpisodeCreate schema, episode creation endpoint, migration 008, and tests
 
@@ -255,7 +255,7 @@ Plans:
 | 36. Show Data Model & CRUD API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 37. Series Bible Data & API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 38. Show Management UI | v4.2 | 2/2 | Complete | 2026-03-24 |
-| 39. Episode Data Model & Linking | v4.2 | 0/1 | Not started | - |
+| 39. Episode Data Model & Linking | 1/1 | Complete   | 2026-03-24 | - |
 | 40. Episode Management UI | v4.2 | 0/? | Not started | - |
 | 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
 | 42. Breadcrumb Navigation | v4.2 | 0/? | Not started | - |
