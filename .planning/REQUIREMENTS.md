@@ -24,7 +24,7 @@
 
 - [x] **EPIS-01**: User can create a new episode inside a show with an episode number and title
 - [x] **EPIS-02**: Each episode has the full screenplay → breakdown → shotlist → storyboard pipeline identical to standalone projects
-- [ ] **EPIS-03**: User can view, open, and delete episodes from the show page
+- [x] **EPIS-03**: User can view, open, and delete episodes from the show page
 - [x] **EPIS-04**: Existing standalone projects are unaffected — no data migration required
 - [ ] **EPIS-05**: Episode views include breadcrumb navigation back to the parent show (Show > Episode N: Title)
 
@@ -61,7 +61,7 @@
 | BIBL-04 | Phase 41 | Pending |
 | EPIS-01 | Phase 39 | Complete |
 | EPIS-02 | Phase 39 | Complete |
-| EPIS-03 | Phase 40 | Pending |
+| EPIS-03 | Phase 40 | Complete |
 | EPIS-04 | Phase 39 | Complete |
 | EPIS-05 | Phase 42 | Pending |
 

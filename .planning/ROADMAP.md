@@ -94,7 +94,7 @@
 - [x] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content (completed 2026-03-24)
 - [x] **Phase 38: Show Management UI** - Home page split (Shows vs Films), show detail page shell with bible editor and episode list area (completed 2026-03-24)
 - [x] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility (completed 2026-03-24)
-- [ ] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline
+- [x] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline (completed 2026-03-24)
 - [ ] **Phase 41: Bible AI Injection** - Modify generation services to prepend bible content and duration when generating for an episode
 - [ ] **Phase 42: Breadcrumb Navigation** - Episode views include breadcrumb trail back to parent show
 
@@ -164,7 +164,7 @@ Plans:
   2. A "New Episode" button opens a create dialog with episode number (auto-incremented) and title fields
   3. Clicking an episode navigates to the standard project editor (/projects/{id}) which renders the full pipeline
   4. Each episode row has a delete action that removes the episode after confirmation
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 40-01-PLAN.md — GET episodes endpoint, EpisodeList and CreateEpisodeModal components, ShowDetail wiring
 
@@ -258,7 +258,7 @@ Plans:
 | 37. Series Bible Data & API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 38. Show Management UI | v4.2 | 2/2 | Complete | 2026-03-24 |
 | 39. Episode Data Model & Linking | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 40. Episode Management UI | v4.2 | 0/1 | Not started | - |
+| 40. Episode Management UI | 1/1 | Complete   | 2026-03-24 | - |
 | 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
 | 42. Breadcrumb Navigation | v4.2 | 0/? | Not started | - |
 | 43. API Key Management | v5.0 | 0/? | Future | - |
