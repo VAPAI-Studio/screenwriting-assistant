@@ -7,6 +7,7 @@ from ...models import schemas, database
 from ...services.openai_service import openai_service
 from ..dependencies import get_db, get_current_user
 from ...utils import validate_review_text, validate_framework, sanitize_html
+from ...utils.bible_context import build_bible_context
 
 router = APIRouter()
 
@@ -53,12 +54,16 @@ async def review_section(
         )
     
     try:
+        # Build bible context for episode projects
+        bible_context = build_bible_context(db, project)
+
         # Call OpenAI service with sanitized text
         review_result = await openai_service.review_section(
             section_id=str(section.id),
             text=sanitized_text,
             framework=review_request.framework,
-            section_type=section.type
+            section_type=section.type,
+            bible_context=bible_context,
         )
         
         # Update section with AI suggestions

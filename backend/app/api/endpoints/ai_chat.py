@@ -16,6 +16,7 @@ from ...services.template_ai_service import template_ai_service
 from ...services.agent_review_middleware import agent_review_middleware
 from ...db import SessionLocal
 from ...templates import get_template
+from ...utils.bible_context import build_bible_context
 from .wizards import apply_wizard_result_to_db
 
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _get_project_context(db: Session, project: database.Project) -> str:
+def _get_project_context(db: Session, project: database.Project, bible_context: Optional[str] = None) -> str:
     """Build project context from all phase data, including list items."""
     phase_data_records = db.query(database.PhaseData).filter(
         database.PhaseData.project_id == project.id
@@ -43,7 +44,7 @@ def _get_project_context(db: Session, project: database.Project) -> str:
                 list_items_map[f"{phase_key}.{pd.subsection_key}"] = items
 
     template_id = project.template.value if hasattr(project.template, 'value') else project.template
-    return template_ai_service._build_project_context(project_data, template_id, list_items=list_items_map, project_title=project.title)
+    return template_ai_service._build_project_context(project_data, template_id, list_items=list_items_map, project_title=project.title, bible_context=bible_context)
 
 
 def _get_subsection_config(template_id: str, phase: str, subsection_key: str) -> dict:
@@ -165,7 +166,8 @@ async def send_ai_message(
     db.commit()
 
     # Build context and get AI response
-    project_context = _get_project_context(db, project)
+    bible_context = build_bible_context(db, project)
+    project_context = _get_project_context(db, project, bible_context=bible_context)
     template_id = project.template.value
 
     # Get system prompt and subsection config
@@ -354,7 +356,8 @@ async def send_ai_message_stream(
     db.commit()
 
     # Build context
-    project_context = _get_project_context(db, project)
+    bible_context = build_bible_context(db, project)
+    project_context = _get_project_context(db, project, bible_context=bible_context)
     template_id = project.template.value
     sub_config = _get_subsection_config(template_id, session.phase, session.subsection_key)
     system_prompt = sub_config.get(
@@ -713,7 +716,8 @@ async def fill_blanks(
         if matched:
             field_config = {"fields": matched}
 
-    project_context = _get_project_context(db, project)
+    bible_context = build_bible_context(db, project)
+    project_context = _get_project_context(db, project, bible_context=bible_context)
     result = await template_ai_service.fill_blanks(
         current_content=current_content,
         subsection_config=field_config,
@@ -776,7 +780,8 @@ async def give_notes(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phase data not found")
         current_content = phase_data.content or {}
 
-    project_context = _get_project_context(db, project)
+    bible_context = build_bible_context(db, project)
+    project_context = _get_project_context(db, project, bible_context=bible_context)
     result = await template_ai_service.give_notes(
         current_content=current_content,
         subsection_config=sub_config,
@@ -815,7 +820,8 @@ async def analyze_structure(
 
     items_data = [{"sort_order": i.sort_order, **i.content} for i in items]
 
-    project_context = _get_project_context(db, project)
+    bible_context = build_bible_context(db, project)
+    project_context = _get_project_context(db, project, bible_context=bible_context)
     template_id = project.template.value
 
     result = await template_ai_service.analyze_structure(
@@ -1101,7 +1107,8 @@ async def yolo_fill(
 
             try:
                 # Re-read project context so earlier fills feed into later ones
-                project_context = _get_project_context(db, project)
+                bible_context = build_bible_context(db, project)
+                project_context = _get_project_context(db, project, bible_context=bible_context)
 
                 if strategy == "fill_blanks":
                     detail = await _yolo_fill_blanks(db, project, phase_id, sub_config, project_context)

@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, selectinload
 from ...models import schemas, database
 from ...services.breakdown_service import breakdown_service
 from ..dependencies import get_db, get_current_user
+from ...utils.bible_context import build_bible_context
 
 logger = logging.getLogger(__name__)
 
@@ -254,10 +255,11 @@ async def trigger_extraction(
     db: Session = Depends(get_db)
 ):
     """Trigger AI extraction of production elements from screenplay content."""
-    _verify_project_ownership(db, project_id, current_user.id)
+    project = _verify_project_ownership(db, project_id, current_user.id)
+    bible_context = build_bible_context(db, project)
 
     try:
-        run = await breakdown_service.extract(db, project_id)
+        run = await breakdown_service.extract(db, project_id, bible_context=bible_context)
         return run
     except Exception as e:
         logger.error(f"Extraction failed for project {project_id}: {e}")

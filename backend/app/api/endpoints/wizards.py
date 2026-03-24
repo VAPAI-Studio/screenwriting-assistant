@@ -1,6 +1,7 @@
 # backend/app/api/endpoints/wizards.py
 
 import logging
+from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
@@ -11,13 +12,14 @@ from ..dependencies import get_db, get_current_user
 from ...services.template_ai_service import template_ai_service
 from ...db import SessionLocal
 from ...services.agent_review_middleware import agent_review_middleware
+from ...utils.bible_context import build_bible_context
 from .phase_data import _mark_breakdown_stale, _mark_shotlist_stale
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _get_project_context(db: Session, project: database.Project) -> str:
+def _get_project_context(db: Session, project: database.Project, bible_context: Optional[str] = None) -> str:
     """Build project context string from all phase data, including list items."""
     phase_data_records = db.query(database.PhaseData).filter(
         database.PhaseData.project_id == project.id
@@ -38,7 +40,7 @@ def _get_project_context(db: Session, project: database.Project) -> str:
                 list_items_map[f"{phase_key}.{pd.subsection_key}"] = items
 
     template_id = project.template.value if hasattr(project.template, 'value') else project.template
-    return template_ai_service._build_project_context(project_data, template_id, list_items=list_items_map, project_title=project.title)
+    return template_ai_service._build_project_context(project_data, template_id, list_items=list_items_map, project_title=project.title, bible_context=bible_context)
 
 
 def _get_character_data(db: Session, project_id) -> list:
@@ -58,7 +60,8 @@ def _get_character_data(db: Session, project_id) -> list:
 
 async def _run_wizard_background(
     run_id, project_id, template_id: str,
-    wizard_type: str, config: dict, phase: str, owner_id: str
+    wizard_type: str, config: dict, phase: str, owner_id: str,
+    bible_context: str = None,
 ):
     """Background task: run wizard generation and update the WizardRun record."""
     db = SessionLocal()
@@ -74,7 +77,7 @@ async def _run_wizard_background(
         wizard_run.status = "running"
         db.commit()
 
-        project_context = _get_project_context(db, project)
+        project_context = _get_project_context(db, project, bible_context=bible_context)
 
         result = await template_ai_service.wizard_generate(
             wizard_type=wizard_type,
@@ -127,6 +130,9 @@ async def run_wizard(
     if not project.template:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project has no template")
 
+    # Build bible context for episode projects (passed as string to background task)
+    bible_context = build_bible_context(db, project)
+
     # Inject character data for scene wizard before handing off to background
     config = dict(request.config)
     if request.wizard_type == "scene_wizard":
@@ -152,6 +158,7 @@ async def run_wizard(
         config=config,
         phase=request.phase,
         owner_id=str(current_user.id),
+        bible_context=bible_context,
     )
 
     return wizard_run
