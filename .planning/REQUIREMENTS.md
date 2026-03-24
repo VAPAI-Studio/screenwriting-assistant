@@ -8,10 +8,10 @@
 
 ### Show Management
 
-- [ ] **SHOW-01**: User can create a new show with a title and description
+- [x] **SHOW-01**: User can create a new show with a title and description
 - [ ] **SHOW-02**: Home page displays Shows and standalone Films as separate sections
 - [ ] **SHOW-03**: User can open a show to view its series bible and episode list
-- [ ] **SHOW-04**: User can edit a show's title and description, and delete a show
+- [x] **SHOW-04**: User can edit a show's title and description, and delete a show
 
 ### Series Bible
 
@@ -51,10 +51,10 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SHOW-01 | Phase 36 | Pending |
+| SHOW-01 | Phase 36 | Complete |
 | SHOW-02 | Phase 38 | Pending |
 | SHOW-03 | Phase 38 | Pending |
-| SHOW-04 | Phase 36 | Pending |
+| SHOW-04 | Phase 36 | Complete |
 | BIBL-01 | Phase 37 | Pending |
 | BIBL-02 | Phase 37 | Pending |
 | BIBL-03 | Phase 37 | Pending |

@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.2
-milestone_name: TV Show Mode
-status: ready to plan
-stopped_at: Roadmap created for v4.2 TV Show Mode (7 phases, 36-42)
-last_updated: "2026-03-24T00:00:00.000Z"
+milestone: v3.2
+milestone_name: Storyboard Mode
+status: executing
+stopped_at: Completed 36-01-PLAN.md
+last_updated: "2026-03-24T16:02:22Z"
 progress:
   total_phases: 7
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
 ---
 
 # Project State
@@ -19,28 +19,24 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 36 — Show Data Model & CRUD API (v4.2 TV Show Mode)
+**Current focus:** Phase 36 — show-data-model-crud-api (COMPLETE)
 
 ## Current Position
 
-Phase: 36 of 42 (Show Data Model & CRUD API) — first of 7 phases in v4.2
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-03-24 — Roadmap created for v4.2 TV Show Mode
-
-Progress: [░░░░░░░░░░] 0% (0/7 v4.2 phases)
+Phase: 36 (show-data-model-crud-api) — COMPLETE
+Plan: 1 of 1 (all complete)
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 51 (lifetime)
+- Total plans completed: 52 (lifetime)
 - Average duration: ~3min (recent)
-- Total execution time: ~2.5 hours (lifetime)
+- Total execution time: ~2.6 hours (lifetime)
 
 **Recent Trend:**
 
-- Last 5 plans: 34-01 (2min), 35-01 (3min), 35-02 (5min)
+- Last 5 plans: 34-01 (2min), 35-01 (3min), 35-02 (5min), 36-01 (9min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -50,10 +46,13 @@ Progress: [░░░░░░░░░░] 0% (0/7 v4.2 phases)
 Decisions logged in PROJECT.md Key Decisions table.
 
 Relevant to v4.2:
+
 - Episodes reuse existing Project model with nullable show_id FK (not a separate table)
 - Bible stored as columns on Show model (not separate table) for simplicity
 - Bible injection modifies existing generation services, not a new service
 - Standalone projects unaffected -- show_id = NULL means no bible context
+- Used str() cast on UUID filters in shows router for SQLite/PostgreSQL compatibility
+- Show model has no relationships yet -- Phase 37 adds bible columns, Phase 39 adds episodes
 
 ### Pending Todos
 
@@ -67,5 +66,5 @@ Relevant to v4.2:
 ## Session Continuity
 
 Last session: 2026-03-24
-Stopped at: Roadmap created for v4.2 TV Show Mode
+Stopped at: Completed 36-01-PLAN.md (Show Data Model & CRUD API)
 Resume file: None

@@ -90,7 +90,7 @@
 
 ### v4.2 TV Show Mode (In Progress)
 
-- [ ] **Phase 36: Show Data Model & CRUD API** - Show entity with DB model, delta migration, Pydantic schemas, full CRUD endpoints
+- [x] **Phase 36: Show Data Model & CRUD API** - Show entity with DB model, delta migration, Pydantic schemas, full CRUD endpoints (completed 2026-03-24)
 - [ ] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content
 - [ ] **Phase 38: Show Management UI** - Home page split (Shows vs Films), show detail page shell with bible editor and episode list area
 - [ ] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility
@@ -110,7 +110,7 @@
   3. GET /api/shows returns all shows for the authenticated user
   4. PUT /api/shows/{id} updates a show's title and description
   5. DELETE /api/shows/{id} deletes a show and all associated data (bible, episodes)
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 Plans:
 - [ ] 36-01-PLAN.md — Show model, schemas, migration, CRUD router, and integration tests
 
@@ -245,7 +245,7 @@ Plans:
 | 33. Script-to-Element Highlighting | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 34. Script-to-Shot Overlay | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
-| 36. Show Data Model & CRUD API | v4.2 | 0/1 | In progress | - |
+| 36. Show Data Model & CRUD API | 1/1 | Complete   | 2026-03-24 | - |
 | 37. Series Bible Data & API | v4.2 | 0/? | Not started | - |
 | 38. Show Management UI | v4.2 | 0/? | Not started | - |
 | 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
