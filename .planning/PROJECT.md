@@ -37,8 +37,8 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 ### Active (v4.0)
 
 - [ ] Show entity with create/edit/delete (SHOW-01, SHOW-02, SHOW-03, SHOW-04)
-- [ ] Series bible: Characters, World/Setting, Season Arc, Tone & Style (BIBL-01, BIBL-02)
-- [ ] Target episode duration setting per show (BIBL-03)
+- ✓ Series bible: Characters, World/Setting, Season Arc, Tone & Style (BIBL-01, BIBL-02) — Validated in Phase 37: series-bible-data-api
+- ✓ Target episode duration setting per show (BIBL-03) — Validated in Phase 37: series-bible-data-api
 - [ ] Bible + duration injected into all AI generation for episodes (BIBL-04)
 - [ ] Episode creation and management inside a show (EPIS-01, EPIS-02, EPIS-03, EPIS-04)
 - [ ] Breadcrumb navigation from episode back to show (EPIS-05)
