@@ -156,6 +156,28 @@ async def update_bible(
     )
 
 
+@router.get("/{show_id}/episodes", response_model=List[schemas.Project])
+async def list_episodes(
+    show_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all episodes for a show, ordered by episode number."""
+    show = (
+        db.query(database.Show)
+        .filter(database.Show.id == str(show_id), database.Show.owner_id == str(current_user.id))
+        .first()
+    )
+    if not show:
+        raise NotFoundException(resource="Show", identifier=str(show_id))
+    return (
+        db.query(database.Project)
+        .filter(database.Project.show_id == str(show_id))
+        .order_by(database.Project.episode_number.asc())
+        .all()
+    )
+
+
 @router.post("/{show_id}/episodes", response_model=schemas.Project, status_code=status.HTTP_201_CREATED)
 async def create_episode(
     show_id: UUID,
