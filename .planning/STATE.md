@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.2
-milestone_name: Storyboard Mode
-status: unknown
-stopped_at: Completed 35-02-PLAN.md (Phase 35 complete)
-last_updated: "2026-03-23T18:36:19.991Z"
+milestone: v4.0
+milestone_name: TV Show Mode
+status: defining requirements
+stopped_at: Milestone v4.0 started — defining requirements
+last_updated: "2026-03-24T00:00:00.000Z"
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 12
-  completed_plans: 12
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-20)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 35 — real-authentication-user-model
+**Current focus:** Milestone v4.0 — TV Show Mode (defining requirements)
 
 ## Current Position
 
-Phase: 35 (real-authentication-user-model) — COMPLETE
-Plan: 2 of 2 (all plans complete)
+Phase: Not started (defining requirements)
+Plan: —
 
 ## Performance Metrics
 

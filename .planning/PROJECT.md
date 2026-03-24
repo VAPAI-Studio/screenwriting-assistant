@@ -34,18 +34,19 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 - ✓ AI chat in Breakdown mode with shotlist + element context awareness, shot create/modify via conversation — v3.0
 - ✓ Bidirectional sync between screenplay and shotlist (staleness banner + acknowledge) — v3.0
 
-### Active (v3.1)
+### Active (v4.0)
 
-- ✓ AI auto-generation of full shotlist from script content with smart merge and user_modified preservation (AUTO-01) — Validated in Phase 26: ai-shotlist-generation-service
-- ✓ AI-generated shots display subtle AI badge (sparkle icon) to distinguish from manually-created shots — Validated in Phase 27: generate-shotlist-ui-ai-badge
-- ✓ Media deletion UI — trash button overlay on images/audio, window.confirm guard — Validated in Phase 28: ux-improvements
-- ✓ Drag-and-drop shot reordering replacing arrow buttons (SMGT-01) — Validated in Phase 28: ux-improvements
-- ✓ Scene reorder marks shotlist stale (SYNC-01 gap from v3.0 audit) — Validated in Phase 28: ux-improvements
+- [ ] Show entity with create/edit/delete (SHOW-01, SHOW-02, SHOW-03, SHOW-04)
+- [ ] Series bible: Characters, World/Setting, Season Arc, Tone & Style (BIBL-01, BIBL-02)
+- [ ] Target episode duration setting per show (BIBL-03)
+- [ ] Bible + duration injected into all AI generation for episodes (BIBL-04)
+- [ ] Episode creation and management inside a show (EPIS-01, EPIS-02, EPIS-03, EPIS-04)
+- [ ] Breadcrumb navigation from episode back to show (EPIS-05)
 
-### Deferred (v3.2+)
+### Deferred (v5.0+)
 
-- [ ] Shot duplication and batch operations (SMGT-02, SMGT-03)
-- [ ] YOLO auto-generation of shotlist on script save
+- [ ] Shot duplication and batch operations (AISG-09, AISG-10)
+- [ ] YOLO auto-generation of shotlist on script save (AISG-08)
 
 ### Out of Scope
 
@@ -119,18 +120,20 @@ Last updated: 2026-03-21
 
 ---
 
-## Current Milestone: v3.1 — AI Shotlist Generation
+## Current Milestone: v4.0 — TV Show Mode
 
-**Goal:** AI generates a complete shotlist from the script, populating all fields, with smart merge that preserves user edits.
+**Goal:** Users can create TV shows with a series bible and manage multiple episodes, each going through the full production pipeline with bible context injected into all AI generation.
 
 **Target features:**
-- AI auto-generates shots from script (all fields: size, angle, movement, description, action, scene assignment, ordering, script link)
-- Smart merge: user_modified shots preserved on regeneration
-- AI badge on auto-generated shots
-- Media deletion UI
-- Drag-and-drop shot reorder
-- Scene reorder marks shotlist stale
+- Show entity: create/edit/delete shows with title and description
+- Home page shows Shows and Films as separate sections
+- Series bible: Characters, World/Setting, Season Arc, Tone & Style (freeform text)
+- Target episode duration setting per show (10/22/44/60 min or custom)
+- Bible + duration auto-injected into AI context for all episode generation
+- Episode creation inside a show (episode number + title)
+- Each episode has full screenplay → breakdown → shotlist → storyboard pipeline
+- Breadcrumb navigation: Show > Episode N: Title
 
 ---
 
-*Last updated: 2026-03-20 after Phase 26 (ai-shotlist-generation-service) complete*
+*Last updated: 2026-03-24 after milestone v4.0 started*
