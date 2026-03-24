@@ -17,6 +17,7 @@ import { LoginPage } from './components/Auth/LoginPage';
 import { RegisterPage } from './components/Auth/RegisterPage';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { ProfilePage } from './components/Settings/ProfilePage';
+import { ShowDetail } from './components/Shows/ShowDetail';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,7 +43,7 @@ function ElementDetailRoute() {
 function ShowDetailRoute() {
   const { showId } = useParams<{ showId: string }>();
   if (!showId) return null;
-  return <div className="mx-auto max-w-screen-xl px-6 py-10"><p>Show detail page -- Phase 38 Plan 02</p></div>;
+  return <ShowDetail showId={showId} />;
 }
 
 function App() {
