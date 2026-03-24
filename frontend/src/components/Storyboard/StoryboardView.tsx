@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Film, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
+import { EpisodeBreadcrumb } from '../Editor/EpisodeBreadcrumb';
 import { ShotCard } from './ShotCard';
 import { FrameGalleryModal } from './FrameGalleryModal';
 import type { Shot } from '../../types';
@@ -48,6 +49,13 @@ function groupShotsByScene(shots: Shot[]): SceneGroup[] {
 
 export function StoryboardView({ projectId }: StoryboardViewProps) {
   const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
+
+  const { data: project } = useQuery({
+    queryKey: QUERY_KEYS.PROJECT(projectId),
+    queryFn: () => api.getProject(projectId),
+  });
+
+  const isEpisode = !!project?.show_id && project?.episode_number != null;
 
   // Apply storyboard CSS theme — remove on unmount
   useEffect(() => {
@@ -153,7 +161,15 @@ export function StoryboardView({ projectId }: StoryboardViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)]">
+    <>
+      {isEpisode && (
+        <EpisodeBreadcrumb
+          showId={project!.show_id!}
+          episodeNumber={project!.episode_number!}
+          episodeTitle={project!.title}
+        />
+      )}
+      <div className={`flex flex-col ${isEpisode ? 'h-[calc(100vh-89px)]' : 'h-[calc(100vh-3.5rem)]'}`}>
       {/* Storyboard header bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-border flex-shrink-0">
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
@@ -166,5 +182,6 @@ export function StoryboardView({ projectId }: StoryboardViewProps) {
       {/* Content area */}
       {contentJsx}
     </div>
+    </>
   );
 }

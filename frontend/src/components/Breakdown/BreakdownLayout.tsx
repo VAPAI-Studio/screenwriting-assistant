@@ -4,7 +4,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { FileText, MessageSquare, Sparkles, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { BreakdownChat } from './BreakdownChat';
-import { STORAGE_KEYS } from '../../lib/constants';
+import { STORAGE_KEYS, QUERY_KEYS } from '../../lib/constants';
+import { EpisodeBreadcrumb } from '../Editor/EpisodeBreadcrumb';
 import { BreakdownPanel } from './BreakdownPanel';
 import { ShotlistPanel } from './ShotlistPanel';
 import { ShotlistStalenessBar } from './ShotlistStalenessBar';
@@ -32,6 +33,14 @@ function readStoredBool(key: string, fallback: boolean): boolean {
 
 export function BreakdownLayout() {
   const { projectId } = useParams<{ projectId: string }>();
+
+  const { data: project } = useQuery({
+    queryKey: QUERY_KEYS.PROJECT(projectId!),
+    queryFn: () => api.getProject(projectId!),
+    enabled: !!projectId,
+  });
+
+  const isEpisode = !!project?.show_id && project?.episode_number != null;
 
   // Mode class lifecycle — MUST clean up on unmount
   useEffect(() => {
@@ -175,7 +184,15 @@ export function BreakdownLayout() {
   }, []);
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+    <>
+      {isEpisode && (
+        <EpisodeBreadcrumb
+          showId={project!.show_id!}
+          episodeNumber={project!.episode_number!}
+          episodeTitle={project!.title}
+        />
+      )}
+      <div className={`flex ${isEpisode ? 'h-[calc(100vh-89px)]' : 'h-[calc(100vh-3.5rem)]'} overflow-hidden`}>
 
       {/* Left panel */}
       <BreakdownPanel
@@ -294,5 +311,6 @@ export function BreakdownLayout() {
       </BreakdownPanel>
 
     </div>
+    </>
   );
 }

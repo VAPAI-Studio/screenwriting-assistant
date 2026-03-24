@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { SectionEditor } from './SectionEditor';
 import { ChatSidebar } from './ChatSidebar';
+import { EpisodeBreadcrumb } from './EpisodeBreadcrumb';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { QUERY_KEYS, ERROR_MESSAGES } from '../../lib/constants';
 import { Button } from '../UI/Button';
@@ -62,9 +63,18 @@ export function Editor() {
   }
 
   const selectedSection = project.sections.find(s => s.id === selectedSectionId);
+  const isEpisode = !!project.show_id && project.episode_number != null;
 
   return (
-    <div className="flex h-[calc(100vh-56px)]">
+    <>
+      {isEpisode && (
+        <EpisodeBreadcrumb
+          showId={project.show_id!}
+          episodeNumber={project.episode_number!}
+          episodeTitle={project.title}
+        />
+      )}
+      <div className={`flex ${isEpisode ? 'h-[calc(100vh-89px)]' : 'h-[calc(100vh-56px)]'}`}>
       {/* Section sidebar */}
       <div className="w-56 border-r border-border bg-card/30 p-3 overflow-y-auto flex-shrink-0">
         <h2 className="text-sm font-semibold text-foreground px-3 py-2 truncate">{project.title}</h2>
@@ -116,5 +126,6 @@ export function Editor() {
         />
       )}
     </div>
+    </>
   );
 }
