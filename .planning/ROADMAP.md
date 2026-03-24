@@ -137,7 +137,7 @@ Plans:
   3. The show detail page displays the show title, description, and an editable series bible with four sections (Characters, World/Setting, Season Arc, Tone & Style) and the episode duration selector
   4. The show detail page has an episode list area (empty until Phase 40 wires episode management)
   5. Bible edits auto-save and persist on page refresh
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 Plans:
 - [ ] 38-01-PLAN.md — Types, API methods, constants, home page split with ShowCard and CreateShowModal
 - [ ] 38-02-PLAN.md — ShowDetail page with BibleEditor, EpisodeDurationPicker, and route wiring
@@ -252,7 +252,7 @@ Plans:
 | 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
 | 36. Show Data Model & CRUD API | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 37. Series Bible Data & API | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 38. Show Management UI | v4.2 | 0/2 | Not started | - |
+| 38. Show Management UI | 1/2 | In Progress|  | - |
 | 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
 | 40. Episode Management UI | v4.2 | 0/? | Not started | - |
 | 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
