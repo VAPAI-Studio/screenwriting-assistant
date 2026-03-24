@@ -1,13 +1,28 @@
 import pytest
-from app.models.database import Show as ShowModel
+from app.models.database import Show as ShowModel, User as UserModel
+
+
+MOCK_USER_ID = "12345678-1234-5678-1234-567812345678"
 
 
 class TestShowModel:
     """Test the Show SQLAlchemy model directly."""
 
     def test_show_model_columns(self, db_session):
+        # Ensure mock user exists (needed for FK constraint)
+        existing = db_session.query(UserModel).filter(UserModel.id == MOCK_USER_ID).first()
+        if not existing:
+            user = UserModel(
+                id=MOCK_USER_ID,
+                email="showtest@example.com",
+                hashed_password="fakehash",
+                display_name="ShowTest",
+            )
+            db_session.add(user)
+            db_session.flush()
+
         show = ShowModel(
-            owner_id="12345678-1234-5678-1234-567812345678",
+            owner_id=MOCK_USER_ID,
             title="Breaking Bad",
             description="A chemistry teacher turns to cooking meth.",
         )
