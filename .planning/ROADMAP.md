@@ -66,7 +66,7 @@
 
 </details>
 
-### 🚧 v3.2 Storyboard Mode (Planned)
+### v3.2 Storyboard Mode (Planned)
 
 - [ ] **Phase 29: Storyboard Data Model & Mode Shell** - DB model for storyboard frames, CRUD API, third mode toggle (deep purple/violet identity), project-level style setting
 - [ ] **Phase 30: Storyboard Grid UI** - Grid of shot cards each with a frame slot, upload frames, mark one as selected/hero, multiple frames per shot gallery
@@ -88,7 +88,7 @@
 
 </details>
 
-### 🚧 v4.2 TV Show Mode (In Progress)
+### v4.2 TV Show Mode (In Progress)
 
 - [ ] **Phase 36: Show Data Model & CRUD API** - Show entity with DB model, delta migration, Pydantic schemas, full CRUD endpoints
 - [ ] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content
@@ -110,7 +110,9 @@
   3. GET /api/shows returns all shows for the authenticated user
   4. PUT /api/shows/{id} updates a show's title and description
   5. DELETE /api/shows/{id} deletes a show and all associated data (bible, episodes)
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 36-01-PLAN.md — Show model, schemas, migration, CRUD router, and integration tests
 
 ### Phase 37: Series Bible Data & API
 **Goal**: Each show has structured bible content (four sections) and a target episode duration, persisted and editable via API
@@ -180,7 +182,7 @@
   4. Standalone film projects do not display any breadcrumb (no visual change for existing workflows)
 **Plans**: TBD
 
-### 🔮 v5.0 API Key Management & Gateway (Future)
+### v5.0 API Key Management & Gateway (Future)
 
 #### Phase 43: API Key Management
 **Goal**: Users can create named API keys with optional scopes and expiry dates, and use them to authenticate any endpoint
@@ -243,7 +245,7 @@
 | 33. Script-to-Element Highlighting | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 34. Script-to-Shot Overlay | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
-| 36. Show Data Model & CRUD API | v4.2 | 0/? | Not started | - |
+| 36. Show Data Model & CRUD API | v4.2 | 0/1 | In progress | - |
 | 37. Series Bible Data & API | v4.2 | 0/? | Not started | - |
 | 38. Show Management UI | v4.2 | 0/? | Not started | - |
 | 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
