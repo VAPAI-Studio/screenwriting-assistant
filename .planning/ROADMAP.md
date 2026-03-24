@@ -191,7 +191,9 @@ Plans:
   2. Clicking the show name in the breadcrumb navigates back to the show detail page
   3. The breadcrumb is visible in all episode modes (screenwriting, breakdown) — not just the editor
   4. Standalone film projects do not display any breadcrumb (no visual change for existing workflows)
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 42-01-PLAN.md — EpisodeBreadcrumb component with integration into Editor, BreakdownLayout, and StoryboardView
 
 ### v5.0 API Key Management & Gateway (Future)
 
@@ -261,7 +263,7 @@ Plans:
 | 38. Show Management UI | v4.2 | 2/2 | Complete | 2026-03-24 |
 | 39. Episode Data Model & Linking | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 40. Episode Management UI | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 41. Bible AI Injection | 1/1 | Complete   | 2026-03-24 | - |
-| 42. Breadcrumb Navigation | v4.2 | 0/? | Not started | - |
+| 41. Bible AI Injection | v4.2 | 1/1 | Complete | 2026-03-24 |
+| 42. Breadcrumb Navigation | v4.2 | 0/1 | Planned | - |
 | 43. API Key Management | v5.0 | 0/? | Future | - |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
