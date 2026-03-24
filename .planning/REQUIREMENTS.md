@@ -1,10 +1,10 @@
 # Requirements: Screenwriting Assistant
 
 **Defined:** 2026-03-24
-**Milestone:** v4.0 — TV Show Mode
+**Milestone:** v4.2 — TV Show Mode
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
 
-## v4.0 Requirements
+## v4.2 Requirements
 
 ### Show Management
 
@@ -44,32 +44,32 @@
 | Department assignments per shot | Production management feature, out of MVP scope |
 | Real-time AI suggestions while typing | Too complex, staleness-flag pattern is sufficient |
 | Movie Magic / Final Draft export | Industry format integration deferred indefinitely |
-| Cross-episode shared breakdown elements | High complexity, per-episode breakdown is sufficient for v4.0 |
+| Cross-episode shared breakdown elements | High complexity, per-episode breakdown is sufficient for v4.2 |
 | Episode scheduling / production calendar | Different product domain |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SHOW-01 | TBD | Pending |
-| SHOW-02 | TBD | Pending |
-| SHOW-03 | TBD | Pending |
-| SHOW-04 | TBD | Pending |
-| BIBL-01 | TBD | Pending |
-| BIBL-02 | TBD | Pending |
-| BIBL-03 | TBD | Pending |
-| BIBL-04 | TBD | Pending |
-| EPIS-01 | TBD | Pending |
-| EPIS-02 | TBD | Pending |
-| EPIS-03 | TBD | Pending |
-| EPIS-04 | TBD | Pending |
-| EPIS-05 | TBD | Pending |
+| SHOW-01 | Phase 36 | Pending |
+| SHOW-02 | Phase 38 | Pending |
+| SHOW-03 | Phase 38 | Pending |
+| SHOW-04 | Phase 36 | Pending |
+| BIBL-01 | Phase 37 | Pending |
+| BIBL-02 | Phase 37 | Pending |
+| BIBL-03 | Phase 37 | Pending |
+| BIBL-04 | Phase 41 | Pending |
+| EPIS-01 | Phase 39 | Pending |
+| EPIS-02 | Phase 39 | Pending |
+| EPIS-03 | Phase 40 | Pending |
+| EPIS-04 | Phase 39 | Pending |
+| EPIS-05 | Phase 42 | Pending |
 
 **Coverage:**
-- v4.0 requirements: 13 total
-- Mapped to phases: 0 (roadmap pending)
-- Unmapped: 13 ⚠️
+- v4.2 requirements: 13 total
+- Mapped to phases: 13/13
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after milestone v4.0 definition*
+*Last updated: 2026-03-24 after v4.2 roadmap creation*

@@ -7,8 +7,10 @@
 - ✅ **v3.0 Shotlist & Production Breakdown** — Phases 17-25 (shipped 2026-03-20)
 - ✅ **v3.1 AI Shotlist Generation** — Phases 26-28 (shipped 2026-03-21)
 - 🚧 **v3.2 Storyboard Mode** — Phases 29-31 (planned)
-- 🔮 **v4.0 Element Detail Pages & Script Linking** — Phases 32-34 (future)
-- 🔮 **v5.0 User Management & API Access** — Phases 35-37 (future)
+- ✅ **v4.0 Element Detail Pages & Script Linking** — Phases 32-34 (shipped 2026-03-22)
+- ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
+- 🚧 **v4.2 TV Show Mode** — Phases 36-42 (in progress)
+- 🔮 **v5.0 API Key Management & Gateway** — Phases 43-44 (future)
 
 ## Phases
 
@@ -55,54 +57,14 @@
 
 </details>
 
-### ✅ v3.1 AI Shotlist Generation (Shipped 2026-03-21)
+<details>
+<summary>✅ v3.1 AI Shotlist Generation (Phases 26-28) — SHIPPED 2026-03-21</summary>
 
-- [x] **Phase 26: AI Shotlist Generation Service** - Backend service that reads script content and generates a complete shotlist with smart merge (completed 2026-03-20)
-- [x] **Phase 27: Generate Shotlist UI & AI Badge** - Frontend trigger button, generation progress, and visual distinction for AI-generated shots (completed 2026-03-21)
-- [x] **Phase 28: UX Improvements** - Media deletion, drag-and-drop shot reorder, and scene reorder staleness fix (completed 2026-03-21)
+- [x] Phase 26: AI Shotlist Generation Service (2/2 plans) — completed 2026-03-20
+- [x] Phase 27: Generate Shotlist UI & AI Badge (1/1 plan) — completed 2026-03-21
+- [x] Phase 28: UX Improvements (3/3 plans) — completed 2026-03-21
 
-#### Phase 26: AI Shotlist Generation Service
-**Goal**: AI can generate a full shotlist from script content, assigning shots to scenes with all fields populated, and regeneration preserves user-edited shots
-**Depends on**: Phase 25 (existing Shot CRUD, staleness infrastructure)
-**Requirements**: AISG-01, AISG-02, AISG-03, AISG-04, AISG-05, AISG-06
-**Success Criteria** (what must be TRUE):
-  1. Calling the generation endpoint with a project ID produces shots covering all script scenes, with shot_size, camera_angle, camera_movement, description, and action fields populated
-  2. Each generated shot is assigned to the correct scene (scene_item_id) and includes the source script passage in script_text
-  3. Shots within each scene have a logical ordering (establishing shots before close-ups, action coverage before reactions)
-  4. Regenerating the shotlist after a user has manually edited some shots preserves those edited shots unchanged while replacing/adding AI-generated ones
-  5. The Shot model has a user_modified flag that is set to true on manual edit and an ai_generated flag that distinguishes AI-created shots from manual ones
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 26-01-PLAN.md — Schema foundation: delta migration, ORM + schema updates for user_modified/ai_generated, update endpoint flag
-- [x] 26-02-PLAN.md — ShotlistGenerationService: AI context builder, structured output, smart merge, generate endpoint + tests
-
-#### Phase 27: Generate Shotlist UI & AI Badge
-**Goal**: Users can trigger shotlist generation from the breakdown panel and visually distinguish AI-generated shots from manually-created ones
-**Depends on**: Phase 26
-**Requirements**: AISG-01 (frontend trigger), AISG-07
-**Success Criteria** (what must be TRUE):
-  1. A "Generate Shotlist" button is visible in the shotlist panel and triggers the backend generation endpoint
-  2. While generation is in progress, the UI shows a loading/progress state and the button is disabled
-  3. After generation completes, the shotlist panel refreshes to show all generated shots grouped by scene
-  4. AI-generated shots display a subtle sparkle icon badge that is not present on manually-created shots
-**Plans:** 1/1 plans complete
-Plans:
-- [x] 27-01-PLAN.md — Type updates, API method, generate button + mutation, sparkle badge on AI shots
-
-#### Phase 28: UX Improvements
-**Goal**: Users can delete media assets, reorder shots by dragging, and scene reordering correctly flags the shotlist as stale
-**Depends on**: Phase 25 (staleness infrastructure, existing shotlist panel)
-**Requirements**: MDIA-01, SMGT-01, SYNC-01
-**Success Criteria** (what must be TRUE):
-  1. Each media asset in the assets panel has a delete button that removes the asset after confirmation
-  2. Shots in the shotlist panel can be reordered by dragging and dropping (arrow buttons are removed)
-  3. Drag-and-drop reorder persists the new sort_order to the backend and survives page refresh
-  4. Reordering scenes in the screenplay editor marks the shotlist as stale (staleness banner appears in breakdown mode)
-**Plans:** 3/3 plans complete
-Plans:
-- [x] 28-01-PLAN.md — Media asset deletion UI: trash button overlay on MediaThumbnail + AudioPlayer, window.confirm guard, deleteMedia mutation
-- [x] 28-02-PLAN.md — Drag-and-drop shot reorder: install @hello-pangea/dnd, replace ReorderControls with DnD in SceneGroup, wire reorderMutation on drop
-- [x] 28-03-PLAN.md — Scene reorder staleness fix: add _mark_shotlist_stale call to reorder_list_items endpoint
+</details>
 
 ### 🚧 v3.2 Storyboard Mode (Planned)
 
@@ -110,119 +72,117 @@ Plans:
 - [ ] **Phase 30: Storyboard Grid UI** - Grid of shot cards each with a frame slot, upload frames, mark one as selected/hero, multiple frames per shot gallery
 - [ ] **Phase 31: AI Frame Generation (Google Imagen)** - Vertex AI / Imagen integration, per-shot "Generate Frame" button using shot fields as prompt, Photorealistic / Cinematic / Animated styles
 
-#### Phase 29: Storyboard Data Model & Mode Shell
-**Goal**: A third "Storyboard" mode exists in the app (deep purple/violet identity), backed by a StoryboardFrame model that links frames to shots
-**Depends on**: Phase 19 (Shot model), Phase 22 (media upload infrastructure)
-**Requirements**: SB-01, SB-02
+<details>
+<summary>✅ v4.0 Element Detail Pages & Script Linking (Phases 32-34) — SHIPPED 2026-03-22</summary>
+
+- [x] Phase 32: Element Detail Pages (2/2 plans) — completed 2026-03-22
+- [x] Phase 33: Script-to-Element Highlighting (1/1 plan) — completed 2026-03-22
+- [x] Phase 34: Script-to-Shot Overlay (1/1 plan) — completed 2026-03-22
+
+</details>
+
+<details>
+<summary>✅ v4.1 Real Authentication (Phase 35) — SHIPPED 2026-03-23</summary>
+
+- [x] Phase 35: Real Authentication & User Model (2/2 plans) — completed 2026-03-23
+
+</details>
+
+### 🚧 v4.2 TV Show Mode (In Progress)
+
+- [ ] **Phase 36: Show Data Model & CRUD API** - Show entity with DB model, delta migration, Pydantic schemas, full CRUD endpoints
+- [ ] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content
+- [ ] **Phase 38: Show Management UI** - Home page split (Shows vs Films), show detail page shell with bible editor and episode list area
+- [ ] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility
+- [ ] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline
+- [ ] **Phase 41: Bible AI Injection** - Modify generation services to prepend bible content and duration when generating for an episode
+- [ ] **Phase 42: Breadcrumb Navigation** - Episode views include breadcrumb trail back to parent show
+
+## Phase Details
+
+### Phase 36: Show Data Model & CRUD API
+**Goal**: A Show entity exists in the database with full CRUD operations accessible via REST API
+**Depends on**: Phase 35 (user model for owner_id FK)
+**Requirements**: SHOW-01, SHOW-04
 **Success Criteria** (what must be TRUE):
-  1. The mode toggle has three options: Screenwriting / Breakdown / Storyboard, with Storyboard using a deep purple/violet accent color
-  2. A StoryboardFrame model exists with fields: shot_id, file_path, thumbnail_path, file_type (image/video), is_selected, generation_source (user/ai), generation_style
-  3. Full CRUD API exists for storyboard frames (create, list by project/shot, update is_selected, delete)
-  4. Each project has a storyboard_style setting (photorealistic / cinematic / animated)
-  5. The Storyboard page renders with correct purple identity (empty state acceptable)
-**Plans:** 2 plans
-Plans:
-- [ ] 29-01-PLAN.md — StoryboardFrame model, delta migration, schemas, CRUD API + tests (SB-02)
-- [ ] 29-02-PLAN.md — Three-mode toggle, purple CSS theme, StoryboardView shell, TypeScript types + API methods (SB-01)
+  1. A `shows` table exists with columns: id, title, description, owner_id (FK to users), created_at, updated_at
+  2. POST /api/shows creates a new show and returns it with an id
+  3. GET /api/shows returns all shows for the authenticated user
+  4. PUT /api/shows/{id} updates a show's title and description
+  5. DELETE /api/shows/{id} deletes a show and all associated data (bible, episodes)
+**Plans**: TBD
 
-#### Phase 30: Storyboard Grid UI
-**Goal**: Users can view all shots as a grid of frame cards, upload images/video per shot, and mark one frame as the selected/hero frame
-**Depends on**: Phase 29
-**Requirements**: SB-03, SB-04, SB-05
+### Phase 37: Series Bible Data & API
+**Goal**: Each show has structured bible content (four sections) and a target episode duration, persisted and editable via API
+**Depends on**: Phase 36 (Show model)
+**Requirements**: BIBL-01, BIBL-02, BIBL-03
 **Success Criteria** (what must be TRUE):
-  1. Storyboard page shows a grid of cards — one per shot — ordered by scene then shot_number
-  2. Each card shows: scene label, shot number, shot description (truncated), and the selected frame image (or empty frame placeholder)
-  3. Clicking a card opens a frame gallery modal showing all frames for that shot with upload button and "mark as selected" action
-  4. Uploaded frames appear as thumbnails; the selected frame is visually highlighted
-  5. Empty shots show a placeholder frame with "Upload" and "Generate with AI" (disabled until Phase 31) actions
-**Plans:** 2 plans
-Plans:
-- [ ] 30-01-PLAN.md — ShotCard component and StoryboardView grid layout grouped by scene (SB-03, SB-04)
-- [ ] 30-02-PLAN.md — FrameGalleryModal with upload, mark-as-selected, delete, and disabled AI generate button (SB-04, SB-05)
+  1. Each show has four bible fields: characters, world_setting, season_arc, tone_style (text columns or JSONB, stored per show)
+  2. GET /api/shows/{id}/bible returns all four sections and the episode duration
+  3. PUT /api/shows/{id}/bible saves edits to any combination of bible sections and duration
+  4. Episode duration supports preset values (10, 22, 44, 60 min) and custom integer entry
+**Plans**: TBD
 
-#### Phase 31: AI Frame Generation (Google Imagen)
-**Goal**: Users can generate a storyboard frame for any shot using Google Imagen, with the result stored and displayable in the grid
-**Depends on**: Phase 30
-**Requirements**: SB-06, SB-07
+### Phase 38: Show Management UI
+**Goal**: Users can see their shows and films as separate sections on the home page, and can open a show to view its bible and episode list
+**Depends on**: Phase 37 (Bible API), Phase 36 (Show CRUD)
+**Requirements**: SHOW-02, SHOW-03
 **Success Criteria** (what must be TRUE):
-  1. A Google Vertex AI / Imagen client exists in the backend (google-cloud-aiplatform SDK)
-  2. POST /api/storyboard/{project_id}/shots/{shot_id}/generate triggers image generation and stores the result as a StoryboardFrame with generation_source=ai
-  3. The generation prompt is built from shot fields: description, action, camera_angle, shot_size, scene context, and project storyboard_style
-  4. "Generate with AI" button in the frame gallery fires the endpoint, shows a spinner, and displays the result when done
-  5. Generated frames are automatically set as selected if no frame was previously selected for that shot
-**Plans:** 2 plans
-Plans:
-- [ ] 31-01-PLAN.md — ImagenService with prompt builder, generate endpoint + tests (SB-06)
-- [ ] 31-02-PLAN.md — Frontend: api.generateFrame method, enable Generate button with loading/error states (SB-07)
+  1. The home page displays a "Shows" section listing all shows (title, description, episode count) and a "Films" section listing standalone projects
+  2. Clicking a show navigates to a show detail page at /shows/{id}
+  3. The show detail page displays the show title, description, and an editable series bible with four sections (Characters, World/Setting, Season Arc, Tone & Style) and the episode duration selector
+  4. The show detail page has an episode list area (empty until Phase 40 wires episode management)
+  5. Bible edits auto-save and persist on page refresh
+**Plans**: TBD
 
-### 🔮 v4.0 Element Detail Pages & Script Linking (Future)
-
-- [x] **Phase 32: Element Detail Pages** - Dedicated full page per character/prop/location with extended fields (bio, notes, costume, specs) and reference image gallery beyond the current assets panel (completed 2026-03-22)
-- [x] **Phase 33: Script-to-Element Highlighting** - In the script read view, every appearance of a breakdown element (character name, prop mention, location) is highlighted; clicking navigates to the element detail page (completed 2026-03-22)
-- [x] **Phase 34: Script-to-Shot Overlay** - Low-opacity framing/highlight in the script view showing which passages are covered by shots in the shotlist; clicking a covered passage navigates to that shot (completed 2026-03-22)
-
-#### Phase 32: Element Detail Pages
-**Goal**: Each breakdown element (character, prop, location, etc.) has a dedicated full page with extended fields and a reference image gallery
-**Depends on**: Phase 13 (Breakdown Page), Phase 23 (Assets Panel)
-**Requirements**: EDP-01, EDP-02
+### Phase 39: Episode Data Model & Linking
+**Goal**: Episodes are projects that belong to a show, with the existing project pipeline fully intact and standalone projects unaffected
+**Depends on**: Phase 36 (Show model)
+**Requirements**: EPIS-01, EPIS-02, EPIS-04
 **Success Criteria** (what must be TRUE):
-  1. Clicking any element in the breakdown page navigates to a dedicated element detail page
-  2. The detail page shows: name, category, description, all scenes where it appears, and an extended fields section (character: bio/age/role; location: address/type/notes; prop: specs/owner/status)
-  3. A full reference image gallery (larger than the current assets panel view) shows all uploaded media with upload, delete, and expand actions
-  4. Changes to extended fields are saved and persist on refresh
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 32-01-PLAN.md — GET single-element endpoint with enriched scene titles, SceneLinkResponse scene_title field, backend tests (EDP-01)
-- [x] 32-02-PLAN.md — Element detail page frontend: routing, extended fields form, scene list, reference image gallery with lightbox (EDP-01, EDP-02)
+  1. The projects table has a nullable show_id FK and an episode_number integer column (both null for standalone projects)
+  2. POST /api/shows/{show_id}/episodes creates a new project linked to the show with an episode number and title
+  3. An episode project has the full screenplay, breakdown, shotlist, and storyboard pipeline — identical to standalone projects
+  4. Existing standalone projects (show_id = NULL) continue to work exactly as before with zero data migration
+**Plans**: TBD
 
-#### Phase 33: Script-to-Element Highlighting
-**Goal**: In the script read view, every mention of a breakdown element is highlighted and links to its detail page
-**Depends on**: Phase 21 (Script Read View), Phase 32 (Element Detail Pages)
-**Requirements**: SEL-01
+### Phase 40: Episode Management UI
+**Goal**: Users can create, view, open, and delete episodes from the show detail page
+**Depends on**: Phase 38 (Show detail page), Phase 39 (Episode API)
+**Requirements**: EPIS-03
 **Success Criteria** (what must be TRUE):
-  1. Character names, prop mentions, and location headings in the script are highlighted with a color-coded underline matching their element category
-  2. Hovering a highlight shows a tooltip with the element name and category
-  3. Clicking a highlight navigates to that element's detail page
-**Plans:** 1/1 plans complete
-Plans:
-- [ ] 33-01-PLAN.md — Text highlight utility, HighlightedScriptText component, CSS classes, wire into ScriptReadView (SEL-01)
+  1. The show detail page displays an episode list showing all episodes ordered by episode number (number, title, framework)
+  2. A "New Episode" button opens a create dialog with episode number (auto-incremented) and title fields
+  3. Clicking an episode navigates to the standard project editor (/projects/{id}) which renders the full pipeline
+  4. Each episode row has a delete action that removes the episode after confirmation
+**Plans**: TBD
 
-#### Phase 34: Script-to-Shot Overlay
-**Goal**: The script read view shows low-opacity framing marks indicating which passages are covered by shots in the shotlist
-**Depends on**: Phase 21 (Script Read View), Phase 20 (Shotlist)
-**Requirements**: SSO-01
+### Phase 41: Bible AI Injection
+**Goal**: All AI generation for episodes automatically includes the show's bible content and target duration as context
+**Depends on**: Phase 37 (Bible data), Phase 39 (Episode linking)
+**Requirements**: BIBL-04
 **Success Criteria** (what must be TRUE):
-  1. Script passages that are referenced by a shot (via script_text field) are highlighted with a low-opacity background tint in the script read view
-  2. The highlight color matches the breakdown mode steel-blue accent
-  3. Clicking a highlighted passage opens a popover showing the linked shot(s) with their fields
-  4. Shots with no script_text reference do not create any highlight
-**Plans:** 1/1 plans complete
-Plans:
-- [ ] 34-01-PLAN.md — Shot overlay utility, ShotOverlayPopover component, HighlightedScriptText integration, CSS classes (SSO-01)
+  1. When generating screenplay content for an episode, the AI prompt includes all four bible sections (characters, world/setting, season arc, tone & style) as context
+  2. When generating screenplay content for an episode, the AI prompt includes the target episode duration (e.g., "Target runtime: 22 minutes")
+  3. Agent reviews for episodes also receive bible context in their review prompts
+  4. Breakdown extraction for episodes receives bible context (so the AI knows which characters/locations are series regulars)
+  5. Standalone film projects are unaffected — no bible context is injected for projects without a show_id
+**Plans**: TBD
 
-### 🔮 v5.0 User Management & API Access (Future)
-
-- [x] **Phase 35: Real Authentication & User Model** - Replace mock auth with proper JWT registration/login, persistent user records, bcrypt passwords, and email verification flow (completed 2026-03-23)
-- [ ] **Phase 36: API Key Management** - Per-user API key generation (prefix+secret, hashed storage), scopes, optional expiry, revocation, and a management UI in user settings
-- [ ] **Phase 37: API Gateway, Docs & Usage Tracking** - Unified auth middleware that accepts both session JWTs and API keys for all endpoints, Swagger/OpenAPI docs exposed at `/docs`, per-key request count and last-used tracking
-
-#### Phase 35: Real Authentication & User Model
-**Goal**: Replace the MockAuthService with a production-ready auth system so users can register, log in, and own their data securely
-**Depends on**: Phase 1 (DB foundation), existing mock auth pattern
-**Requirements**: UM-01, UM-02, UM-03
+### Phase 42: Breadcrumb Navigation
+**Goal**: Episode views provide clear navigation context showing the parent show hierarchy
+**Depends on**: Phase 39 (Episode-show relationship), Phase 38 (Show detail page)
+**Requirements**: EPIS-05
 **Success Criteria** (what must be TRUE):
-  1. Users can register with email + password via POST /api/auth/register and receive a JWT on success
-  2. Users can log in via POST /api/auth/login and receive a JWT; passwords are stored as bcrypt hashes, never plaintext
-  3. A `users` table exists with: id, email (unique), hashed_password, display_name, created_at
-  4. All existing protected endpoints continue to work — the JWT from login is accepted everywhere mock-token was accepted
-  5. The frontend login/register flow is accessible at /login; authenticated users are redirected to /projects
-  6. A user profile page at /settings/profile shows email and display name with an edit form
-**Plans:** 2/2 plans complete
-Plans:
-- [x] 35-01-PLAN.md — Backend: TDD test stubs, User model + migration 005, schemas, register/login endpoints, get_current_user DB query (UM-01, UM-02, UM-03)
-- [x] 35-02-PLAN.md — Frontend: auth helpers, API methods, LoginPage, RegisterPage, ProtectedRoute, ProfilePage, App.tsx routing (UM-01, UM-02, UM-03)
+  1. When viewing an episode in the editor, a breadcrumb trail appears: Show Title > Episode N: Episode Title
+  2. Clicking the show name in the breadcrumb navigates back to the show detail page
+  3. The breadcrumb is visible in all episode modes (screenwriting, breakdown) — not just the editor
+  4. Standalone film projects do not display any breadcrumb (no visual change for existing workflows)
+**Plans**: TBD
 
-#### Phase 36: API Key Management
+### 🔮 v5.0 API Key Management & Gateway (Future)
+
+#### Phase 43: API Key Management
 **Goal**: Users can create named API keys with optional scopes and expiry dates, and use them to authenticate any endpoint
 **Depends on**: Phase 35 (real user model)
 **Requirements**: AK-01, AK-02, AK-03, AK-04
@@ -233,9 +193,9 @@ Plans:
   4. DELETE /api/auth/api-keys/{id} immediately revokes a key
   5. A /settings/api-keys page in the frontend lists all active keys (name, prefix, created, last used, expiry), with a "Create Key" button that shows the full key in a one-time copy modal, and a "Revoke" action per key
 
-#### Phase 37: API Gateway, Docs & Usage Tracking
+#### Phase 44: API Gateway, Docs & Usage Tracking
 **Goal**: The API is fully documented and accessible externally, with per-key usage visible to users
-**Depends on**: Phase 36 (API key auth)
+**Depends on**: Phase 43 (API key auth)
 **Requirements**: AK-05, AK-06
 **Success Criteria** (what must be TRUE):
   1. FastAPI's built-in Swagger UI is exposed at /docs (authenticated via session or API key) with all endpoints documented, correct response schemas, and example payloads
@@ -273,15 +233,22 @@ Plans:
 | 23. Assets Panel & Media Display | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 24. AI Chat for Breakdown | v3.0 | 2/2 | Complete | 2026-03-20 |
 | 25. Staleness & Sync | v3.0 | 2/2 | Complete | 2026-03-20 |
-| 26. AI Shotlist Generation Service | v3.1 | Complete | 2026-03-20 | 2026-03-20 |
-| 27. Generate Shotlist UI & AI Badge | v3.1 | Complete | 2026-03-21 | 2026-03-21 |
-| 28. UX Improvements | v3.1 | Complete | 2026-03-21 | 2026-03-21 |
+| 26. AI Shotlist Generation Service | v3.1 | 2/2 | Complete | 2026-03-20 |
+| 27. Generate Shotlist UI & AI Badge | v3.1 | 1/1 | Complete | 2026-03-21 |
+| 28. UX Improvements | v3.1 | 3/3 | Complete | 2026-03-21 |
 | 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
 | 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
 | 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
 | 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
-| 33. Script-to-Element Highlighting | 1/1 | Complete    | 2026-03-22 | - |
-| 34. Script-to-Shot Overlay | 1/1 | Complete    | 2026-03-22 | - |
-| 35. Real Authentication & User Model | 2/2 | Complete    | 2026-03-23 | 2026-03-23 |
-| 36. API Key Management | v5.0 | 0/? | Future | - |
-| 37. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
+| 33. Script-to-Element Highlighting | v4.0 | 1/1 | Complete | 2026-03-22 |
+| 34. Script-to-Shot Overlay | v4.0 | 1/1 | Complete | 2026-03-22 |
+| 35. Real Authentication & User Model | v4.1 | 2/2 | Complete | 2026-03-23 |
+| 36. Show Data Model & CRUD API | v4.2 | 0/? | Not started | - |
+| 37. Series Bible Data & API | v4.2 | 0/? | Not started | - |
+| 38. Show Management UI | v4.2 | 0/? | Not started | - |
+| 39. Episode Data Model & Linking | v4.2 | 0/? | Not started | - |
+| 40. Episode Management UI | v4.2 | 0/? | Not started | - |
+| 41. Bible AI Injection | v4.2 | 0/? | Not started | - |
+| 42. Breadcrumb Navigation | v4.2 | 0/? | Not started | - |
+| 43. API Key Management | v5.0 | 0/? | Future | - |
+| 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
