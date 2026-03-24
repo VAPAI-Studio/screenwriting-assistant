@@ -39,6 +39,12 @@ function ElementDetailRoute() {
   return <ElementDetailPage projectId={projectId} elementId={elementId} />;
 }
 
+function ShowDetailRoute() {
+  const { showId } = useParams<{ showId: string }>();
+  if (!showId) return null;
+  return <div className="mx-auto max-w-screen-xl px-6 py-10"><p>Show detail page -- Phase 38 Plan 02</p></div>;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -62,6 +68,7 @@ function App() {
             <Route path="/books" element={<ProtectedRoute><BookManager /></ProtectedRoute>} />
             <Route path="/snippets" element={<ProtectedRoute><SnippetManager /></ProtectedRoute>} />
             <Route path="/settings/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/shows/:showId" element={<ProtectedRoute><ShowDetailRoute /></ProtectedRoute>} />
           </Routes>
         </Layout>
       </Router>
