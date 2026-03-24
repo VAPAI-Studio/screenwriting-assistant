@@ -909,3 +909,24 @@ class ShowResponse(BaseModel):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class BibleUpdate(BaseModel):
+    """Request body for PUT /api/shows/{id}/bible. All fields optional for partial updates."""
+    bible_characters: Optional[str] = Field(None, max_length=50000)
+    bible_world_setting: Optional[str] = Field(None, max_length=50000)
+    bible_season_arc: Optional[str] = Field(None, max_length=50000)
+    bible_tone_style: Optional[str] = Field(None, max_length=50000)
+    episode_duration_minutes: Optional[int] = Field(None, ge=1, le=480)
+
+
+class BibleResponse(BaseModel):
+    """Response for GET/PUT /api/shows/{id}/bible."""
+    show_id: UUID
+    bible_characters: str = ""
+    bible_world_setting: str = ""
+    bible_season_arc: str = ""
+    bible_tone_style: str = ""
+    episode_duration_minutes: Optional[int] = None
+
+    model_config = ConfigDict(from_attributes=True)

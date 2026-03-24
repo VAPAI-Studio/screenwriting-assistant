@@ -183,3 +183,65 @@ class TestShowsAPI:
         assert "description" in data
         assert "created_at" in data
         # updated_at may be None on creation
+
+
+class TestBibleModel:
+    """Test the Show model's bible columns directly."""
+
+    def test_show_bible_defaults(self, db_session):
+        # Ensure mock user exists
+        existing = db_session.query(UserModel).filter(UserModel.id == MOCK_USER_ID).first()
+        if not existing:
+            user = UserModel(
+                id=MOCK_USER_ID,
+                email="bibletest@example.com",
+                hashed_password="fakehash",
+                display_name="BibleTest",
+            )
+            db_session.add(user)
+            db_session.flush()
+
+        show = ShowModel(
+            owner_id=MOCK_USER_ID,
+            title="Bible Default Test",
+        )
+        db_session.add(show)
+        db_session.commit()
+        db_session.refresh(show)
+
+        assert show.bible_characters == ""
+        assert show.bible_world_setting == ""
+        assert show.bible_season_arc == ""
+        assert show.bible_tone_style == ""
+        assert show.episode_duration_minutes is None
+
+    def test_show_bible_set_values(self, db_session):
+        existing = db_session.query(UserModel).filter(UserModel.id == MOCK_USER_ID).first()
+        if not existing:
+            user = UserModel(
+                id=MOCK_USER_ID,
+                email="bibletest2@example.com",
+                hashed_password="fakehash",
+                display_name="BibleTest2",
+            )
+            db_session.add(user)
+            db_session.flush()
+
+        show = ShowModel(
+            owner_id=MOCK_USER_ID,
+            title="Bible Values Test",
+            bible_characters="Walter White - chemistry teacher",
+            bible_world_setting="Albuquerque, New Mexico",
+            bible_season_arc="Descent into criminality",
+            bible_tone_style="Dark, tense, morally ambiguous",
+            episode_duration_minutes=44,
+        )
+        db_session.add(show)
+        db_session.commit()
+        db_session.refresh(show)
+
+        assert show.bible_characters == "Walter White - chemistry teacher"
+        assert show.bible_world_setting == "Albuquerque, New Mexico"
+        assert show.bible_season_arc == "Descent into criminality"
+        assert show.bible_tone_style == "Dark, tense, morally ambiguous"
+        assert show.episode_duration_minutes == 44

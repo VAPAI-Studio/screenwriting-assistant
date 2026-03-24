@@ -77,7 +77,12 @@ class Show(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    # Relationships added by Phase 37 (bible columns) and Phase 39 (episodes)
+    # Bible sections (Phase 37)
+    bible_characters = Column(Text, default="")
+    bible_world_setting = Column(Text, default="")
+    bible_season_arc = Column(Text, default="")
+    bible_tone_style = Column(Text, default="")
+    episode_duration_minutes = Column(Integer, nullable=True)
 
 
 class SectionType(str, enum.Enum):
