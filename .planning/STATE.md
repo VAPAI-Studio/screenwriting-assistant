@@ -1,9 +1,9 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.2
-milestone_name: Storyboard Mode
-status: unknown
-stopped_at: Completed 42-01-PLAN.md (Phase 42 complete)
+milestone: v4.2
+milestone_name: TV Show Mode
+status: complete
+stopped_at: Phase 42 complete — v4.2 milestone done
 last_updated: "2026-03-24T21:46:30.595Z"
 progress:
   total_phases: 25

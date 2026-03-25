@@ -264,6 +264,6 @@ Plans:
 | 39. Episode Data Model & Linking | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 40. Episode Management UI | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 41. Bible AI Injection | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 42. Breadcrumb Navigation | 1/1 | Complete    | 2026-03-24 | - |
+| 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 43. API Key Management | v5.0 | 0/? | Future | - |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
