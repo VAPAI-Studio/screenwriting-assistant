@@ -944,3 +944,40 @@ class EpisodeCreate(BaseModel):
         if not v.strip():
             raise ValueError("Title cannot be empty or just whitespace")
         return v.strip()
+
+
+# ============================================================
+# API Key Schemas (v5.0 -- Phase 43)
+# ============================================================
+
+class ApiKeyCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    scopes: List[str] = Field(default_factory=list)
+    expires_at: Optional[datetime] = None
+
+
+class ApiKeyCreateResponse(BaseModel):
+    """Returned ONLY on creation -- includes the full key."""
+    id: UUID
+    name: str
+    key: str  # Full sa_<prefix>_<secret> -- shown exactly once
+    key_prefix: str
+    scopes: List[str] = Field(default_factory=list)
+    expires_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ApiKeyResponse(BaseModel):
+    """Returned on list/get -- NO secret."""
+    id: UUID
+    name: str
+    key_prefix: str
+    scopes: List[str] = Field(default_factory=list)
+    expires_at: Optional[datetime] = None
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
