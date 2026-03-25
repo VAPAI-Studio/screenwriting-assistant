@@ -608,7 +608,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
                 placeholder={mode === 'brainstorm' ? 'Ask the AI...' : 'Tell the AI what to change...'}
                 rows={1} disabled={!sessionId || isStreaming}
                 className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 resize-none" />
-              <button onClick={handleSend} disabled={!input.trim() || !sessionId || isStreaming}
+              <button onClick={() => handleSend()} disabled={!input.trim() || !sessionId || isStreaming}
                 className="px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-amber-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0">
                 <Send className="h-4 w-4" />
               </button>

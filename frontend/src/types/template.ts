@@ -24,6 +24,7 @@ export interface FieldDef {
   min_length?: number;
   max_length?: number;
   column?: number;
+  full_width?: boolean;
 }
 
 export interface FieldGroup {
@@ -33,6 +34,7 @@ export interface FieldGroup {
 }
 
 export interface CardGroupDef {
+  key: string;
   label: string;
   description?: string;
   item_type: string;
