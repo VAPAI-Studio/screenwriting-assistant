@@ -69,34 +69,48 @@ class TestApiKeyModel:
         assert len(api_key.key_hash) == 64
 
     def test_api_key_cascade_delete(self, db_session):
-        """Create user + api_key, delete user, assert api_key is gone."""
-        user = UserModel(
-            id=str(uuid.uuid4()),
-            email=f"cascade-{uuid.uuid4().hex[:8]}@example.com",
-            hashed_password="fakehash",
-            display_name="CascadeTest",
-        )
-        db_session.add(user)
-        db_session.flush()
+        """Create user + api_key, delete user, assert api_key is gone.
 
-        api_key = ApiKeyModel(
-            user_id=str(user.id),
-            name="Cascade Key",
-            key_prefix="casc1234",
-            key_hash="b" * 64,
-        )
-        db_session.add(api_key)
-        db_session.commit()
+        SQLite requires PRAGMA foreign_keys = ON to enforce CASCADE.
+        We enable it temporarily and restore it after.
+        """
+        from sqlalchemy import text
 
-        key_id = api_key.id
+        # Enable foreign keys for SQLite cascade support
+        db_session.execute(text("PRAGMA foreign_keys = ON"))
 
-        # Delete the user
-        db_session.delete(user)
-        db_session.commit()
+        try:
+            user = UserModel(
+                id=str(uuid.uuid4()),
+                email=f"cascade-{uuid.uuid4().hex[:8]}@example.com",
+                hashed_password="fakehash",
+                display_name="CascadeTest",
+            )
+            db_session.add(user)
+            db_session.flush()
 
-        # Assert api_key is gone
-        found = db_session.query(ApiKeyModel).filter(ApiKeyModel.id == key_id).first()
-        assert found is None
+            api_key = ApiKeyModel(
+                user_id=str(user.id),
+                name="Cascade Key",
+                key_prefix="casc1234",
+                key_hash="b" * 64,
+            )
+            db_session.add(api_key)
+            db_session.commit()
+
+            key_id = api_key.id
+
+            # Delete via raw SQL to trigger SQLite CASCADE
+            db_session.execute(text("DELETE FROM users WHERE id = :uid"), {"uid": str(user.id)})
+            db_session.commit()
+            db_session.expire_all()
+
+            # Assert api_key is gone
+            found = db_session.query(ApiKeyModel).filter(ApiKeyModel.id == key_id).first()
+            assert found is None
+        finally:
+            # Restore default (FK enforcement off) so other tests aren't affected
+            db_session.execute(text("PRAGMA foreign_keys = OFF"))
 
 
 class TestApiKeysAPI:

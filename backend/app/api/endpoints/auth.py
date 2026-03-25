@@ -1,5 +1,10 @@
 # backend/app/api/endpoints/auth.py
 
+import secrets
+import hashlib
+from typing import List
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 
@@ -9,6 +14,15 @@ from ...db import get_db
 from ..dependencies import get_current_user
 
 router = APIRouter()
+
+
+def generate_api_key() -> tuple:
+    """Generate an API key returning (full_key, prefix, key_hash)."""
+    prefix = secrets.token_urlsafe(6)[:8]
+    secret = secrets.token_urlsafe(24)
+    full_key = f"sa_{prefix}_{secret}"
+    key_hash = hashlib.sha256(full_key.encode()).hexdigest()
+    return full_key, prefix, key_hash
 
 
 @router.post("/register", response_model=schemas.Token)
@@ -114,3 +128,68 @@ async def verify_magic_link(token: str):
     access_token = auth_service.create_access_token({"sub": user_id, "email": email})
 
     return schemas.Token(access_token=access_token)
+
+
+# ============================================================
+# API Key CRUD endpoints (v5.0 -- Phase 43)
+# ============================================================
+
+@router.post("/api-keys", response_model=schemas.ApiKeyCreateResponse, status_code=201)
+async def create_api_key(
+    data: schemas.ApiKeyCreate,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Create a new API key. Returns the full key exactly once."""
+    full_key, prefix, key_hash = generate_api_key()
+    api_key = database.ApiKey(
+        user_id=str(current_user.id),
+        name=data.name,
+        key_prefix=prefix,
+        key_hash=key_hash,
+        scopes=data.scopes,
+        expires_at=data.expires_at,
+    )
+    db.add(api_key)
+    db.commit()
+    db.refresh(api_key)
+    return schemas.ApiKeyCreateResponse(
+        id=api_key.id,
+        name=api_key.name,
+        key=full_key,
+        key_prefix=api_key.key_prefix,
+        scopes=api_key.scopes or [],
+        expires_at=api_key.expires_at,
+        created_at=api_key.created_at,
+    )
+
+
+@router.get("/api-keys", response_model=List[schemas.ApiKeyResponse])
+async def list_api_keys(
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List all API keys for the current user (no secrets returned)."""
+    keys = db.query(database.ApiKey).filter(
+        database.ApiKey.user_id == str(current_user.id),
+        database.ApiKey.is_active == True,
+    ).order_by(database.ApiKey.created_at.desc()).all()
+    return [schemas.ApiKeyResponse.model_validate(k) for k in keys]
+
+
+@router.delete("/api-keys/{key_id}")
+async def revoke_api_key(
+    key_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revoke (soft-delete) an API key."""
+    api_key = db.query(database.ApiKey).filter(
+        database.ApiKey.id == str(key_id),
+        database.ApiKey.user_id == str(current_user.id),
+    ).first()
+    if not api_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    api_key.is_active = False
+    db.commit()
+    return {"detail": "API key revoked"}
