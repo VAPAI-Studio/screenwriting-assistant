@@ -69,11 +69,11 @@ Relevant to v4.2:
 
 ### Pending Todos
 
-- Nyquist validation for phases 17-25 (carried forward)
+None.
 
 ### Blockers/Concerns
 
-- 3 pre-existing TypeScript build errors in unrelated files (IndividualEditorView, RepeatableCardsView, SidebarChat)
+- None. Pre-existing TypeScript build errors in IndividualEditorView, RepeatableCardsView, SidebarChat were fixed in session following v4.2 completion.
 - v5.0 phases renumbered from 36-37 to 43-44 to make room for v4.2
 
 ## Session Continuity
