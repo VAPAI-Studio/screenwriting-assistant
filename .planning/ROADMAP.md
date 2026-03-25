@@ -10,7 +10,7 @@
 - ✅ **v4.0 Element Detail Pages & Script Linking** — Phases 32-34 (shipped 2026-03-22)
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
 - 🚧 **v4.2 TV Show Mode** — Phases 36-42 (in progress)
-- 🔮 **v5.0 API Key Management & Gateway** — Phases 43-44 (future)
+- 🔮 **v5.0 API Key Management & Gateway** — Phases 43-44 (active)
 
 ## Phases
 
@@ -207,6 +207,10 @@ Plans:
   3. All protected endpoints accept `Authorization: Bearer sa_<key>` and authenticate via the key_hash lookup
   4. DELETE /api/auth/api-keys/{id} immediately revokes a key
   5. A /settings/api-keys page in the frontend lists all active keys (name, prefix, created, last used, expiry), with a "Create Key" button that shows the full key in a one-time copy modal, and a "Revoke" action per key
+**Plans:** 2 plans
+Plans:
+- [ ] 43-01-PLAN.md — ApiKey model, migration, schemas, CRUD endpoints, dual-auth dependency, and tests
+- [ ] 43-02-PLAN.md — Frontend types, API methods, ApiKeysPage component, route wiring, and human verification
 
 #### Phase 44: API Gateway, Docs & Usage Tracking
 **Goal**: The API is fully documented and accessible externally, with per-key usage visible to users
@@ -265,5 +269,5 @@ Plans:
 | 40. Episode Management UI | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 41. Bible AI Injection | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 43. API Key Management | v5.0 | 0/? | Future | - |
-| 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/? | Future | - |
+| 43. API Key Management | v5.0 | 0/2 | Planned | - |
+| 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/1 | Planned | - |
