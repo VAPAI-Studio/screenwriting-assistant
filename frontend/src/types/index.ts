@@ -479,3 +479,28 @@ export interface BibleUpdate {
   bible_tone_style?: string;
   episode_duration_minutes?: number | null;
 }
+
+// ============================================================
+// API Key types (v5.0 -- Phase 43)
+// ============================================================
+
+export interface ApiKey {
+  id: string;
+  name: string;
+  key_prefix: string;
+  scopes: string[];
+  expires_at: string | null;
+  created_at: string;
+  last_used_at: string | null;
+  is_active: boolean;
+}
+
+export interface ApiKeyCreate {
+  name: string;
+  scopes?: string[];
+  expires_at?: string | null;
+}
+
+export interface ApiKeyCreateResponse extends ApiKey {
+  key: string; // Full key, shown once
+}

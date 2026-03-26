@@ -197,6 +197,7 @@ export const QUERY_KEYS = {
   SHOW: (id: string) => ['show', id] as const,
   BIBLE: (id: string) => ['bible', id] as const,
   EPISODES: (showId: string) => ['episodes', showId] as const,
+  API_KEYS: 'api-keys',
 } as const;
 
 // Theme Configuration
@@ -271,6 +272,7 @@ export const ROUTES = {
   PROJECT_STORYBOARD: (id: string) => `/projects/${id}/storyboard`,
   ELEMENT_DETAIL: (projectId: string, elementId: string) => `/projects/${projectId}/breakdown/elements/${elementId}`,
   SHOW: (id: string) => `/shows/${id}`,
+  API_KEYS: '/settings/api-keys',
 } as const;
 
 export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: string }> = [

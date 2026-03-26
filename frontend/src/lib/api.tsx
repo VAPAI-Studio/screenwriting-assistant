@@ -8,6 +8,7 @@ import {
   Snippet, SnippetListResponse, PipelineMapResponse,
   Shot, ShotCreate, ShotUpdate, AssetMedia, StoryboardFrame,
   Show, ShowCreate, BibleResponse, BibleUpdate,
+  ApiKey, ApiKeyCreate, ApiKeyCreateResponse,
 } from '../types';
 import type { AuthResponse, LoginRequest, RegisterRequest, UserUpdate, User } from '../types';
 import type { YoloEvent } from '../types/template';
@@ -1309,5 +1310,35 @@ export const api = {
     );
     if (!response.ok) throw new Error('Failed to create episode');
     return response.json();
+  },
+
+  // ============================================================
+  // API Keys (v5.0 -- Phase 43)
+  // ============================================================
+
+  async createApiKey(data: ApiKeyCreate): Promise<ApiKeyCreateResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/api-keys`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to create API key');
+    return response.json();
+  },
+
+  async listApiKeys(): Promise<ApiKey[]> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/api-keys`, {
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to list API keys');
+    return response.json();
+  },
+
+  async revokeApiKey(keyId: string): Promise<void> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/auth/api-keys/${keyId}`, {
+      method: 'DELETE',
+      headers: getHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to revoke API key');
   },
 };

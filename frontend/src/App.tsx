@@ -17,6 +17,7 @@ import { LoginPage } from './components/Auth/LoginPage';
 import { RegisterPage } from './components/Auth/RegisterPage';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { ProfilePage } from './components/Settings/ProfilePage';
+import { ApiKeysPage } from './components/Settings/ApiKeysPage';
 import { ShowDetail } from './components/Shows/ShowDetail';
 
 const queryClient = new QueryClient({
@@ -69,6 +70,7 @@ function App() {
             <Route path="/books" element={<ProtectedRoute><BookManager /></ProtectedRoute>} />
             <Route path="/snippets" element={<ProtectedRoute><SnippetManager /></ProtectedRoute>} />
             <Route path="/settings/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/settings/api-keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
             <Route path="/shows/:showId" element={<ProtectedRoute><ShowDetailRoute /></ProtectedRoute>} />
           </Routes>
         </Layout>
