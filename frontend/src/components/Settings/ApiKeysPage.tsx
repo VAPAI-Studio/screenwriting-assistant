@@ -28,6 +28,7 @@ export function ApiKeysPage() {
   } = useQuery<ApiKey[]>({
     queryKey: [QUERY_KEYS.API_KEYS],
     queryFn: () => api.listApiKeys(),
+    refetchInterval: 30000, // Auto-refresh usage stats every 30s
   });
 
   const createMutation = useMutation({
@@ -140,6 +141,7 @@ export function ApiKeysPage() {
                   <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
                     <span>Created: {formatDate(key.created_at)}</span>
                     <span>Last used: {formatDate(key.last_used_at)}</span>
+                    <span>Requests: {key.request_count.toLocaleString()}</span>
                     <span>Expires: {key.expires_at ? formatDate(key.expires_at) : 'Never expires'}</span>
                   </div>
                 </div>
