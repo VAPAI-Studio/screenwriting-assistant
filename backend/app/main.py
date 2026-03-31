@@ -22,7 +22,8 @@ from .middleware import (
     LoggingMiddleware,
     SecurityMiddleware,
     RequestSizeLimitMiddleware,
-    RateLimitMiddleware
+    RateLimitMiddleware,
+    ApiKeyRateLimitMiddleware
 )
 from .api_docs import custom_openapi
 from .db import init_db
@@ -50,6 +51,7 @@ app.openapi = custom_openapi_wrapper
 
 # Add middleware (order matters - executed from bottom to top)
 # Rate limit generous for dev; tighten for production
+app.add_middleware(ApiKeyRateLimitMiddleware, default_rate_limit=1000)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=600)
 app.add_middleware(RequestSizeLimitMiddleware, max_size=25 * 1024 * 1024)  # 25MB (supports 20MB media uploads + multipart overhead)
 app.add_middleware(SecurityMiddleware)

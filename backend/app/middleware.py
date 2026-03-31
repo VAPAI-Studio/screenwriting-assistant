@@ -1,6 +1,7 @@
 # backend/app/middleware.py
 
 import asyncio
+import hashlib
 import time
 import logging
 from fastapi import Request, Response
@@ -128,5 +129,61 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             # Add current request timestamp
             valid_timestamps.append(current_time)
             self.requests[client_ip] = valid_timestamps
+
+        return await call_next(request)
+
+
+class ApiKeyRateLimitMiddleware(BaseHTTPMiddleware):
+    """Per-API-key rate limiting (default 1000 req/hour).
+
+    Only applies to requests with Bearer tokens starting with 'sa_'.
+    JWT and unauthenticated requests pass through unaffected.
+    """
+
+    def __init__(self, app, default_rate_limit: int = 1000):
+        super().__init__(app)
+        self.default_rate_limit = default_rate_limit
+        self.window_size = 3600  # 1 hour in seconds
+        self.requests = {}  # key_hash -> [timestamps]
+        self._lock = asyncio.Lock()
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Skip non-API-key requests and OPTIONS (CORS preflight)
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
+        auth_header = request.headers.get("authorization", "")
+        if not auth_header.lower().startswith("bearer sa_"):
+            return await call_next(request)
+
+        token = auth_header.split(" ", 1)[1]
+        key_hash = hashlib.sha256(token.encode()).hexdigest()
+        current_time = time.time()
+
+        async with self._lock:
+            # Clean up expired entries from all keys
+            self.requests = {
+                kh: timestamps
+                for kh, timestamps in self.requests.items()
+                if any(t > current_time - self.window_size for t in timestamps)
+            }
+
+            if key_hash not in self.requests:
+                self.requests[key_hash] = []
+
+            # Filter to current window
+            valid = [t for t in self.requests[key_hash] if t > current_time - self.window_size]
+
+            if len(valid) >= self.default_rate_limit:
+                retry_after = int(self.window_size - (current_time - valid[0]))
+                return Response(
+                    content='{"detail": "API key rate limit exceeded"}',
+                    status_code=429,
+                    media_type="application/json",
+                    headers={"Retry-After": str(max(1, retry_after))}
+                )
+
+            valid.append(current_time)
+            self.requests[key_hash] = valid
 
         return await call_next(request)
