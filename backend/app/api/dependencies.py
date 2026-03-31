@@ -3,6 +3,7 @@
 import hashlib
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from datetime import datetime
 from uuid import UUID
@@ -45,8 +46,14 @@ async def get_current_user(
                     detail="API key expired",
                     headers={"WWW-Authenticate": "Bearer"},
                 )
-            # Update last_used_at
-            api_key.last_used_at = datetime.utcnow()
+            # Atomic increment request_count + update last_used_at
+            db.execute(
+                text(
+                    "UPDATE api_keys SET request_count = request_count + 1, "
+                    "last_used_at = :now WHERE id = :id"
+                ),
+                {"now": datetime.utcnow(), "id": str(api_key.id)}
+            )
             db.commit()
             # Return user associated with this key
             user = db.query(database.User).filter(database.User.id == api_key.user_id).first()

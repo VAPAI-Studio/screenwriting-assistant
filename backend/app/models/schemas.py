@@ -978,6 +978,7 @@ class ApiKeyResponse(BaseModel):
     expires_at: Optional[datetime] = None
     created_at: datetime
     last_used_at: Optional[datetime] = None
+    request_count: int = 0
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
