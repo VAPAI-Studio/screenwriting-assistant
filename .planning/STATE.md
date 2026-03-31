@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v5.0
-milestone_name: API Key Management & Gateway
-status: ready
-stopped_at: Completed 43-02-PLAN.md (Phase 43 complete — human verified)
-last_updated: "2026-03-27T00:00:00.000Z"
+milestone: v3.2
+milestone_name: Storyboard Mode
+status: unknown
+stopped_at: Completed 44-01-PLAN.md
+last_updated: "2026-03-31T07:46:38.640Z"
 progress:
-  total_phases: 35
+  total_phases: 36
   completed_phases: 26
   total_plans: 46
   completed_plans: 45
@@ -23,20 +23,20 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 43 (api-key-management) — COMPLETE
-Next: Phase 44 (api-gateway-docs-usage-tracking)
+Phase: 44 (api-gateway-docs-usage-tracking) — EXECUTING
+Plan: 2 of 2
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 55 (lifetime)
+- Total plans completed: 56 (lifetime)
 - Average duration: ~3min (recent)
-- Total execution time: ~2.75 hours (lifetime)
+- Total execution time: ~2.85 hours (lifetime)
 
 **Recent Trend:**
 
-- Last 5 plans: 35-02 (5min), 36-01 (9min), 37-01 (5min), 38-01 (4min), 38-02 (3min)
+- Last 5 plans: 36-01 (9min), 37-01 (5min), 38-01 (4min), 38-02 (3min), 44-01 (6min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -66,6 +66,9 @@ Relevant to v4.2:
 - [Phase 41]: Bible context built once in request handler, passed as string to background tasks (avoids DB re-fetch)
 - [Phase 42]: Show title fetched with staleTime: Infinity in breadcrumb (stable within session)
 - [Phase 42]: Breadcrumb height adjustment uses fixed 89px calc (56px header + 33px breadcrumb)
+- [Phase 44]: Atomic SQL UPDATE for request_count avoids race conditions vs ORM-level increment
+- [Phase 44]: Per-key rate limiter uses in-memory timestamp tracking (same pattern as IP rate limiter)
+- [Phase 44]: rate_limit column defaults to NULL meaning use system default (1000 req/hour)
 
 ### Pending Todos
 
@@ -78,6 +81,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-03-27T00:00:00.000Z
-Stopped at: Completed 43-02-PLAN.md (Phase 43 complete — human verified)
+Last session: 2026-03-31T07:46:38.633Z
+Stopped at: Completed 44-01-PLAN.md
 Resume file: None
