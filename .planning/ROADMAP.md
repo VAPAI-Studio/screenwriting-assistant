@@ -9,8 +9,8 @@
 - 🚧 **v3.2 Storyboard Mode** — Phases 29-31 (planned)
 - ✅ **v4.0 Element Detail Pages & Script Linking** — Phases 32-34 (shipped 2026-03-22)
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
-- 🚧 **v4.2 TV Show Mode** — Phases 36-42 (in progress)
-- 🔮 **v5.0 API Key Management & Gateway** — Phases 43-44 (active)
+- ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
+- 🚧 **v5.0 API Key Management & Gateway** — Phases 43-44 (in progress)
 
 ## Phases
 
@@ -88,17 +88,28 @@
 
 </details>
 
-### v4.2 TV Show Mode (In Progress)
+<details>
+<summary>✅ v4.2 TV Show Mode (Phases 36-42) — SHIPPED 2026-03-24</summary>
 
-- [x] **Phase 36: Show Data Model & CRUD API** - Show entity with DB model, delta migration, Pydantic schemas, full CRUD endpoints (completed 2026-03-24)
-- [x] **Phase 37: Series Bible Data & API** - Bible sections and episode duration DB model, API endpoints for reading and writing bible content (completed 2026-03-24)
-- [x] **Phase 38: Show Management UI** - Home page split (Shows vs Films), show detail page shell with bible editor and episode list area (completed 2026-03-24)
-- [x] **Phase 39: Episode Data Model & Linking** - Episode as Project with show_id FK, episode CRUD API, standalone project backward compatibility (completed 2026-03-24)
-- [x] **Phase 40: Episode Management UI** - Episode list on show page, create/open/delete episodes, episode inherits full existing pipeline (completed 2026-03-24)
-- [x] **Phase 41: Bible AI Injection** - Modify generation services to prepend bible content and duration when generating for an episode (completed 2026-03-24)
-- [x] **Phase 42: Breadcrumb Navigation** - Episode views include breadcrumb trail back to parent show (completed 2026-03-24)
+- [x] Phase 36: Show Data Model & CRUD API (1/1 plans) — completed 2026-03-24
+- [x] Phase 37: Series Bible Data & API (1/1 plans) — completed 2026-03-24
+- [x] Phase 38: Show Management UI (2/2 plans) — completed 2026-03-24
+- [x] Phase 39: Episode Data Model & Linking (1/1 plans) — completed 2026-03-24
+- [x] Phase 40: Episode Management UI (1/1 plans) — completed 2026-03-24
+- [x] Phase 41: Bible AI Injection (1/1 plans) — completed 2026-03-24
+- [x] Phase 42: Breadcrumb Navigation (1/1 plans) — completed 2026-03-24
+
+</details>
+
+### v5.0 API Key Management & Gateway (In Progress)
+
+- [x] **Phase 43: API Key Management** - Users can create named API keys with optional scopes and expiry dates (completed 2026-03-27)
+- [ ] **Phase 44: API Gateway, Docs & Usage Tracking** - API documentation, unified auth middleware, and per-key usage tracking
 
 ## Phase Details
+
+<details>
+<summary>v4.2 Phase Details (36-42) — Shipped</summary>
 
 ### Phase 36: Show Data Model & CRUD API
 **Goal**: A Show entity exists in the database with full CRUD operations accessible via REST API
@@ -195,9 +206,11 @@ Plans:
 Plans:
 - [ ] 42-01-PLAN.md — EpisodeBreadcrumb component with integration into Editor, BreakdownLayout, and StoryboardView
 
-### v5.0 API Key Management & Gateway (Future)
+</details>
 
-#### Phase 43: API Key Management
+<!-- v5.0 API Key Management & Gateway -->
+
+### Phase 43: API Key Management
 **Goal**: Users can create named API keys with optional scopes and expiry dates, and use them to authenticate any endpoint
 **Depends on**: Phase 35 (real user model)
 **Requirements**: AK-01, AK-02, AK-03, AK-04
@@ -212,7 +225,7 @@ Plans:
 - [ ] 43-01-PLAN.md — ApiKey model, migration, schemas, CRUD endpoints, dual-auth dependency, and tests
 - [ ] 43-02-PLAN.md — Frontend types, API methods, ApiKeysPage component, route wiring, and human verification
 
-#### Phase 44: API Gateway, Docs & Usage Tracking
+### Phase 44: API Gateway, Docs & Usage Tracking
 **Goal**: The API is fully documented and accessible externally, with per-key usage visible to users
 **Depends on**: Phase 43 (API key auth)
 **Requirements**: AK-05, AK-06
@@ -222,6 +235,10 @@ Plans:
   3. Each authenticated API key request increments the key's `request_count` counter and updates `last_used_at`
   4. The /settings/api-keys page shows request_count and last_used_at per key, updated in real time
   5. Rate limiting applies per API key (configurable per-key limit, default 1000 req/hour) with 429 response and Retry-After header when exceeded
+**Plans:** 2 plans
+Plans:
+- [ ] 44-01-PLAN.md — Backend: migration, model, schema, atomic increment, rate limiter middleware, docs enhancement, tests
+- [ ] 44-02-PLAN.md — Frontend: TypeScript types, ApiKeysPage usage display, auto-refresh, and human verification
 
 ## Progress
 
@@ -270,4 +287,4 @@ Plans:
 | 41. Bible AI Injection | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 43. API Key Management | v5.0 | 0/2 | Planned | - |
-| 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/1 | Planned | - |
+| 44. API Gateway, Docs & Usage Tracking | v5.0 | 0/2 | Planned | - |
