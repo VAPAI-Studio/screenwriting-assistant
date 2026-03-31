@@ -38,10 +38,10 @@ created: 2026-03-30
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 44-01-01 | 01 | 1 | AK-05 | unit | `pytest app/tests/test_api_docs.py -x -q` | ❌ W0 | ⬜ pending |
+| 44-01-01 | 01 | 1 | AK-05 | unit | `pytest app/tests/test_api_gateway.py::TestSwaggerDocs -x -q` | ❌ W0 | ⬜ pending |
 | 44-01-02 | 01 | 1 | AK-05 | unit | `pytest app/tests/test_api_keys.py -x -q` | ✅ | ⬜ pending |
 | 44-01-03 | 01 | 1 | AK-06 | unit | `pytest app/tests/test_api_keys.py -x -q` | ✅ | ⬜ pending |
-| 44-01-04 | 01 | 1 | AK-06 | unit | `pytest app/tests/test_rate_limit.py -x -q` | ❌ W0 | ⬜ pending |
+| 44-01-04 | 01 | 1 | AK-06 | unit | `pytest app/tests/test_api_gateway.py::TestPerKeyRateLimit -x -q` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -49,8 +49,7 @@ created: 2026-03-30
 
 ## Wave 0 Requirements
 
-- [ ] `app/tests/test_api_docs.py` — stubs for AK-05 (OpenAPI schema validation)
-- [ ] `app/tests/test_rate_limit.py` — stubs for AK-06 (per-key rate limiting)
+- [ ] `app/tests/test_api_gateway.py` — stubs for AK-05 (TestSwaggerDocs: OpenAPI schema validation) and AK-06 (TestPerKeyRateLimit: per-key rate limiting with 429 assertion via mini-app pattern)
 
 *Existing test infrastructure (pytest, conftest, test DB) covers all other needs.*
 
