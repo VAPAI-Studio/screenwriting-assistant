@@ -1,7 +1,7 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.2
-milestone_name: Storyboard Mode
+milestone: v5.0
+milestone_name: API Key Management & Gateway
 status: ready
 stopped_at: Completed 43-02-PLAN.md (Phase 43 complete — human verified)
 last_updated: "2026-03-27T00:00:00.000Z"
