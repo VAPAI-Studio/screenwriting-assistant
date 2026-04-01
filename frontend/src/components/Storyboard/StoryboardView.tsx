@@ -1,7 +1,7 @@
 // frontend/src/components/Storyboard/StoryboardView.tsx
 
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Film, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
@@ -9,6 +9,12 @@ import { EpisodeBreadcrumb } from '../Editor/EpisodeBreadcrumb';
 import { ShotCard } from './ShotCard';
 import { FrameGalleryModal } from './FrameGalleryModal';
 import type { Shot } from '../../types';
+
+const STYLE_OPTIONS = [
+  { value: 'photorealistic', label: 'Photorealistic' },
+  { value: 'cinematic', label: 'Cinematic' },
+  { value: 'animated', label: 'Animated' },
+] as const;
 
 interface StoryboardViewProps {
   projectId: string;
@@ -49,10 +55,18 @@ function groupShotsByScene(shots: Shot[]): SceneGroup[] {
 
 export function StoryboardView({ projectId }: StoryboardViewProps) {
   const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: project } = useQuery({
     queryKey: QUERY_KEYS.PROJECT(projectId),
     queryFn: () => api.getProject(projectId),
+  });
+
+  const styleMutation = useMutation({
+    mutationFn: (style: string) => api.updateProject(projectId, { storyboard_style: style }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.PROJECT(projectId) });
+    },
   });
 
   const isEpisode = !!project?.show_id && project?.episode_number != null;
@@ -175,9 +189,21 @@ export function StoryboardView({ projectId }: StoryboardViewProps) {
         <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Storyboard
         </span>
-        <span className="text-[10px] text-muted-foreground">
-          {shots?.length ?? 0} shots
-        </span>
+        <div className="flex items-center gap-3">
+          <select
+            value={project?.storyboard_style ?? 'cinematic'}
+            onChange={(e) => styleMutation.mutate(e.target.value)}
+            disabled={styleMutation.isPending}
+            className="text-[10px] bg-muted/60 text-muted-foreground border border-border rounded px-1.5 py-0.5 outline-none focus:ring-1 focus:ring-primary/40"
+          >
+            {STYLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+          <span className="text-[10px] text-muted-foreground">
+            {shots?.length ?? 0} shots
+          </span>
+        </div>
       </div>
       {/* Content area */}
       {contentJsx}

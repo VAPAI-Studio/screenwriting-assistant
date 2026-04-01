@@ -49,6 +49,7 @@ export interface Project {
   owner_id: string;
   title: string;
   framework: Framework;
+  storyboard_style?: string | null;
   created_at: string;
   updated_at: string | null;
   show_id?: string | null;

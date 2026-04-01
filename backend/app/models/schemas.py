@@ -81,6 +81,7 @@ class ProjectCreate(ProjectBase):
 class ProjectUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=2, max_length=255)
     framework: Optional[Framework] = None
+    storyboard_style: Optional[str] = Field(None, pattern=r'^(photorealistic|cinematic|animated)$')
 
     @field_validator('title')
     def validate_title(cls, v):
@@ -97,6 +98,7 @@ class Project(ProjectBase):
     template: Optional[TemplateType] = None
     current_phase: Optional[str] = None
     template_config: Dict = Field(default_factory=dict)
+    storyboard_style: Optional[str] = None
     created_at: datetime
     updated_at: Optional[datetime] = None
     show_id: Optional[UUID] = None
