@@ -272,9 +272,9 @@ Plans:
 | 26. AI Shotlist Generation Service | v3.1 | 2/2 | Complete | 2026-03-20 |
 | 27. Generate Shotlist UI & AI Badge | v3.1 | 1/1 | Complete | 2026-03-21 |
 | 28. UX Improvements | v3.1 | 3/3 | Complete | 2026-03-21 |
-| 29. Storyboard Data Model & Mode Shell | v3.2 | 0/2 | Planned | - |
-| 30. Storyboard Grid UI | v3.2 | 0/2 | Planned | - |
-| 31. AI Frame Generation (Google Imagen) | v3.2 | 0/2 | Planned | - |
+| 29. Storyboard Data Model & Mode Shell | v3.2 | Complete    | 2026-04-01 | - |
+| 30. Storyboard Grid UI | v3.2 | Complete    | 2026-04-01 | - |
+| 31. AI Frame Generation (Google Imagen) | v3.2 | Complete    | 2026-04-01 | - |
 | 32. Element Detail Pages | v4.0 | 2/2 | Complete | 2026-03-22 |
 | 33. Script-to-Element Highlighting | v4.0 | 1/1 | Complete | 2026-03-22 |
 | 34. Script-to-Shot Overlay | v4.0 | 1/1 | Complete | 2026-03-22 |
