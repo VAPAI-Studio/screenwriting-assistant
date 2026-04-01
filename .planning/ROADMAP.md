@@ -235,7 +235,7 @@ Plans:
   3. Each authenticated API key request increments the key's `request_count` counter and updates `last_used_at`
   4. The /settings/api-keys page shows request_count and last_used_at per key, updated in real time
   5. Rate limiting applies per API key (configurable per-key limit, default 1000 req/hour) with 429 response and Retry-After header when exceeded
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 Plans:
 - [ ] 44-01-PLAN.md — Backend: migration, model, schema, atomic increment, rate limiter middleware, docs enhancement, tests
 - [ ] 44-02-PLAN.md — Frontend: TypeScript types, ApiKeysPage usage display, auto-refresh, and human verification
@@ -287,4 +287,4 @@ Plans:
 | 41. Bible AI Injection | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 43. API Key Management | v5.0 | 0/2 | Planned | - |
-| 44. API Gateway, Docs & Usage Tracking | 1/2 | In Progress|  | - |
+| 44. API Gateway, Docs & Usage Tracking | 1/2 | Complete    | 2026-04-01 | - |
