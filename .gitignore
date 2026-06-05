@@ -47,3 +47,12 @@ htmlcov/
 .coverage.*
 coverage.xml
 *.cover
+
+# Local runtime / test artifacts
+backend/test.db
+*.db
+backend/media/
+backend/uploads/
+
+# Stray backup files
+*.bak
