@@ -6,11 +6,16 @@
 - ✅ **v2.0 Script Breakdown** — Phases 9-16 (shipped 2026-03-18)
 - ✅ **v3.0 Shotlist & Production Breakdown** — Phases 17-25 (shipped 2026-03-20)
 - ✅ **v3.1 AI Shotlist Generation** — Phases 26-28 (shipped 2026-03-21)
-- 🚧 **v3.2 Storyboard Mode** — Phases 29-31 (planned)
+- ✅ **v3.2 Storyboard Mode** — Phases 29-31 (shipped 2026-04-01)
 - ✅ **v4.0 Element Detail Pages & Script Linking** — Phases 32-34 (shipped 2026-03-22)
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
 - ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
+- 📝 **v6.0 Script Quality** — deepen AI script-writing output (continuity-aware generation, character voice, screenwriting craft) — planned
+- 📝 **v7.0 Breakdown Fidelity** — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories) — planned
+- 📝 **v8.0 MCP Server** — expose write + breakdown capabilities as MCP tools for external agents; auth via existing API-key gateway — planned (after v6.0/v7.0)
+
+> **Direction note (2026-06-05):** This is an **internal tool**. Roadmap focus is the quality of script-writing and breakdown only. Market features (industry export, collaboration, AI-previz, public API platform) are out of scope. The separate AI previz platform stays disconnected for now.
 
 ## Phases
 
