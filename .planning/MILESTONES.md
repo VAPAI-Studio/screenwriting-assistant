@@ -1,5 +1,20 @@
 # Milestones
 
+## v5.0 API Key Management & Gateway (Shipped: 2026-04-01)
+
+**Phases completed:** 2 phases (43-44), 4 plans
+
+**Key accomplishments:**
+
+1. API key management — users create named API keys with optional scopes and expiry dates; secure hashing and one-time secret reveal
+2. API gateway & docs — unified auth middleware accepting API keys, enhanced API documentation
+3. Per-key usage tracking — atomic SQL request-count increment (race-safe), per-key in-memory rate limiter (defaults to 1000 req/hour), last-used timestamps
+4. Usage stats UI — request count and last-used display on the API keys settings page with 30-second auto-refresh polling
+
+> Note: This index skips v3.1–v4.2 (file was not maintained between v3.0 and v5.0). See ROADMAP.md for the complete shipped-milestone list.
+
+---
+
 ## v3.0 Shotlist & Production Breakdown (Shipped: 2026-03-20)
 
 **Phases completed:** 9 phases, 14 plans, 0 tasks

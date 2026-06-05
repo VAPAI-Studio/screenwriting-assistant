@@ -10,7 +10,7 @@
 - ✅ **v4.0 Element Detail Pages & Script Linking** — Phases 32-34 (shipped 2026-03-22)
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
 - ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
-- 🚧 **v5.0 API Key Management & Gateway** — Phases 43-44 (in progress)
+- ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
 
 ## Phases
 
@@ -101,10 +101,10 @@
 
 </details>
 
-### v5.0 API Key Management & Gateway (In Progress)
+### v5.0 API Key Management & Gateway (Shipped 2026-04-01)
 
 - [x] **Phase 43: API Key Management** - Users can create named API keys with optional scopes and expiry dates (completed 2026-03-27)
-- [ ] **Phase 44: API Gateway, Docs & Usage Tracking** - API documentation, unified auth middleware, and per-key usage tracking
+- [x] **Phase 44: API Gateway, Docs & Usage Tracking** - API documentation, unified auth middleware, and per-key usage tracking (completed 2026-04-01)
 
 ## Phase Details
 
@@ -286,5 +286,5 @@ Plans:
 | 40. Episode Management UI | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 41. Bible AI Injection | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
-| 43. API Key Management | v5.0 | 0/2 | Planned | - |
-| 44. API Gateway, Docs & Usage Tracking | 1/2 | Complete    | 2026-04-01 | - |
+| 43. API Key Management | v5.0 | 2/2 | Complete | 2026-03-27 |
+| 44. API Gateway, Docs & Usage Tracking | v5.0 | 2/2 | Complete | 2026-04-01 |
