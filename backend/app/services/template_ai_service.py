@@ -357,36 +357,73 @@ Scene summary: "{summary}"
 
 {f'Custom guidance: {guidance}' if guidance else ''}
 
-Write a proper screenplay for THIS scene with:
-- Scene headings (INT./EXT. LOCATION - TIME)
-- Action lines (visual, present tense)
-- Character dialogue with character names in CAPS
-- Parentheticals where needed
-- Pacing appropriate for this scene's role in the overall {runtime_target or 'short film'} runtime
-- Distribute the total runtime naturally across scenes — not all scenes need equal screen time
+Write a proper screenplay for THIS scene using strict industry-standard layout:
+- The scene heading (INT./EXT. LOCATION - TIME) is on its OWN line.
+- Action lines are present-tense, visual, and describe only what can be seen or heard.
+- Character cues are in ALL CAPS on their own line above the dialogue.
+- Parentheticals (wrylies) go on their OWN line beneath the character cue.
+- Dialogue sits beneath the character cue (and any parenthetical).
+- Put a BLANK LINE between distinct elements (heading, action, each dialogue block).
+- Pace this scene for its role in the overall {runtime_target or 'short film'} runtime.
+- Distribute the total runtime naturally across scenes — not all scenes need equal screen time.
 
-Return a JSON object with:
-- "title": a short title for this scene
-- "content": the full screenplay text"""
+Output the screenplay NATIVELY as plain text (NOT JSON, no markdown code fences).
+The FIRST line MUST be exactly:
+TITLE: <a short title for this scene>
+Then, beneath it, write the full screenplay body using the layout rules above."""
 
             try:
                 logger.info(f"Generating script for scene {i + 1}/{len(episodes)}: {summary}")
                 text = await chat_completion(
                     messages=[
-                        {"role": "system", "content": "You are an expert screenwriter. Return valid JSON only."},
+                        {"role": "system", "content": "You are an expert screenwriter who lays out scenes in industry-standard screenplay format. Return the screenplay as native plain text only — no JSON, no markdown code fences."},
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.7,
                     max_tokens=4000,
-                    json_mode=True,
+                    json_mode=False,
                 )
-                result = json.loads(text)
-                result["episode_index"] = i
-                screenplays.append(result)
+
+                # Native parse (D-46-01). The provider does NOT strip code fences
+                # in native mode (fence-stripping is json_mode-gated, ai_provider.py),
+                # so tolerate a stray leading/trailing fence ourselves. Never run
+                # json.loads on the scene result.
+                text = (text or "").strip()
+                if text.startswith("```"):
+                    lines = text.split("\n")
+                    # Drop the opening fence line (```/```text).
+                    lines = lines[1:]
+                    # Drop a trailing closing fence line if present.
+                    if lines and lines[-1].strip() == "```":
+                        lines = lines[:-1]
+                    text = "\n".join(lines).strip()
+
+                # Split a leading `TITLE:` line (case-insensitive, optional
+                # whitespace) off the top; the rest is the screenplay body.
+                title = ""
+                content = text
+                first_nl = text.find("\n")
+                first_line = text if first_nl == -1 else text[:first_nl]
+                if first_line.strip().lower().startswith("title:"):
+                    title = first_line.split(":", 1)[1].strip()
+                    rest = "" if first_nl == -1 else text[first_nl + 1:]
+                    content = rest.lstrip("\n")
+
+                # Never fail a scene over a missing/empty title — fall back to the
+                # scene summary (D-46-01), mirroring the empty-fallback idiom.
+                if not title:
+                    title = summary
+                    content = text
+
+                screenplays.append({
+                    "title": title,
+                    "content": content,
+                    "episode_index": i,
+                })
 
                 # Advance continuity state ONLY on success — a failed scene must
                 # not poison prev_scene_text or the synopsis (D-05).
-                prev_scene_text = result.get("content", "")
+                prev_scene_text = content
                 synopsis = await self._update_synopsis(synopsis, prev_scene_text, summary)
             except Exception as e:
                 logger.error(f"Script generation error for scene {i + 1}: {e}")
