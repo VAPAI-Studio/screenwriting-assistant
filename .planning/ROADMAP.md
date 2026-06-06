@@ -12,7 +12,7 @@
 - ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
 - 📝 **v6.0 Script Quality** — Phases 45-49 — deepen AI script-writing output (continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval) — in progress
-- 📝 **v7.0 Breakdown Fidelity** — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories) — planned
+- 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
 - 📝 **v8.0 MCP Server** — expose write + breakdown capabilities as MCP tools for external agents; auth via existing API-key gateway — planned (after v6.0/v7.0)
 
 > **Direction note (2026-06-05):** This is an **internal tool**. Roadmap focus is the quality of script-writing and breakdown only. Market features (industry export, collaboration, AI-previz, public API platform) are out of scope. The separate AI previz platform stays disconnected for now.
@@ -316,6 +316,45 @@ Plans:
 - [x] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
 - [~] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger — AUTO tasks (1-3) complete, build clean; Task 4 manual UAT PENDING USER
 **UI hint**: yes
+
+<!-- v7.0 Breakdown Fidelity (planned 2026-06-06 — execution gated on v6.0 close) -->
+
+### Phase 50: Scene-Text Extraction
+**Goal**: Breakdown extraction reads the full per-scene screenplay text (the richer v6.0 output) rather than one-line scene summaries, scene-scoped, while preserving the existing "physically present on screen" rules
+**Depends on**: Phase 49 (improved/regenerated scene text persisted to ScreenplayContent); existing breakdown_service.py
+**Requirements**: BFID-01, BFID-02, BFID-03
+**Success Criteria** (what must be TRUE):
+  1. Extraction context is built from `ScreenplayContent.content` per scene, not from one-line scene summaries
+  2. Each scene's elements are extracted from that scene's own text (scene-scoped), enabling per-scene attribution
+  3. The on-screen-only rules (no dialogue-only mentions, no abstractions) still hold on the fuller text
+  4. Existing breakdown extraction tests/behavior do not regress
+
+### Phase 51: Per-Appearance Context
+**Goal**: Each extracted element records which scene(s) it appears in and a short how/where context note, with cross-scene duplicates consolidated into one element with multiple appearances
+**Depends on**: Phase 50 (scene-scoped extraction)
+**Requirements**: APPR-01, APPR-02, APPR-03
+**Success Criteria** (what must be TRUE):
+  1. An extracted element carries its appearance scene(s), not just a flat global entry
+  2. Each appearance has a short context note (the action/moment) surfaced in the breakdown UI
+  3. The same element across multiple scenes is one element with multiple appearances, not duplicated rows
+
+### Phase 52: Expanded Categories
+**Goal**: The element taxonomy is broadened to cover additional production categories (wardrobe, makeup/hair, SFX/VFX, vehicles, animals, stunts, etc.), additively, with UI filter/group support
+**Depends on**: Phase 50 (extraction path)
+**Requirements**: CATG-01, CATG-02, CATG-03
+**Success Criteria** (what must be TRUE):
+  1. The extraction taxonomy includes the expanded categories (final list settled in discussion)
+  2. Existing categories and previously extracted elements remain valid — additive, no destructive migration
+  3. The breakdown UI displays and lets the user filter/group by the expanded categories
+
+### Phase 53: Re-Extraction on Change
+**Goal**: When a scene's screenplay changes (v6.0 regenerate-and-keep or a manual edit), the breakdown is flagged stale and re-extraction refreshes that scene's elements without discarding user-edited breakdown data
+**Depends on**: Phase 50, Phase 51, Phase 49 (keep-scene-version + existing staleness flags)
+**Requirements**: REEX-01, REEX-02
+**Success Criteria** (what must be TRUE):
+  1. A scene-text change flags the breakdown stale via the existing staleness mechanism
+  2. Re-extraction refreshes against the changed scene text
+  3. User-added/edited breakdown elements are preserved across re-extraction (merge policy settled in discussion)
 
 ## Progress
 

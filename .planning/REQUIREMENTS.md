@@ -1,8 +1,37 @@
 # Requirements: Screenwriting Assistant
 
-**Defined:** 2026-03-24 (v4.2) · updated 2026-06-05 (v6.0)
-**Active Milestone:** v6.0 — Script Quality
+**Defined:** 2026-03-24 (v4.2) · updated 2026-06-06 (v7.0 planned)
+**Active Milestone:** v6.0 — Script Quality (v7.0 requirements defined below, not yet active — v6.0 closes after EVAL-01 UAT)
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
+
+## v7.0 Requirements — Breakdown Fidelity
+
+**Defined:** 2026-06-06 · Internal tool — focus is the FIDELITY of the production breakdown (the AI extraction of physical on-screen elements from the script). Symmetric with v6.0: v6.0 deepened the *script*, v7.0 deepens the *breakdown* extracted from it. No market/export/collab features.
+
+**Premise:** v6.0 made generated scene text richer (continuity, voice, craft). The breakdown extraction in `backend/app/services/breakdown_service.py` should now read that actual per-scene screenplay text rather than one-line scene summaries, capture where/how each element appears, cover a broader element taxonomy, and refresh when a scene changes.
+
+### Scene-Text Extraction (BFID)
+
+- [ ] **BFID-01**: Breakdown extraction runs against the full per-scene screenplay text (from `ScreenplayContent.content`), not one-line scene summaries — so elements present in action/dialogue are caught
+- [ ] **BFID-02**: Extraction is scene-scoped — each scene's elements are extracted from that scene's text, so an element can be attributed to the scene(s) it actually appears in
+- [ ] **BFID-03**: Existing "physically present on screen" extraction rules are preserved (no elements merely mentioned in dialogue/backstory, no abstract concepts) while operating on the fuller scene text
+
+### Per-Appearance Context (APPR)
+
+- [ ] **APPR-01**: Each extracted element records the scene(s) it appears in (per-appearance context), not just a flat global element list
+- [ ] **APPR-02**: For each appearance, a short context note captures how/where the element appears (the action or moment), surfaced in the breakdown UI
+- [ ] **APPR-03**: The same element appearing across multiple scenes is consolidated into one element with multiple appearances (not duplicated)
+
+### Expanded Categories (CATG)
+
+- [ ] **CATG-01**: The element taxonomy is broadened beyond the current set to cover additional production-relevant categories (e.g. wardrobe, makeup/hair, SFX/VFX, vehicles, animals, stunts) — exact final list settled during phase discussion
+- [ ] **CATG-02**: Existing breakdown categories and existing extracted data remain valid — new categories are additive, no data migration that drops prior elements
+- [ ] **CATG-03**: The breakdown UI displays and lets the user filter/group by the expanded categories
+
+### Re-Extraction on Change (REEX)
+
+- [ ] **REEX-01**: When a scene's screenplay changes (regenerate-and-keep from v6.0, or a manual script edit), the breakdown is flagged stale via the existing staleness mechanism
+- [ ] **REEX-02**: Re-extraction refreshes the breakdown against the changed scene text without discarding user-added/edited breakdown elements (preserve manual edits where feasible — exact merge policy settled during phase discussion)
 
 ## v6.0 Requirements — Script Quality
 
@@ -94,6 +123,17 @@
 | CRAFT-02 | Phase 48 | Complete |
 | CRAFT-03 | Phase 48 | Complete |
 | EVAL-01 | Phase 49 | Pending |
+| BFID-01 | Phase 50 | Planned |
+| BFID-02 | Phase 50 | Planned |
+| BFID-03 | Phase 50 | Planned |
+| APPR-01 | Phase 51 | Planned |
+| APPR-02 | Phase 51 | Planned |
+| APPR-03 | Phase 51 | Planned |
+| CATG-01 | Phase 52 | Planned |
+| CATG-02 | Phase 52 | Planned |
+| CATG-03 | Phase 52 | Planned |
+| REEX-01 | Phase 53 | Planned |
+| REEX-02 | Phase 53 | Planned |
 | SHOW-01 | Phase 36 | Complete |
 | SHOW-02 | Phase 38 | Complete |
 | SHOW-03 | Phase 38 | Complete |
@@ -109,6 +149,7 @@
 | EPIS-05 | Phase 42 | Complete |
 
 **Coverage:**
+- v7.0 requirements: 12 total (BFID/APPR/CATG/REEX) — Mapped to phases 50-53: 12/12 — Planned (execution gated on v6.0 close)
 - v6.0 requirements: 12 total
 - Mapped to phases: 12/12
 - Unmapped: 0
