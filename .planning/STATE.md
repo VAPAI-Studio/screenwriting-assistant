@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: Script Quality
-status: planning
-last_updated: "2026-06-06T02:15:28.219Z"
-last_activity: 2026-06-06
+status: Roadmap created, awaiting plan-phase
+stopped_at: Phase 45 context gathered
+last_updated: "2026-06-06T03:08:37.977Z"
+last_activity: 2026-06-05 — v6.0 roadmap created (Phases 45-49)
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 14
+  completed_phases: 9
+  total_plans: 12
+  completed_plans: 12
+  percent: 64
 ---
 
 # Project State
@@ -84,6 +85,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-05
-Stopped at: v5.0 closed out — phases 43-44 complete, milestone shipped
-Resume file: None
+Last session: 2026-06-06T03:08:37.969Z
+Stopped at: Phase 45 context gathered
+Resume file: .planning/phases/45-continuity-aware-generation/45-CONTEXT.md
