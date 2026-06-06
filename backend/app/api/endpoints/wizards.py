@@ -133,9 +133,9 @@ async def run_wizard(
     # Build bible context for episode projects (passed as string to background task)
     bible_context = build_bible_context(db, project)
 
-    # Inject character data for scene wizard before handing off to background
+    # Inject character data for scene and script-writer wizards before handing off to background
     config = dict(request.config)
-    if request.wizard_type == "scene_wizard":
+    if request.wizard_type in ("scene_wizard", "script_writer_wizard"):
         config["_characters"] = _get_character_data(db, project.id)
 
     wizard_run = database.WizardRun(
