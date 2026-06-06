@@ -277,7 +277,8 @@ Plans:
   2. Generated output preserves scene headings, action lines, character cues, parentheticals, and dialogue formatting without JSON wrapping degrading it
   3. The better-formatting approach is adopted as the default generation path, and title/content are still captured correctly for storage in `ScreenplayContent`
   4. The chosen approach works for both OpenAI and Anthropic via the existing provider abstraction
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 46-01-PLAN.md — Migrate scene-writing to native output (json_mode=False), TITLE-line title parsing, strengthened layout prompt; preserve Phase 45 contract/continuity/failure; update continuity tests + FMT assertions
 
 ### Phase 47: Character Voice Injection
 **Goal**: Each character speaks in a distinct, consistent voice in generated dialogue because their voice profile reaches the script-writing prompt, not just scene planning
