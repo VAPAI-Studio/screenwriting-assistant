@@ -6,7 +6,7 @@ status: planning
 last_updated: "2026-06-06T02:15:28.219Z"
 last_activity: 2026-06-06
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v5.0 shipped — awaiting next milestone
+**Current focus:** v6.0 Script Quality — improve craft quality of AI-generated screenplays (continuity, format fidelity, character voice, craft guidance, side-by-side eval)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: Phase 45 (Continuity-Aware Generation) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-06 — Milestone v6.0 started
+Status: Roadmap created, awaiting plan-phase
+Last activity: 2026-06-05 — v6.0 roadmap created (Phases 45-49)
 
 ## Performance Metrics
 

@@ -11,7 +11,7 @@
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
 - ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
-- 📝 **v6.0 Script Quality** — deepen AI script-writing output (continuity-aware generation, character voice, screenwriting craft) — planned
+- 📝 **v6.0 Script Quality** — Phases 45-49 — deepen AI script-writing output (continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval) — in progress
 - 📝 **v7.0 Breakdown Fidelity** — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories) — planned
 - 📝 **v8.0 MCP Server** — expose write + breakdown capabilities as MCP tools for external agents; auth via existing API-key gateway — planned (after v6.0/v7.0)
 
@@ -110,6 +110,14 @@
 
 - [x] **Phase 43: API Key Management** - Users can create named API keys with optional scopes and expiry dates (completed 2026-03-27)
 - [x] **Phase 44: API Gateway, Docs & Usage Tracking** - API documentation, unified auth middleware, and per-key usage tracking (completed 2026-04-01)
+
+### v6.0 Script Quality (Planned)
+
+- [ ] **Phase 45: Continuity-Aware Generation** - Scene script calls receive prior scene text + a maintained running synopsis so tone/setup/payoff hold across scenes
+- [ ] **Phase 46: Format Fidelity (Native vs JSON Mode)** - Evaluate native screenplay output vs json_mode `{title, content}` wrapping; adopt the approach with better industry-standard formatting
+- [ ] **Phase 47: Character Voice Injection** - Per-character voice/diction profiles injected into the script-writing prompt so dialogue is distinct and consistent per character
+- [ ] **Phase 48: Screenwriting Craft Guidance** - Craft directives (subtext, action-line economy, show-don't-tell, page pacing/white space) added to the generation prompt
+- [ ] **Phase 49: Side-by-Side Quality Compare** - User can regenerate a scene with the improved path and compare it against prior output to judge the improvement
 
 ## Phase Details
 
@@ -245,6 +253,63 @@ Plans:
 - [ ] 44-01-PLAN.md — Backend: migration, model, schema, atomic increment, rate limiter middleware, docs enhancement, tests
 - [ ] 44-02-PLAN.md — Frontend: TypeScript types, ApiKeysPage usage display, auto-refresh, and human verification
 
+<!-- v6.0 Script Quality -->
+
+### Phase 45: Continuity-Aware Generation
+**Goal**: Each scene's screenplay is generated with awareness of what was actually written before, so tone, voice, and setup/payoff stay consistent across the scene sequence
+**Depends on**: Phase 44 (current generation path baseline)
+**Requirements**: CONT-01, CONT-02, CONT-03
+**Success Criteria** (what must be TRUE):
+  1. When `_generate_scripts` writes a scene, the prompt includes the full generated text of the immediately preceding scene(s) — not just the one-line `scene_outline` summaries
+  2. A running synopsis ("story so far") is built and updated after each scene and injected into subsequent scene calls, keeping context within token limits instead of pasting all prior scenes verbatim
+  3. A generated scene does not contradict facts, objects, or character states established in an earlier generated scene (setups/payoffs stay consistent across the sequence)
+  4. Existing single-scene / non-sequential generation still works unchanged when there is no prior scene
+**Plans**: TBD
+
+### Phase 46: Format Fidelity (Native vs JSON Mode)
+**Goal**: Screenplay output preserves industry-standard formatting, with the generation call shape (native output vs json_mode `{title, content}`) settled to whichever yields better formatting
+**Depends on**: Phase 45 (continuity rework settles the generation call shape)
+**Requirements**: FMT-01, FMT-02
+**Success Criteria** (what must be TRUE):
+  1. The screenplay-generation path is evaluated both ways: native screenplay output vs the current json_mode `{title, content}` wrapping
+  2. Generated output preserves scene headings, action lines, character cues, parentheticals, and dialogue formatting without JSON wrapping degrading it
+  3. The better-formatting approach is adopted as the default generation path, and title/content are still captured correctly for storage in `ScreenplayContent`
+  4. The chosen approach works for both OpenAI and Anthropic via the existing provider abstraction
+**Plans**: TBD
+
+### Phase 47: Character Voice Injection
+**Goal**: Each character speaks in a distinct, consistent voice in generated dialogue because their voice profile reaches the script-writing prompt, not just scene planning
+**Depends on**: Phase 46 (generation call shape settled), Phase 45 (continuity context)
+**Requirements**: VOICE-01, VOICE-02, VOICE-03
+**Success Criteria** (what must be TRUE):
+  1. Per-character voice/diction profiles (from PhaseData story.characters ListItems) are injected into the script-writing prompt in `_generate_scripts`, not only into `_generate_scenes`
+  2. When a character has no defined voice, the system derives or carries forward a consistent voice for them across scenes instead of defaulting to a uniform style
+  3. In a scene with multiple characters, their dialogue is distinguishable — two characters do not sound interchangeable
+  4. Voice profiles stay consistent for the same character across separate scene generations
+**Plans**: TBD
+
+### Phase 48: Screenwriting Craft Guidance
+**Goal**: Generated screenplays reflect explicit craft direction so action lines are visual and economical and dialogue carries subtext
+**Depends on**: Phase 47 (voice profiles in the prompt), Phase 46 (settled call shape)
+**Requirements**: CRAFT-01, CRAFT-02, CRAFT-03
+**Success Criteria** (what must be TRUE):
+  1. The screenplay-generation prompt includes explicit craft guidance covering subtext in dialogue, action-line economy, show-don't-tell, and page pacing / white space
+  2. Action lines in generated output are visual and economical — present tense, no internal or unfilmable description
+  3. Generated dialogue carries subtext rather than stating characters' intentions on-the-nose
+  4. Craft guidance composes with the continuity context and voice profiles without bloating the prompt past token limits
+**Plans**: TBD
+
+### Phase 49: Side-by-Side Quality Compare
+**Goal**: The user can directly compare a scene regenerated with the improved path against its prior output to judge the cumulative quality improvement
+**Depends on**: Phase 48, Phase 47, Phase 46, Phase 45 (improved generation path complete)
+**Requirements**: EVAL-01
+**Success Criteria** (what must be TRUE):
+  1. User can regenerate a scene's screenplay using the new (improved) generation path while preserving the prior output
+  2. The prior output and the newly generated output are displayed side-by-side for the same scene
+  3. User can choose which version to keep, with the kept version persisting to `ScreenplayContent`
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -293,3 +358,8 @@ Plans:
 | 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 43. API Key Management | v5.0 | 2/2 | Complete | 2026-03-27 |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 2/2 | Complete | 2026-04-01 |
+| 45. Continuity-Aware Generation | v6.0 | 0/? | Not started | - |
+| 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 0/? | Not started | - |
+| 47. Character Voice Injection | v6.0 | 0/? | Not started | - |
+| 48. Screenwriting Craft Guidance | v6.0 | 0/? | Not started | - |
+| 49. Side-by-Side Quality Compare | v6.0 | 0/? | Not started | - |

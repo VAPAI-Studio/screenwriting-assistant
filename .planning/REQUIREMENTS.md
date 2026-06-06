@@ -82,6 +82,18 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| CONT-01 | Phase 45 | Pending |
+| CONT-02 | Phase 45 | Pending |
+| CONT-03 | Phase 45 | Pending |
+| FMT-01 | Phase 46 | Pending |
+| FMT-02 | Phase 46 | Pending |
+| VOICE-01 | Phase 47 | Pending |
+| VOICE-02 | Phase 47 | Pending |
+| VOICE-03 | Phase 47 | Pending |
+| CRAFT-01 | Phase 48 | Pending |
+| CRAFT-02 | Phase 48 | Pending |
+| CRAFT-03 | Phase 48 | Pending |
+| EVAL-01 | Phase 49 | Pending |
 | SHOW-01 | Phase 36 | Complete |
 | SHOW-02 | Phase 38 | Complete |
 | SHOW-03 | Phase 38 | Complete |
@@ -97,10 +109,11 @@
 | EPIS-05 | Phase 42 | Complete |
 
 **Coverage:**
-- v4.2 requirements: 13 total
-- Mapped to phases: 13/13
+- v6.0 requirements: 12 total
+- Mapped to phases: 12/12
 - Unmapped: 0
+- v4.2 requirements: 13 total — Mapped to phases: 13/13 (shipped)
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-03-24 after v4.2 roadmap creation*
+*Last updated: 2026-06-05 after v6.0 roadmap creation*
