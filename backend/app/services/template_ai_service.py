@@ -357,6 +357,18 @@ Give each named character a DISTINCT, CONSISTENT voice — distinct vocabulary, 
                 else ""
             )
 
+            # The "## Screenwriting Craft" block below is UNCONDITIONAL (Phase 48,
+            # D-48-04): it appears in EVERY scene prompt — first/single scene and
+            # the no-characters path — so it is a plain literal in this f-string,
+            # NOT wrapped in any if/else guard, and is added equally to both the
+            # empty- and absent-characters paths (byte-identical contract holds).
+            # The anchor substrings the tests assert (test_craft_guidance.py):
+            #   "## Screenwriting Craft", "on-the-nose" (and "subtext"),
+            #   "economical", "show, don't tell",
+            #   "no internal or unfilmable description", "white space".
+            # COLLISION GUARD: the craft text must contain NONE of "Story so far",
+            # "Previous scene", "distinct, consistent voice", "## Characters",
+            # "## Character Voice" (asserted ABSENT by continuity/voice suites).
             prompt = f"""You are an expert screenwriter.
 
 ## Project Context
@@ -375,6 +387,13 @@ Scene summary: "{summary}"
 {json.dumps(ep, indent=2)}
 
 {f'Custom guidance: {guidance}' if guidance else ''}
+
+## Screenwriting Craft
+Apply these craft principles to THIS scene (distinct from the layout rules below):
+- Subtext: characters pursue their wants indirectly — imply intention and emotion rather than declaring them; avoid on-the-nose dialogue that states feelings or goals outright.
+- Action economy: keep action lines lean and economical — present tense, concrete verbs, no filler or stage-direction padding.
+- Show, don't tell: reveal character and emotion through visible behavior and action, with no internal or unfilmable description (no "she feels…", "he realizes…", "remembers that…").
+- Pacing and white space: vary the rhythm — break dense action into shorter beats and let white space carry tension; never wall-of-text.
 
 Write a proper screenplay for THIS scene using strict industry-standard layout:
 - The scene heading (INT./EXT. LOCATION - TIME) is on its OWN line.
