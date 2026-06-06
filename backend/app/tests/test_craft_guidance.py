@@ -188,6 +188,9 @@ def test_sc4_craft_composes_with_continuity_and_voice():
     assert VOICE_INSTRUCTION_ANCHOR in lower
     # Loose bloat guard
     assert len(later) < 20000
+    # Tight bloat guard: the craft block must appear exactly once (catches
+    # accidental duplication that the loose length bound would miss).
+    assert lower.count(CRAFT_HEADER.lower()) == 1
 
 
 def test_craft_always_on_no_continuity_regression():
