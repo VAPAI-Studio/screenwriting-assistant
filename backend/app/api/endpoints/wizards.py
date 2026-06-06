@@ -249,6 +249,7 @@ def apply_wizard_result_to_db(db: Session, project, phase: str, wizard_type: str
     # Script writer wizard: store screenplays in ScreenplayContent + PhaseData
     if wizard_type == "script_writer_wizard":
         screenplays = result.get("screenplays", [])
+        synopsis = result.get("synopsis", "")
         if not screenplays:
             return {"status": "success", "items_created": 0, "message": "No screenplays to apply"}
 
@@ -267,7 +268,7 @@ def apply_wizard_result_to_db(db: Session, project, phase: str, wizard_type: str
             db.add(phase_data)
             db.flush()
 
-        phase_data.content = {"screenplays": screenplays}
+        phase_data.content = {"screenplays": screenplays, "synopsis": synopsis}
         flag_modified(phase_data, "content")
 
         for sp in screenplays:
