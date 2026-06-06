@@ -506,3 +506,25 @@ export interface ApiKeyCreate {
 export interface ApiKeyCreateResponse extends ApiKey {
   key: string; // Full key, shown once
 }
+
+// Scene compare (Phase 49 — EVAL-01 / D-49-04)
+export interface RegenerateSceneRequest {
+  project_id: string;
+  phase: string;
+  episode_index: number;
+}
+
+export interface RegenerateSceneResponse {
+  title: string;
+  content: string;
+  episode_index: number;
+  error?: string;
+}
+
+export interface KeepSceneVersionRequest {
+  project_id: string;
+  phase: string;
+  episode_index: number;
+  title: string;
+  content: string;
+}

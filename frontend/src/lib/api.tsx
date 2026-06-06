@@ -9,6 +9,7 @@ import {
   Shot, ShotCreate, ShotUpdate, AssetMedia, StoryboardFrame,
   Show, ShowCreate, BibleResponse, BibleUpdate,
   ApiKey, ApiKeyCreate, ApiKeyCreateResponse,
+  RegenerateSceneRequest, RegenerateSceneResponse, KeepSceneVersionRequest,
 } from '../types';
 import type { AuthResponse, LoginRequest, RegisterRequest, UserUpdate, User } from '../types';
 import type { YoloEvent } from '../types/template';
@@ -1015,6 +1016,45 @@ export const api = {
       if (error.name === 'AbortError') throw new Error('Request timeout');
       throw error;
     }
+  },
+
+  // ============================================================
+  // Scene compare (Phase 49 — EVAL-01 / D-49-04)
+  // ============================================================
+
+  // Long-running single-scene regenerate (preview, no persist). Uses the 120s
+  // CHAT_TIMEOUT AbortController pattern — a single scene at max_tokens=4000 can
+  // exceed the 30s default fetchWithTimeout. Mirrors generateShotlist.
+  async regenerateScene(data: RegenerateSceneRequest): Promise<RegenerateSceneResponse> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
+    try {
+      const response = await fetch(`${API_BASE_URL}/wizards/regenerate-scene`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(data),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) throw new Error('Failed to regenerate scene');
+      return response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') throw new Error('Request timeout');
+      throw error;
+    }
+  },
+
+  // Fast persist of the chosen scene version. Normal fetchWithTimeout path
+  // (runWizard analog) — the write is quick.
+  async keepSceneVersion(data: KeepSceneVersionRequest): Promise<{ status: string; episode_index: number }> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/wizards/keep-scene-version`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Failed to keep scene version');
+    return response.json();
   },
 
   // ============================================================
