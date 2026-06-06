@@ -14,13 +14,18 @@ Mocking pattern (from test_bible_injection.py):
   @patch("app.services.template_ai_service.chat_completion", new_callable=AsyncMock)
   template_ai_service is a module-level singleton.
 
-Scene-writing calls use json_mode=True (return JSON {"title","content"});
-synopsis-update calls use json_mode=False (return plain prose). The test
-side_effect routes on the json_mode kwarg.
+As of Phase 46 (FMT-01/FMT-02, D-46-01), the scene-writing call uses
+json_mode=False and returns a NATIVE plain-text screenplay whose first line is
+`TITLE: <title>` followed by the screenplay body (real newlines, no JSON). The
+synopsis-update call also uses json_mode=False. Because json_mode no longer
+distinguishes the two calls, the side_effect routes by the POSITIVE scene
+marker in the user prompt: a message containing "YOUR TASK: Write scene" is a
+scene call; every other call is treated as the synopsis-update (else-branch).
+We deliberately do NOT route on "story so far"/"running synopsis" — those also
+appear inside later scene prompts' continuity block, so they are ambiguous.
 """
 
 import asyncio
-import json
 
 from unittest.mock import patch, AsyncMock
 
@@ -31,6 +36,9 @@ from app.services.template_ai_service import template_ai_service
 # proves no continuity block (first/single scene); their PRESENCE proves it.
 SYNOPSIS_MARKER = "Story so far"
 PREV_SCENE_MARKER = "Previous scene"
+
+# Positive, unambiguous discriminator for a scene-writing call (template_ai_service:352).
+SCENE_MARKER = "YOUR TASK: Write scene"
 
 
 def _make_config(num_scenes):
@@ -43,44 +51,50 @@ def _make_config(num_scenes):
 
 
 def _scene_writer(content, title="A Scene"):
-    """A JSON string as the scene-writing chat_completion would return it."""
-    return json.dumps({"title": title, "content": content})
+    """A NATIVE plain-text screenplay string as the scene-writing call now returns
+    it (Phase 46): a leading `TITLE: <title>` line, a blank line, then the body
+    with REAL newlines — not a json.dumps blob."""
+    return f"TITLE: {title}\n\n{content}"
 
 
 class _MockChat:
-    """Side-effect callable that routes scene vs synopsis calls by json_mode.
+    """Side-effect callable that routes scene vs synopsis calls by prompt content.
 
-    Records every call's prompt (the user message) and how many synopsis-update
-    calls fired. Optionally raises on a chosen scene index.
+    Both calls are now json_mode=False, so routing is by the positive scene
+    marker "YOUR TASK: Write scene" in the user message (every other call is the
+    synopsis-update else-branch). Records each scene call's prompt and json_mode
+    so tests can assert the scene call ran with json_mode=False. Optionally raises
+    on a chosen scene index.
     """
 
     def __init__(self, scene_contents, synopsis_text="SYNOPSIS_PROSE", fail_scene_index=None):
         self.scene_contents = scene_contents
         self.synopsis_text = synopsis_text
         self.fail_scene_index = fail_scene_index
-        self.scene_prompts = []      # prompts of scene-writing (json_mode=True) calls
-        self.synopsis_calls = 0      # count of synopsis-update (json_mode=False) calls
+        self.scene_prompts = []      # prompts of scene-writing calls (routed by SCENE_MARKER)
+        self.scene_json_modes = []   # json_mode kwarg recorded per scene call (must be False)
+        self.synopsis_calls = 0      # count of synopsis-update (else-branch) calls
         self._scene_idx = 0
 
     def __call__(self, *args, **kwargs):
         # Synchronous side_effect: AsyncMock awaits the call itself and uses this
         # return value. An async side_effect would double-wrap into a coroutine.
-        json_mode = kwargs.get("json_mode", False)
         messages = kwargs.get("messages", [])
         user_msg = next(
             (m["content"] for m in messages if m.get("role") == "user"), ""
         )
-        if json_mode:
-            # Scene-writing call
+        if SCENE_MARKER in user_msg:
+            # Scene-writing call (native output, json_mode=False).
             idx = self._scene_idx
             self.scene_prompts.append(user_msg)
+            self.scene_json_modes.append(kwargs.get("json_mode", False))
             self._scene_idx += 1
             if self.fail_scene_index is not None and idx == self.fail_scene_index:
                 raise RuntimeError("boom")
             content = self.scene_contents[idx]
             return _scene_writer(content, title=f"Scene {idx + 1}")
         else:
-            # Synopsis-update call
+            # Synopsis-update call (else-branch).
             self.synopsis_calls += 1
             return self.synopsis_text
 
@@ -195,3 +209,98 @@ def test_per_screenplay_contract_unchanged():
         assert "content" in item
         assert "episode_index" in item
         assert item["episode_index"] == i
+
+
+# ---------------------------------------------------------------------------
+# Phase 46 FMT assertions — native output (json_mode=False), no JSON encoding,
+# TITLE-line parse with summary fallback (FMT-01, FMT-02, D-46-01).
+# ---------------------------------------------------------------------------
+
+
+def test_scene_call_uses_native_json_mode_false():
+    """FMT-02 / D-46-01: the scene-writing call runs with json_mode=False."""
+    mock = _MockChat(scene_contents=["SCENE BODY"])
+    with patch(
+        "app.services.template_ai_service.chat_completion",
+        new_callable=AsyncMock,
+        side_effect=mock,
+    ):
+        _run(_make_config(1))
+
+    assert mock.scene_json_modes == [False], (
+        "scene call must run with json_mode=False (native channel)"
+    )
+
+
+def test_native_content_has_real_newlines_no_json_encoding():
+    """FMT-01: a multi-line native body lands in content with real newlines and
+    no JSON string-encoding (no literal \\n escape, no surrounding JSON braces)."""
+    body = "INT. ROOM - DAY\n\nA man enters.\n\nMAN\nHello."
+    mock = _MockChat(scene_contents=[body])
+    with patch(
+        "app.services.template_ai_service.chat_completion",
+        new_callable=AsyncMock,
+        side_effect=mock,
+    ):
+        result = _run(_make_config(1))
+
+    content = result["screenplays"][0]["content"]
+    # Real newline present (native multi-line text).
+    assert "\n" in content
+    # NOT JSON-escaped: the literal two-character backslash-n must be absent.
+    assert "\\n" not in content
+    # No JSON wrapping: content is not a JSON object/string blob.
+    assert not content.lstrip().startswith("{")
+    assert '"content":' not in content
+    # The body survives verbatim.
+    assert content == body
+
+
+def test_title_parsed_from_title_line():
+    """D-46-01: `TITLE: X` first line is parsed off as the title; body is the rest."""
+    mock = _MockChat(scene_contents=["the body"])
+    # _scene_writer emits `TITLE: Scene 1\n\nthe body` for the first scene.
+    with patch(
+        "app.services.template_ai_service.chat_completion",
+        new_callable=AsyncMock,
+        side_effect=mock,
+    ):
+        result = _run(_make_config(1))
+
+    item = result["screenplays"][0]
+    assert item["title"] == "Scene 1"
+    assert item["content"] == "the body"
+
+
+def test_title_falls_back_to_summary_when_absent():
+    """D-46-01: native output lacking any TITLE line never fails — title falls
+    back to the scene summary, whole text becomes content."""
+
+    class _NoTitleMock(_MockChat):
+        def __call__(self, *args, **kwargs):
+            messages = kwargs.get("messages", [])
+            user_msg = next(
+                (m["content"] for m in messages if m.get("role") == "user"), ""
+            )
+            if SCENE_MARKER in user_msg:
+                self.scene_prompts.append(user_msg)
+                self.scene_json_modes.append(kwargs.get("json_mode", False))
+                self._scene_idx += 1
+                # Native body with NO TITLE: line.
+                return "INT. ROOM - DAY\n\nNo title line here."
+            self.synopsis_calls += 1
+            return self.synopsis_text
+
+    mock = _NoTitleMock(scene_contents=["unused"])
+    with patch(
+        "app.services.template_ai_service.chat_completion",
+        new_callable=AsyncMock,
+        side_effect=mock,
+    ):
+        result = _run(_make_config(1))
+
+    item = result["screenplays"][0]
+    # Summary fallback: _make_config gives scene 1 the summary "Scene 1 summary".
+    assert item["title"] == "Scene 1 summary"
+    # The whole native text (no TITLE line stripped) is the content.
+    assert item["content"] == "INT. ROOM - DAY\n\nNo title line here."
