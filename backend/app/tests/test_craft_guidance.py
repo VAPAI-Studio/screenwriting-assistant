@@ -207,3 +207,18 @@ def test_craft_always_on_no_continuity_regression():
     assert CRAFT_HEADER in prompt
     assert SYNOPSIS_MARKER not in prompt
     assert PREV_SCENE_MARKER not in prompt
+
+
+def test_craft_block_present_in_generate_scripts_source():
+    """Pin the production prompt independent of mock routing: the actual source of
+    _generate_scripts carries the craft header and the four dimension anchors
+    (mirror test_character_voice_injection.py:230-237)."""
+    import inspect
+
+    src = inspect.getsource(template_ai_service._generate_scripts)
+    assert CRAFT_HEADER in src
+    assert SUBTEXT_ANCHOR in src
+    assert ECONOMY_ANCHOR in src
+    assert SHOW_DONT_TELL_ANCHOR in src
+    assert UNFILMABLE_ANCHOR in src
+    assert PACING_ANCHOR in src
