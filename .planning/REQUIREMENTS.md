@@ -1,8 +1,39 @@
 # Requirements: Screenwriting Assistant
 
-**Defined:** 2026-03-24
-**Milestone:** v4.2 — TV Show Mode
+**Defined:** 2026-03-24 (v4.2) · updated 2026-06-05 (v6.0)
+**Active Milestone:** v6.0 — Script Quality
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
+
+## v6.0 Requirements — Script Quality
+
+**Defined:** 2026-06-05 · Internal tool — focus is craft quality of generated scripts, no market/export/collab features.
+
+### Continuity (CONT)
+
+- [ ] **CONT-01**: When generating a scene's screenplay, the AI receives the full text of the immediately preceding generated scene(s) as context, not just one-line summaries
+- [ ] **CONT-02**: A running synopsis / "story so far" is maintained across scene generations so later scenes stay consistent with established events without exceeding context limits
+- [ ] **CONT-03**: Setups and payoffs (objects, facts, character states introduced earlier) remain consistent across the generated scene sequence — a generated scene does not contradict an earlier generated scene
+
+### Character Voice (VOICE)
+
+- [ ] **VOICE-01**: Per-character voice/diction profiles are injected into the script-writing prompt (not only scene planning), so each character's dialogue reflects their defined voice
+- [ ] **VOICE-02**: When a character has no defined voice, the system derives or maintains a consistent voice for them across scenes rather than defaulting to a uniform style
+- [ ] **VOICE-03**: Generated dialogue is distinguishable between characters — two characters in the same scene do not sound interchangeable
+
+### Screenwriting Craft (CRAFT)
+
+- [ ] **CRAFT-01**: The screenplay-generation prompt includes explicit craft guidance — subtext in dialogue, action-line economy, show-don't-tell, and page pacing / white space
+- [ ] **CRAFT-02**: Action lines in generated output are visual and economical (present tense, no internal/unfilmable description) per the craft guidance
+- [ ] **CRAFT-03**: Dialogue carries subtext rather than stating intentions on-the-nose, per the craft guidance
+
+### Format Fidelity (FMT)
+
+- [ ] **FMT-01**: Screenplay output is produced in a way that preserves industry-standard formatting (scene headings, action, character cues, parentheticals, dialogue) without JSON-wrapping degrading it
+- [ ] **FMT-02**: The screenplay-generation path is evaluated native-output vs. json_mode-wrapped, and the better-formatting approach is adopted
+
+### Quality Evaluation (EVAL)
+
+- [ ] **EVAL-01**: User can regenerate a scene's screenplay with the new (improved) generation path and compare it side-by-side against the prior output, to judge the quality improvement
 
 ## v4.2 Requirements
 
