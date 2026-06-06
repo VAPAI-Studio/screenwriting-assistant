@@ -289,7 +289,8 @@ Plans:
   2. When a character has no defined voice, the system derives or carries forward a consistent voice for them across scenes instead of defaulting to a uniform style
   3. In a scene with multiple characters, their dialogue is distinguishable — two characters do not sound interchangeable
   4. Voice profiles stay consistent for the same character across separate scene generations
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 47-01-PLAN.md — Inject character voice profiles into the script-writing prompt (wizards.py guard + _generate_scripts) with no-regression tests
 
 ### Phase 48: Screenwriting Craft Guidance
 **Goal**: Generated screenplays reflect explicit craft direction so action lines are visual and economical and dialogue carries subtext
@@ -363,6 +364,6 @@ Plans:
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 2/2 | Complete | 2026-04-01 |
 | 45. Continuity-Aware Generation | v6.0 | 0/1 | Planned | - |
 | 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 1/1 | Complete | 2026-06-06 |
-| 47. Character Voice Injection | v6.0 | 0/? | Not started | - |
+| 47. Character Voice Injection | v6.0 | 0/1 | Planned | - |
 | 48. Screenwriting Craft Guidance | v6.0 | 0/? | Not started | - |
 | 49. Side-by-Side Quality Compare | v6.0 | 0/? | Not started | - |
