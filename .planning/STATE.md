@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: Script Quality
-status: executing
-stopped_at: Completed 45-01-PLAN.md
-last_updated: "2026-06-06T03:29:09Z"
-last_activity: 2026-06-06 -- Phase 45 Plan 01 executed (continuity-aware generation)
+status: verifying
+stopped_at: Completed 46-01-PLAN.md
+last_updated: "2026-06-06T03:48:51Z"
+last_activity: 2026-06-06 -- Phase 46 Plan 01 executed (native vs json_mode format fidelity)
 progress:
   total_phases: 14
-  completed_phases: 10
-  total_plans: 14
-  completed_plans: 14
-  percent: 72
+  completed_phases: 12
+  total_plans: 15
+  completed_plans: 15
+  percent: 86
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Phase 45 (Continuity-Aware Generation) — in progress
-Plan: 45-01 complete
+Phase: Phase 46 (Format Fidelity — Native vs JSON Mode) — complete
+Plan: 46-01 complete
 Status: Ready to verify / continue
-Last activity: 2026-06-06 -- Phase 45 Plan 01 executed (continuity-aware generation)
+Last activity: 2026-06-06 -- Phase 46 Plan 01 executed (native vs json_mode format fidelity)
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Last activity: 2026-06-06 -- Phase 45 Plan 01 executed (continuity-aware generat
 
 **Recent Trend:**
 
-- Last 5 plans: 37-01 (5min), 38-01 (4min), 38-02 (3min), 44-01 (6min), 45-01 (13min)
+- Last 5 plans: 38-01 (4min), 38-02 (3min), 44-01 (6min), 45-01 (13min), 46-01 (3min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -76,6 +76,9 @@ Relevant to v4.2:
 - [Phase 45]: Scene generation threads a running prose synopsis + the immediately-preceding scene's verbatim text into each later prompt; first/single scene gets no continuity block
 - [Phase 45]: Synopsis re-summarized to a ~400-word cap per scene via a separate json_mode=False chat_completion call; advances only on success so a failed scene cannot poison continuity
 - [Phase 45]: Final synopsis persisted into existing screenplay_editor PhaseData.content JSON via flag_modified — no migration; per-screenplay {title,content,episode_index} contract unchanged
+- [Phase 46]: Scene-writing call switched to native output (json_mode=False) so JSON string-encoding no longer degrades screenplay formatting; title parsed off a TITLE: line with scene-summary fallback (never fails on missing title)
+- [Phase 46]: Native path adopted outright (no runtime A/B toggle, D-46-04); Phase 45 {screenplays,synopsis} + per-screenplay {title,content,episode_index} contract and success-only continuity advance preserved byte-for-byte
+- [Phase 46]: Continuity test mock routes scene-vs-synopsis by the positive 'YOUR TASK: Write scene' marker (both calls now json_mode=False); avoids ambiguous 'story so far' string
 
 ### Pending Todos
 
@@ -88,6 +91,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-06T03:29:09Z
-Stopped at: Completed 45-01-PLAN.md
+Last session: 2026-06-06T03:48:51Z
+Stopped at: Completed 46-01-PLAN.md
 Resume file: None

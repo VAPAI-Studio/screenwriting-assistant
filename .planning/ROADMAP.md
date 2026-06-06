@@ -114,7 +114,7 @@
 ### v6.0 Script Quality (Planned)
 
 - [ ] **Phase 45: Continuity-Aware Generation** - Scene script calls receive prior scene text + a maintained running synopsis so tone/setup/payoff hold across scenes
-- [ ] **Phase 46: Format Fidelity (Native vs JSON Mode)** - Evaluate native screenplay output vs json_mode `{title, content}` wrapping; adopt the approach with better industry-standard formatting
+- [x] **Phase 46: Format Fidelity (Native vs JSON Mode)** - Evaluate native screenplay output vs json_mode `{title, content}` wrapping; adopt the approach with better industry-standard formatting
 - [ ] **Phase 47: Character Voice Injection** - Per-character voice/diction profiles injected into the script-writing prompt so dialogue is distinct and consistent per character
 - [ ] **Phase 48: Screenwriting Craft Guidance** - Craft directives (subtext, action-line economy, show-don't-tell, page pacing/white space) added to the generation prompt
 - [ ] **Phase 49: Side-by-Side Quality Compare** - User can regenerate a scene with the improved path and compare it against prior output to judge the improvement
@@ -278,7 +278,7 @@ Plans:
   3. The better-formatting approach is adopted as the default generation path, and title/content are still captured correctly for storage in `ScreenplayContent`
   4. The chosen approach works for both OpenAI and Anthropic via the existing provider abstraction
 **Plans**: 1 plan
-- [ ] 46-01-PLAN.md — Migrate scene-writing to native output (json_mode=False), TITLE-line title parsing, strengthened layout prompt; preserve Phase 45 contract/continuity/failure; update continuity tests + FMT assertions
+- [x] 46-01-PLAN.md — Migrate scene-writing to native output (json_mode=False), TITLE-line title parsing, strengthened layout prompt; preserve Phase 45 contract/continuity/failure; update continuity tests + FMT assertions
 
 ### Phase 47: Character Voice Injection
 **Goal**: Each character speaks in a distinct, consistent voice in generated dialogue because their voice profile reaches the script-writing prompt, not just scene planning
@@ -362,7 +362,7 @@ Plans:
 | 43. API Key Management | v5.0 | 2/2 | Complete | 2026-03-27 |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 2/2 | Complete | 2026-04-01 |
 | 45. Continuity-Aware Generation | v6.0 | 0/1 | Planned | - |
-| 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 0/? | Not started | - |
+| 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 1/1 | Complete | 2026-06-06 |
 | 47. Character Voice Injection | v6.0 | 0/? | Not started | - |
 | 48. Screenwriting Craft Guidance | v6.0 | 0/? | Not started | - |
 | 49. Side-by-Side Quality Compare | v6.0 | 0/? | Not started | - |

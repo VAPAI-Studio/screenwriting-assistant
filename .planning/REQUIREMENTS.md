@@ -28,8 +28,8 @@
 
 ### Format Fidelity (FMT)
 
-- [ ] **FMT-01**: Screenplay output is produced in a way that preserves industry-standard formatting (scene headings, action, character cues, parentheticals, dialogue) without JSON-wrapping degrading it
-- [ ] **FMT-02**: The screenplay-generation path is evaluated native-output vs. json_mode-wrapped, and the better-formatting approach is adopted
+- [x] **FMT-01**: Screenplay output is produced in a way that preserves industry-standard formatting (scene headings, action, character cues, parentheticals, dialogue) without JSON-wrapping degrading it
+- [x] **FMT-02**: The screenplay-generation path is evaluated native-output vs. json_mode-wrapped, and the better-formatting approach is adopted
 
 ### Quality Evaluation (EVAL)
 
@@ -85,8 +85,8 @@
 | CONT-01 | Phase 45 | Complete |
 | CONT-02 | Phase 45 | Complete |
 | CONT-03 | Phase 45 | Complete |
-| FMT-01 | Phase 46 | Pending |
-| FMT-02 | Phase 46 | Pending |
+| FMT-01 | Phase 46 | Complete |
+| FMT-02 | Phase 46 | Complete |
 | VOICE-01 | Phase 47 | Pending |
 | VOICE-02 | Phase 47 | Pending |
 | VOICE-03 | Phase 47 | Pending |
