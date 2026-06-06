@@ -312,7 +312,9 @@ Plans:
   1. User can regenerate a scene's screenplay using the new (improved) generation path while preserving the prior output
   2. The prior output and the newly generated output are displayed side-by-side for the same scene
   3. User can choose which version to keep, with the kept version persisting to `ScreenplayContent`
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
+- [ ] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger (build/lint + UAT)
 **UI hint**: yes
 
 ## Progress
