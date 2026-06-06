@@ -559,6 +559,35 @@ class ScreenplayContentResponse(BaseModel):
 
 
 # ============================================================
+# Phase 49 — Side-by-side scene compare (EVAL-01)
+# ============================================================
+
+class RegenerateSceneRequest(BaseModel):
+    """Request to regenerate ONE scene by episode_index via the improved path."""
+    project_id: UUID
+    phase: str = "write"
+    episode_index: int
+
+
+class RegenerateSceneResponse(BaseModel):
+    """Preview of a regenerated scene. Built from the service dict — NOT an ORM
+    row, so no from_attributes. May carry an `error` when generation failed."""
+    title: str
+    content: str
+    episode_index: int
+    error: Optional[str] = None
+
+
+class KeepSceneVersionRequest(BaseModel):
+    """Request to persist a chosen scene version into screenplays[episode_index]."""
+    project_id: UUID
+    phase: str = "write"
+    episode_index: int
+    title: str
+    content: str
+
+
+# ============================================================
 # Snippet schemas (Phase 1 — Snippet Manager)
 # ============================================================
 

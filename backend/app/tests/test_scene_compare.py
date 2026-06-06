@@ -211,12 +211,40 @@ MOCK_USER_ID = "12345678-1234-5678-1234-567812345678"
 OTHER_USER_ID = "99999999-9999-9999-9999-999999999999"
 
 
-def _create_project(db_session, owner_id=MOCK_USER_ID, title="Scene Compare Project"):
+def _create_owner_project(client, db_session, mock_auth_headers, title="Scene Compare Project"):
+    """Create a project through the API so owner_id matches the mock user under
+    SQLite (mirrors test_shotlist_staleness._create_project_via_api). Returns a
+    lightweight object exposing `.id`."""
+    resp = client.post(
+        "/api/projects/",
+        json={"title": title, "framework": "three_act"},
+        headers=mock_auth_headers,
+    )
+    assert resp.status_code == 200, f"Project creation failed: {resp.json()}"
+    project_id = resp.json()["id"]
+
+    # The v1 create endpoint leaves `template` unset; the regenerate path needs a
+    # template to build project context. Set the only available template.
+    proj = db_session.query(database.Project).filter(
+        database.Project.id == project_id
+    ).first()
+    proj.template = "short_movie"
+    db_session.commit()
+
+    class _P:
+        pass
+    p = _P()
+    p.id = project_id
+    return p
+
+
+def _create_other_user_project(db_session, title="Other User Project"):
+    """Create a project owned by a DIFFERENT user (direct ORM) for 404 tests."""
     project = database.Project(
         id=str(uuid.uuid4()),
         title=title,
         framework="three_act",
-        owner_id=owner_id,
+        owner_id=OTHER_USER_ID,
     )
     db_session.add(project)
     db_session.commit()
@@ -321,7 +349,7 @@ def test_regenerate_endpoint_returns_preview_and_does_not_persist(
 ):
     """regenerate-scene returns {title,content,episode_index} and writes nothing:
     no new ScreenplayContent, stored screenplays[] unchanged, no stale flags."""
-    project = _create_project(db_session)
+    project = _create_owner_project(client, db_session, mock_auth_headers)
     _seed_screenplay_editor(db_session, project.id)
     _seed_breakdown_and_shot(db_session, project.id)
 
@@ -367,7 +395,7 @@ def test_keep_scene_version_persists_and_marks_stale(
 ):
     """keep-scene-version replaces screenplays[1] + the matching ScreenplayContent,
     flips breakdown/shotlist stale, and leaves the global synopsis untouched."""
-    project = _create_project(db_session)
+    project = _create_owner_project(client, db_session, mock_auth_headers)
     _seed_screenplay_editor(db_session, project.id)
     _seed_breakdown_and_shot(db_session, project.id)
 
@@ -415,7 +443,7 @@ def test_keep_scene_version_persists_and_marks_stale(
 
 def test_regenerate_endpoint_non_owner_404(client, db_session, mock_auth_headers):
     """A project owned by a different user returns 404 on regenerate-scene."""
-    project = _create_project(db_session, owner_id=OTHER_USER_ID)
+    project = _create_other_user_project(db_session)
     _seed_screenplay_editor(db_session, project.id)
 
     ctx, _mock = _patch_scene_chat()
@@ -430,7 +458,7 @@ def test_regenerate_endpoint_non_owner_404(client, db_session, mock_auth_headers
 
 def test_keep_scene_version_non_owner_404(client, db_session, mock_auth_headers):
     """A project owned by a different user returns 404 on keep-scene-version."""
-    project = _create_project(db_session, owner_id=OTHER_USER_ID)
+    project = _create_other_user_project(db_session)
     _seed_screenplay_editor(db_session, project.id)
 
     resp = client.post(
