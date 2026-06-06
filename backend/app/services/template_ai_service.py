@@ -306,9 +306,15 @@ Return only the synopsis prose."""
         episodes = config.get("episodes", [])
         runtime_target = config.get("runtime_target", "")
         guidance = config.get("custom_guidance", "")
+        characters = config.get("_characters", [])
 
         if not episodes:
             return {"screenplays": [], "error": "No episodes/scenes provided to write scripts for."}
+
+        # Build the character section ONCE (it does not vary per scene). Reuses
+        # the empty-list-safe _build_character_section: an absent/empty
+        # _characters yields "" so the prompt is byte-identical to Phase 46 (D-47-04).
+        character_section = self._build_character_section(characters)
 
         # Build a brief outline of ALL scenes so each call has structural context
         scene_outline = "\n".join(
@@ -338,11 +344,24 @@ Return only the synopsis prose."""
                 else ""
             )
 
+            # Character block — section + an explicit distinct/consistent-voice
+            # instruction. Emitted ONLY when characters exist; the empty/absent path
+            # collapses to "" so the prompt is byte-identical to Phase 46 (D-47-04).
+            # The anchor substring "distinct, consistent voice" is what the tests assert.
+            character_block = (
+                f"""{character_section}
+
+## Character Voice
+Give each named character a DISTINCT, CONSISTENT voice — distinct vocabulary, rhythm, formality, and verbal tics — so that two characters in the same scene never sound interchangeable. Where a character has no explicit voice cues, establish a voice for them and keep it consistent with how they have already spoken in earlier scenes (visible via the previous-scene text and the running synopsis above)."""
+                if character_section
+                else ""
+            )
+
             prompt = f"""You are an expert screenwriter.
 
 ## Project Context
 {project_context}
-
+{character_block}
 {f'## Overall Target Runtime: {runtime_target}' if runtime_target else ''}
 ## Total scenes: {len(episodes)}
 
