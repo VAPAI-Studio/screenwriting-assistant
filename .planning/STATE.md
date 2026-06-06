@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: Script Quality
 status: verifying
-stopped_at: Completed 46-01-PLAN.md
-last_updated: "2026-06-06T03:48:51Z"
-last_activity: 2026-06-06 -- Phase 46 Plan 01 executed (native vs json_mode format fidelity)
+stopped_at: Completed 47-01-PLAN.md
+last_updated: "2026-06-06T11:55:29Z"
+last_activity: 2026-06-06 -- Phase 47 Plan 01 executed (character voice injection into _generate_scripts)
 progress:
   total_phases: 14
-  completed_phases: 12
-  total_plans: 15
-  completed_plans: 15
-  percent: 86
+  completed_phases: 13
+  total_plans: 16
+  completed_plans: 16
+  percent: 93
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Phase 46 (Format Fidelity — Native vs JSON Mode) — complete
-Plan: 46-01 complete
+Phase: Phase 47 (Character Voice Injection) — complete
+Plan: 47-01 complete
 Status: Ready to verify / continue
-Last activity: 2026-06-06 -- Phase 46 Plan 01 executed (native vs json_mode format fidelity)
+Last activity: 2026-06-06 -- Phase 47 Plan 01 executed (character voice injection into _generate_scripts)
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Last activity: 2026-06-06 -- Phase 46 Plan 01 executed (native vs json_mode form
 
 **Recent Trend:**
 
-- Last 5 plans: 38-01 (4min), 38-02 (3min), 44-01 (6min), 45-01 (13min), 46-01 (3min)
+- Last 5 plans: 38-02 (3min), 44-01 (6min), 45-01 (13min), 46-01 (3min), 47-01 (4min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -79,6 +79,9 @@ Relevant to v4.2:
 - [Phase 46]: Scene-writing call switched to native output (json_mode=False) so JSON string-encoding no longer degrades screenplay formatting; title parsed off a TITLE: line with scene-summary fallback (never fails on missing title)
 - [Phase 46]: Native path adopted outright (no runtime A/B toggle, D-46-04); Phase 45 {screenplays,synopsis} + per-screenplay {title,content,episode_index} contract and success-only continuity advance preserved byte-for-byte
 - [Phase 46]: Continuity test mock routes scene-vs-synopsis by the positive 'YOUR TASK: Write scene' marker (both calls now json_mode=False); avoids ambiguous 'story so far' string
+- [Phase 47]: run_wizard injection guard broadened to wizard_type in ('scene_wizard','script_writer_wizard') so character profiles reach _generate_scripts; persisted WizardRun.config=request.config split preserved (no _characters re-persisted)
+- [Phase 47]: _generate_scripts injects a conditional character_block (reused _build_character_section + a 'distinct, consistent voice' instruction) that collapses to '' when _characters is empty/absent → byte-identical Phase 46 prompt; SCENE_MARKER, json_mode=False, return contract, continuity advance unchanged
+- [Phase 47]: under-specified voices are derived + carried by the Phase 45 continuity block (no structured voice ledger), consistent with Phase 45's no-ledger decision
 
 ### Pending Todos
 
@@ -91,6 +94,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-06T03:48:51Z
-Stopped at: Completed 46-01-PLAN.md
+Last session: 2026-06-06T11:55:29Z
+Stopped at: Completed 47-01-PLAN.md
 Resume file: None

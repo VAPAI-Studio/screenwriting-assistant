@@ -115,7 +115,7 @@
 
 - [ ] **Phase 45: Continuity-Aware Generation** - Scene script calls receive prior scene text + a maintained running synopsis so tone/setup/payoff hold across scenes
 - [x] **Phase 46: Format Fidelity (Native vs JSON Mode)** - Evaluate native screenplay output vs json_mode `{title, content}` wrapping; adopt the approach with better industry-standard formatting
-- [ ] **Phase 47: Character Voice Injection** - Per-character voice/diction profiles injected into the script-writing prompt so dialogue is distinct and consistent per character
+- [x] **Phase 47: Character Voice Injection** - Per-character voice/diction profiles injected into the script-writing prompt so dialogue is distinct and consistent per character
 - [ ] **Phase 48: Screenwriting Craft Guidance** - Craft directives (subtext, action-line economy, show-don't-tell, page pacing/white space) added to the generation prompt
 - [ ] **Phase 49: Side-by-Side Quality Compare** - User can regenerate a scene with the improved path and compare it against prior output to judge the improvement
 
@@ -290,7 +290,7 @@ Plans:
   3. In a scene with multiple characters, their dialogue is distinguishable — two characters do not sound interchangeable
   4. Voice profiles stay consistent for the same character across separate scene generations
 **Plans**: 1 plan
-- [ ] 47-01-PLAN.md — Inject character voice profiles into the script-writing prompt (wizards.py guard + _generate_scripts) with no-regression tests
+- [x] 47-01-PLAN.md — Inject character voice profiles into the script-writing prompt (wizards.py guard + _generate_scripts) with no-regression tests
 
 ### Phase 48: Screenwriting Craft Guidance
 **Goal**: Generated screenplays reflect explicit craft direction so action lines are visual and economical and dialogue carries subtext
@@ -364,6 +364,6 @@ Plans:
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 2/2 | Complete | 2026-04-01 |
 | 45. Continuity-Aware Generation | v6.0 | 0/1 | Planned | - |
 | 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 1/1 | Complete | 2026-06-06 |
-| 47. Character Voice Injection | v6.0 | 0/1 | Planned | - |
+| 47. Character Voice Injection | v6.0 | 1/1 | Complete | 47-01 |
 | 48. Screenwriting Craft Guidance | v6.0 | 0/? | Not started | - |
 | 49. Side-by-Side Quality Compare | v6.0 | 0/? | Not started | - |

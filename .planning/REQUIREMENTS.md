@@ -16,9 +16,9 @@
 
 ### Character Voice (VOICE)
 
-- [ ] **VOICE-01**: Per-character voice/diction profiles are injected into the script-writing prompt (not only scene planning), so each character's dialogue reflects their defined voice
-- [ ] **VOICE-02**: When a character has no defined voice, the system derives or maintains a consistent voice for them across scenes rather than defaulting to a uniform style
-- [ ] **VOICE-03**: Generated dialogue is distinguishable between characters — two characters in the same scene do not sound interchangeable
+- [x] **VOICE-01**: Per-character voice/diction profiles are injected into the script-writing prompt (not only scene planning), so each character's dialogue reflects their defined voice
+- [x] **VOICE-02**: When a character has no defined voice, the system derives or maintains a consistent voice for them across scenes rather than defaulting to a uniform style
+- [x] **VOICE-03**: Generated dialogue is distinguishable between characters — two characters in the same scene do not sound interchangeable
 
 ### Screenwriting Craft (CRAFT)
 
@@ -87,9 +87,9 @@
 | CONT-03 | Phase 45 | Complete |
 | FMT-01 | Phase 46 | Complete |
 | FMT-02 | Phase 46 | Complete |
-| VOICE-01 | Phase 47 | Pending |
-| VOICE-02 | Phase 47 | Pending |
-| VOICE-03 | Phase 47 | Pending |
+| VOICE-01 | Phase 47 | Complete |
+| VOICE-02 | Phase 47 | Complete |
+| VOICE-03 | Phase 47 | Complete |
 | CRAFT-01 | Phase 48 | Pending |
 | CRAFT-02 | Phase 48 | Pending |
 | CRAFT-03 | Phase 48 | Pending |
