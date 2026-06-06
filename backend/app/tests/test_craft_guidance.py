@@ -214,11 +214,17 @@ def test_craft_always_on_no_continuity_regression():
 
 def test_craft_block_present_in_generate_scripts_source():
     """Pin the production prompt independent of mock routing: the actual source of
-    _generate_scripts carries the craft header and the four dimension anchors
-    (mirror test_character_voice_injection.py:230-237)."""
+    the per-scene prompt builder carries the craft header and the four dimension
+    anchors (mirror test_character_voice_injection.py:230-237).
+
+    Phase 49 (D-49-01) extracted the per-scene prompt body out of
+    _generate_scripts into the shared _generate_one_scene helper (used by both the
+    batch loop and regenerate_single_scene). The craft block lives there now, so
+    this source-pin inspects _generate_one_scene — the single production source of
+    the scene prompt."""
     import inspect
 
-    src = inspect.getsource(template_ai_service._generate_scripts)
+    src = inspect.getsource(template_ai_service._generate_one_scene)
     assert CRAFT_HEADER in src
     assert SUBTEXT_ANCHOR in src
     assert ECONOMY_ANCHOR in src

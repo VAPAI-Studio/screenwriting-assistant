@@ -302,85 +302,86 @@ Return only the synopsis prose."""
             logger.error(f"Synopsis update error: {e}")
             return prev_synopsis
 
-    async def _generate_scripts(self, config: Dict, project_context: str, template: Dict) -> Dict:
-        episodes = config.get("episodes", [])
-        runtime_target = config.get("runtime_target", "")
-        guidance = config.get("custom_guidance", "")
-        characters = config.get("_characters", [])
+    async def _generate_one_scene(
+        self,
+        ep: Dict,
+        i: int,
+        total: int,
+        project_context: str,
+        character_section: str,
+        scene_outline: str,
+        runtime_target: str,
+        guidance: str,
+        synopsis: str,
+        prev_scene_text: str,
+    ) -> Dict:
+        """Generate ONE scene's screenplay via the improved phases 45-48 path.
 
-        if not episodes:
-            return {"screenplays": [], "error": "No episodes/scenes provided to write scripts for."}
+        This is the single shared per-scene path used by BOTH _generate_scripts
+        (the full-batch loop) and regenerate_single_scene (Phase 49 single-scene
+        regenerate). The prompt body, LLM call, and native parse are byte-identical
+        to the original inline loop body — moving them here MUST NOT change any
+        anchor substring, the SCENE_MARKER, the system prompt, json_mode, or the
+        returned {title, content, episode_index} shape (D-49-05).
 
-        # Build the character section ONCE (it does not vary per scene). Reuses
-        # the empty-list-safe _build_character_section: an absent/empty
-        # _characters yields "" so the prompt is byte-identical to Phase 46 (D-47-04).
-        character_section = self._build_character_section(characters)
+        Returns {title, content, episode_index} on success, or the failure-branch
+        dict {episode_index, title (=summary fallback), content "[Generation
+        failed: ...]", error} on a chat_completion exception. This helper does NOT
+        advance continuity (synopsis/prev_scene_text are read-only inputs); the
+        caller owns continuity state.
+        """
+        summary = ep.get("summary", f"Scene {i + 1}")
 
-        # Build a brief outline of ALL scenes so each call has structural context
-        scene_outline = "\n".join(
-            f"  {i + 1}. {ep.get('summary', f'Scene {i + 1}')}"
-            for i, ep in enumerate(episodes)
-        )
-
-        # Continuity state, rebuilt fresh from scratch each run (D-07). Empty for
-        # the first/single scene so no continuity block is injected (D-05).
-        synopsis = ""
-        prev_scene_text = ""
-
-        screenplays = []
-        for i, ep in enumerate(episodes):
-            summary = ep.get("summary", f"Scene {i + 1}")
-
-            # Continuity block — injected ONLY when prior continuity state exists
-            # (D-01/D-05). First/single scene gets nothing → behavior unchanged.
-            continuity_block = (
-                f"""## Story so far (running synopsis of all earlier scenes):
+        # Continuity block — injected ONLY when prior continuity state exists
+        # (D-01/D-05). First/single scene gets nothing → behavior unchanged.
+        continuity_block = (
+            f"""## Story so far (running synopsis of all earlier scenes):
 {synopsis}
 
 ## Previous scene (full text — match its tone, voice, and continuity):
 {prev_scene_text}
 """
-                if (synopsis or prev_scene_text)
-                else ""
-            )
+            if (synopsis or prev_scene_text)
+            else ""
+        )
 
-            # Character block — section + an explicit distinct/consistent-voice
-            # instruction. Emitted ONLY when characters exist; the empty/absent path
-            # collapses to "" so the prompt is byte-identical to Phase 46 (D-47-04).
-            # The anchor substring "distinct, consistent voice" is what the tests assert.
-            character_block = (
-                f"""{character_section}
+        # Character block — section + an explicit distinct/consistent-voice
+        # instruction. Emitted ONLY when characters exist; the empty/absent path
+        # collapses to "" so the prompt is byte-identical to Phase 46 (D-47-04).
+        # The anchor substring "distinct, consistent voice" is what the tests assert.
+        character_block = (
+            f"""{character_section}
 
 ## Character Voice
 Give each named character a DISTINCT, CONSISTENT voice — distinct vocabulary, rhythm, formality, and verbal tics — so that two characters in the same scene never sound interchangeable. Where a character has no explicit voice cues, establish a voice for them and keep it consistent with how they have already spoken in earlier scenes (visible via the previous-scene text and the running synopsis above)."""
-                if character_section
-                else ""
-            )
+            if character_section
+            else ""
+        )
 
-            # The "## Screenwriting Craft" block below is UNCONDITIONAL (Phase 48,
-            # D-48-04): it appears in EVERY scene prompt — first/single scene and
-            # the no-characters path — so it is a plain literal in this f-string,
-            # NOT wrapped in any if/else guard, and is added equally to both the
-            # empty- and absent-characters paths (byte-identical contract holds).
-            # The anchor substrings the tests assert (test_craft_guidance.py):
-            #   "## Screenwriting Craft", "on-the-nose" (and "subtext"),
-            #   "economical", "show, don't tell",
-            #   "no internal or unfilmable description", "white space".
-            # COLLISION GUARD: the craft text must contain NONE of "Story so far",
-            # "Previous scene", "distinct, consistent voice", "## Characters",
-            # "## Character Voice" (asserted ABSENT by continuity/voice suites).
-            prompt = f"""You are an expert screenwriter.
+        # The "## Screenwriting Craft" block below is UNCONDITIONAL (Phase 48,
+        # D-48-04): it appears in EVERY scene prompt — first/single scene and
+        # the no-characters path — so it is a plain literal in this f-string,
+        # NOT wrapped in any if/else guard, and is added equally to both the
+        # empty- and absent-characters paths (byte-identical contract holds).
+        # The anchor substrings the tests assert (test_craft_guidance.py):
+        #   "## Screenwriting Craft", "on-the-nose" (and "subtext"),
+        #   "economical", "show, don't tell",
+        #   "no internal or unfilmable description", "white space".
+        # COLLISION GUARD: the craft text must contain NONE of "Story so far",
+        # "Previous scene", "distinct, consistent voice", "## Characters",
+        # "## Character Voice" (asserted ABSENT by continuity/voice suites).
+        prompt = f"""You are an expert screenwriter.
 
 ## Project Context
 {project_context}
 {character_block}
 {f'## Overall Target Runtime: {runtime_target}' if runtime_target else ''}
-## Total scenes: {len(episodes)}
+## Total scenes: {total}
 
 ## Full scene outline (for pacing context):
 {scene_outline}
 
-{continuity_block}## YOUR TASK: Write scene {i + 1} of {len(episodes)}
+{continuity_block}## YOUR TASK: Write scene {i + 1} of {total}
 Scene summary: "{summary}"
 
 ## Full scene data:
@@ -410,75 +411,175 @@ The FIRST line MUST be exactly:
 TITLE: <a short title for this scene>
 Then, beneath it, write the full screenplay body using the layout rules above."""
 
-            try:
-                logger.info(f"Generating script for scene {i + 1}/{len(episodes)}: {summary}")
-                text = await chat_completion(
-                    messages=[
-                        {"role": "system", "content": "You are an expert screenwriter who lays out scenes in industry-standard screenplay format. Return the screenplay as native plain text only — no JSON, no markdown code fences."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=4000,
-                    json_mode=False,
-                )
+        try:
+            logger.info(f"Generating script for scene {i + 1}/{total}: {summary}")
+            text = await chat_completion(
+                messages=[
+                    {"role": "system", "content": "You are an expert screenwriter who lays out scenes in industry-standard screenplay format. Return the screenplay as native plain text only — no JSON, no markdown code fences."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7,
+                max_tokens=4000,
+                json_mode=False,
+            )
 
-                # Native parse (D-46-01). The provider does NOT strip code fences
-                # in native mode (fence-stripping is json_mode-gated, ai_provider.py),
-                # so tolerate a stray leading/trailing fence ourselves. Never run
-                # json.loads on the scene result.
-                text = (text or "").strip()
-                if text.startswith("```"):
-                    lines = text.split("\n")
-                    # Drop the opening fence line (```/```text).
-                    lines = lines[1:]
-                    # Drop a trailing closing fence line if present.
-                    if lines and lines[-1].strip() == "```":
-                        lines = lines[:-1]
-                    text = "\n".join(lines).strip()
+            # Native parse (D-46-01). The provider does NOT strip code fences
+            # in native mode (fence-stripping is json_mode-gated, ai_provider.py),
+            # so tolerate a stray leading/trailing fence ourselves. Never run
+            # json.loads on the scene result.
+            text = (text or "").strip()
+            if text.startswith("```"):
+                lines = text.split("\n")
+                # Drop the opening fence line (```/```text).
+                lines = lines[1:]
+                # Drop a trailing closing fence line if present.
+                if lines and lines[-1].strip() == "```":
+                    lines = lines[:-1]
+                text = "\n".join(lines).strip()
 
-                # Split a leading `TITLE:` line (case-insensitive, optional
-                # whitespace) off the top; the rest is the screenplay body.
-                title = ""
-                content = text
-                split_title_line = False
-                first_nl = text.find("\n")
-                first_line = text if first_nl == -1 else text[:first_nl]
-                if first_line.strip().lower().startswith("title:"):
-                    split_title_line = True
-                    title = first_line.split(":", 1)[1].strip()
-                    rest = "" if first_nl == -1 else text[first_nl + 1:]
-                    content = rest.lstrip("\n")
+            # Split a leading `TITLE:` line (case-insensitive, optional
+            # whitespace) off the top; the rest is the screenplay body.
+            title = ""
+            content = text
+            split_title_line = False
+            first_nl = text.find("\n")
+            first_line = text if first_nl == -1 else text[:first_nl]
+            if first_line.strip().lower().startswith("title:"):
+                split_title_line = True
+                title = first_line.split(":", 1)[1].strip()
+                rest = "" if first_nl == -1 else text[first_nl + 1:]
+                content = rest.lstrip("\n")
 
-                # Never fail a scene over a missing/empty title — fall back to the
-                # scene summary (D-46-01), mirroring the empty-fallback idiom.
-                # Only re-glue the full text into content when no TITLE line was
-                # split off; if a TITLE: line was present but blank, keep the body
-                # we already separated (don't re-inject the literal "TITLE:" line).
-                if not title:
-                    title = summary
-                    if not split_title_line:
-                        content = text
+            # Never fail a scene over a missing/empty title — fall back to the
+            # scene summary (D-46-01), mirroring the empty-fallback idiom.
+            # Only re-glue the full text into content when no TITLE line was
+            # split off; if a TITLE: line was present but blank, keep the body
+            # we already separated (don't re-inject the literal "TITLE:" line).
+            if not title:
+                title = summary
+                if not split_title_line:
+                    content = text
 
-                screenplays.append({
-                    "title": title,
-                    "content": content,
-                    "episode_index": i,
-                })
+            return {
+                "title": title,
+                "content": content,
+                "episode_index": i,
+            }
+        except Exception as e:
+            logger.error(f"Script generation error for scene {i + 1}: {e}")
+            return {
+                "episode_index": i,
+                "title": summary,
+                "content": f"[Generation failed: {str(e)}]",
+                "error": str(e),
+            }
 
-                # Advance continuity state ONLY on success — a failed scene must
-                # not poison prev_scene_text or the synopsis (D-05).
-                prev_scene_text = content
+    async def _generate_scripts(self, config: Dict, project_context: str, template: Dict) -> Dict:
+        episodes = config.get("episodes", [])
+        runtime_target = config.get("runtime_target", "")
+        guidance = config.get("custom_guidance", "")
+        characters = config.get("_characters", [])
+
+        if not episodes:
+            return {"screenplays": [], "error": "No episodes/scenes provided to write scripts for."}
+
+        # Build the character section ONCE (it does not vary per scene). Reuses
+        # the empty-list-safe _build_character_section: an absent/empty
+        # _characters yields "" so the prompt is byte-identical to Phase 46 (D-47-04).
+        character_section = self._build_character_section(characters)
+
+        # Build a brief outline of ALL scenes so each call has structural context
+        scene_outline = "\n".join(
+            f"  {i + 1}. {ep.get('summary', f'Scene {i + 1}')}"
+            for i, ep in enumerate(episodes)
+        )
+
+        # Continuity state, rebuilt fresh from scratch each run (D-07). Empty for
+        # the first/single scene so no continuity block is injected (D-05).
+        synopsis = ""
+        prev_scene_text = ""
+
+        screenplays = []
+        for i, ep in enumerate(episodes):
+            summary = ep.get("summary", f"Scene {i + 1}")
+
+            # Delegate the per-scene prompt + LLM call + native parse to the
+            # single shared helper (Phase 49). Behavior-identical to the prior
+            # inline loop body (D-49-05).
+            scene = await self._generate_one_scene(
+                ep=ep,
+                i=i,
+                total=len(episodes),
+                project_context=project_context,
+                character_section=character_section,
+                scene_outline=scene_outline,
+                runtime_target=runtime_target,
+                guidance=guidance,
+                synopsis=synopsis,
+                prev_scene_text=prev_scene_text,
+            )
+            screenplays.append(scene)
+
+            # Advance continuity state ONLY on success — a failed scene must
+            # not poison prev_scene_text or the synopsis (D-05). A failure dict
+            # carries an "error" key.
+            if "error" not in scene:
+                prev_scene_text = scene["content"]
                 synopsis = await self._update_synopsis(synopsis, prev_scene_text, summary)
-            except Exception as e:
-                logger.error(f"Script generation error for scene {i + 1}: {e}")
-                screenplays.append({
-                    "episode_index": i,
-                    "title": summary,
-                    "content": f"[Generation failed: {str(e)}]",
-                    "error": str(e),
-                })
 
         return {"screenplays": screenplays, "synopsis": synopsis}
+
+    async def regenerate_single_scene(
+        self,
+        config: Dict,
+        project_context: str,
+        episode_index: int,
+        synopsis: str,
+        prev_scene_text: str,
+    ) -> Dict:
+        """Regenerate ONE scene by episode_index via the improved phases 45-48 path.
+
+        Reuses _generate_one_scene so the regenerate prompt is byte-identical to
+        the batch prompt for that index (D-49-01). The caller supplies the
+        continuity context (the running synopsis up to that scene + the
+        immediately-preceding scene's stored text). This method does NOT advance
+        or rewrite the global synopsis — a single-scene regenerate is a quality
+        spot-check, not a full re-thread (D-49-05).
+
+        Returns the {title, content, episode_index} dict (or the failure-branch
+        dict on a chat_completion exception). Raises ValueError if episode_index
+        is out of range.
+        """
+        episodes = config.get("episodes", [])
+        if not (0 <= episode_index < len(episodes)):
+            raise ValueError(
+                f"episode_index {episode_index} out of range (0..{len(episodes) - 1})"
+            )
+
+        runtime_target = config.get("runtime_target", "")
+        guidance = config.get("custom_guidance", "")
+        characters = config.get("_characters", [])
+
+        # Build character_section + scene_outline exactly as _generate_scripts
+        # does so the regenerate prompt matches the batch prompt for this index.
+        character_section = self._build_character_section(characters)
+        scene_outline = "\n".join(
+            f"  {idx + 1}. {ep.get('summary', f'Scene {idx + 1}')}"
+            for idx, ep in enumerate(episodes)
+        )
+
+        return await self._generate_one_scene(
+            ep=episodes[episode_index],
+            i=episode_index,
+            total=len(episodes),
+            project_context=project_context,
+            character_section=character_section,
+            scene_outline=scene_outline,
+            runtime_target=runtime_target,
+            guidance=guidance,
+            synopsis=synopsis,
+            prev_scene_text=prev_scene_text,
+        )
 
     async def fill_blanks(
         self,

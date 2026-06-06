@@ -130,7 +130,9 @@ def test_regenerate_non_first_scene_has_all_improved_anchors():
     assert PREV_SCENE_MARKER in prompt
     assert "PRIOR SYNOPSIS" in prompt
     assert "PRIOR SCENE" in prompt
-    assert VOICE_MARKER in prompt
+    # Voice anchor is upper-cased in the prompt ("DISTINCT, CONSISTENT voice");
+    # compare lowercase like the existing voice suite does.
+    assert VOICE_MARKER in prompt.lower()
     assert CRAFT_MARKER in prompt
     assert CRAFT_SUBMARKER in prompt
     assert TITLE_MARKER in prompt
