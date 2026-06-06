@@ -304,3 +304,39 @@ def test_title_falls_back_to_summary_when_absent():
     assert item["title"] == "Scene 1 summary"
     # The whole native text (no TITLE line stripped) is the content.
     assert item["content"] == "INT. ROOM - DAY\n\nNo title line here."
+
+
+def test_blank_title_value_falls_back_without_reinjecting_title_line():
+    """D-46-01 edge case: a present-but-blank `TITLE:` line falls back to the
+    scene summary for the title, but the literal `TITLE:` line must NOT be
+    re-glued into the screenplay content (the body was already separated)."""
+
+    class _BlankTitleMock(_MockChat):
+        def __call__(self, *args, **kwargs):
+            messages = kwargs.get("messages", [])
+            user_msg = next(
+                (m["content"] for m in messages if m.get("role") == "user"), ""
+            )
+            if SCENE_MARKER in user_msg:
+                self.scene_prompts.append(user_msg)
+                self.scene_json_modes.append(kwargs.get("json_mode", False))
+                self._scene_idx += 1
+                # Blank TITLE value, then the screenplay body.
+                return "TITLE:\n\nINT. ROOM - DAY\n\nA blank title above."
+            self.synopsis_calls += 1
+            return self.synopsis_text
+
+    mock = _BlankTitleMock(scene_contents=["unused"])
+    with patch(
+        "app.services.template_ai_service.chat_completion",
+        new_callable=AsyncMock,
+        side_effect=mock,
+    ):
+        result = _run(_make_config(1))
+
+    item = result["screenplays"][0]
+    # Title falls back to the scene summary.
+    assert item["title"] == "Scene 1 summary"
+    # The literal "TITLE:" line is NOT present in the content.
+    assert not item["content"].lstrip().lower().startswith("title:")
+    assert item["content"] == "INT. ROOM - DAY\n\nA blank title above."

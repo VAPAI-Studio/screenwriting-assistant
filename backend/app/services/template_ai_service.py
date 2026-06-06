@@ -402,18 +402,24 @@ Then, beneath it, write the full screenplay body using the layout rules above.""
                 # whitespace) off the top; the rest is the screenplay body.
                 title = ""
                 content = text
+                split_title_line = False
                 first_nl = text.find("\n")
                 first_line = text if first_nl == -1 else text[:first_nl]
                 if first_line.strip().lower().startswith("title:"):
+                    split_title_line = True
                     title = first_line.split(":", 1)[1].strip()
                     rest = "" if first_nl == -1 else text[first_nl + 1:]
                     content = rest.lstrip("\n")
 
                 # Never fail a scene over a missing/empty title — fall back to the
                 # scene summary (D-46-01), mirroring the empty-fallback idiom.
+                # Only re-glue the full text into content when no TITLE line was
+                # split off; if a TITLE: line was present but blank, keep the body
+                # we already separated (don't re-inject the literal "TITLE:" line).
                 if not title:
                     title = summary
-                    content = text
+                    if not split_title_line:
+                        content = text
 
                 screenplays.append({
                     "title": title,
