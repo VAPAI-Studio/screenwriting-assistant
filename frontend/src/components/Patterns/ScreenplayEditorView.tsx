@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, Pencil, Check, X } from 'lucide-react';
+import { FileText, Pencil, Check, X, Sparkles } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS } from '../../lib/constants';
 import type { SubsectionConfig, TemplateConfig, PhaseDataResponse } from '../../types/template';
+import { SceneCompareModal } from './SceneCompareModal';
 
 const LINES_PER_PAGE = 55;
 const LINE_HEIGHT_PX = 20;
@@ -103,6 +104,8 @@ export function ScreenplayEditorView({
   const [editText, setEditText] = useState(fullDocument);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasChanges, setHasChanges] = useState(false);
+  // Per-scene "Regenerate & Compare" — null when closed (EVAL-01 / D-49-04).
+  const [compareIndex, setCompareIndex] = useState<number | null>(null);
 
   const pageEls = useRef<Map<number, HTMLDivElement>>(new Map());
   const editRef = useRef<HTMLTextAreaElement>(null);
@@ -278,6 +281,38 @@ export function ScreenplayEditorView({
         /* ─── View mode: stacked paper pages ─── */
         <div className="flex-1 overflow-auto bg-background">
           <div className="max-w-[680px] mx-auto py-8 px-4 space-y-6">
+            {/* ── Per-scene "Regenerate & Compare" rail (one per scene) ── */}
+            {screenplays.length > 0 && (
+              <div className="rounded-lg border border-border/40 bg-card/40 divide-y divide-border/30">
+                {screenplays.map((sp, i) => (
+                  <div
+                    key={sp.episode_index ?? i}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 group"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="shrink-0 text-[11px] font-mono text-muted-foreground/40">
+                        {i + 1}.
+                      </span>
+                      <span className="truncate text-xs font-medium text-foreground/80">
+                        {sp.title || 'Untitled scene'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCompareIndex(i);
+                      }}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-foreground/80 bg-muted/40 border border-border/40 rounded-lg hover:bg-muted/70 hover:text-foreground transition-colors"
+                      aria-label="Regenerate & compare this scene"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+                      <span className="hidden sm:inline">Regenerate &amp; Compare</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {pages.map((pageText, i) => (
               <div
                 key={i}
@@ -316,6 +351,20 @@ export function ScreenplayEditorView({
           </div>
         </div>
       )}
+
+      {/* ── Per-scene compare modal (mounted once; regenerates on open) ── */}
+      <SceneCompareModal
+        open={compareIndex !== null}
+        onOpenChange={(o) => {
+          if (!o) setCompareIndex(null);
+        }}
+        projectId={projectId}
+        phase={phase}
+        subsectionKey={subsection.key}
+        episodeIndex={compareIndex ?? 0}
+        currentTitle={screenplays[compareIndex ?? 0]?.title ?? ''}
+        currentContent={screenplays[compareIndex ?? 0]?.content ?? ''}
+      />
     </div>
   );
 }
