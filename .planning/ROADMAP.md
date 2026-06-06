@@ -264,7 +264,9 @@ Plans:
   2. A running synopsis ("story so far") is built and updated after each scene and injected into subsequent scene calls, keeping context within token limits instead of pasting all prior scenes verbatim
   3. A generated scene does not contradict facts, objects, or character states established in an earlier generated scene (setups/payoffs stay consistent across the sequence)
   4. Existing single-scene / non-sequential generation still works unchanged when there is no prior scene
-**Plans**: TBD
+**Plans:** 1 plan
+Plans:
+- [ ] 45-01-PLAN.md — Thread running synopsis + prev-scene text through _generate_scripts, add synopsis-update helper, persist synopsis, and continuity tests
 
 ### Phase 46: Format Fidelity (Native vs JSON Mode)
 **Goal**: Screenplay output preserves industry-standard formatting, with the generation call shape (native output vs json_mode `{title, content}`) settled to whichever yields better formatting
@@ -358,7 +360,7 @@ Plans:
 | 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 43. API Key Management | v5.0 | 2/2 | Complete | 2026-03-27 |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 2/2 | Complete | 2026-04-01 |
-| 45. Continuity-Aware Generation | v6.0 | 0/? | Not started | - |
+| 45. Continuity-Aware Generation | v6.0 | 0/1 | Planned | - |
 | 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 0/? | Not started | - |
 | 47. Character Voice Injection | v6.0 | 0/? | Not started | - |
 | 48. Screenwriting Craft Guidance | v6.0 | 0/? | Not started | - |
