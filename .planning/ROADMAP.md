@@ -313,7 +313,7 @@ Plans:
   2. The prior output and the newly generated output are displayed side-by-side for the same scene
   3. User can choose which version to keep, with the kept version persisting to `ScreenplayContent`
 **Plans**: 2 plans
-- [ ] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
+- [x] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
 - [ ] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger (build/lint + UAT)
 **UI hint**: yes
 
@@ -369,4 +369,4 @@ Plans:
 | 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 1/1 | Complete | 2026-06-06 |
 | 47. Character Voice Injection | v6.0 | 1/1 | Complete | 47-01 |
 | 48. Screenwriting Craft Guidance | v6.0 | 0/? | Not started | - |
-| 49. Side-by-Side Quality Compare | v6.0 | 0/? | Not started | - |
+| 49. Side-by-Side Quality Compare | v6.0 | 1/2 | In progress | - |

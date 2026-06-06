@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: Script Quality
-status: verifying
-stopped_at: Completed 48-01-PLAN.md
-last_updated: "2026-06-06T12:18:00.000Z"
-last_activity: 2026-06-06 -- Phase 48 Plan 01 executed (unconditional ## Screenwriting Craft block added to _generate_scripts)
+status: executing
+stopped_at: Completed 49-01-PLAN.md
+last_updated: "2026-06-06T20:09:31Z"
+last_activity: "2026-06-06 -- Phase 49 Plan 01 executed (backend single-scene regenerate + keep endpoints; _generate_one_scene helper)"
 progress:
   total_phases: 14
-  completed_phases: 14
-  total_plans: 17
-  completed_plans: 17
-  percent: 96
+  completed_phases: 13
+  total_plans: 19
+  completed_plans: 18
+  percent: 95
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Phase 48 (Screenwriting Craft Guidance) — complete
-Plan: 48-01 complete
-Status: Ready to verify / continue
-Last activity: 2026-06-06 -- Phase 48 Plan 01 executed (unconditional ## Screenwriting Craft block added to _generate_scripts)
+Phase: Phase 49 (Side-by-Side Quality Compare) — backend slice (49-01) complete; 49-02 (frontend) pending
+Plan: 49-01 complete
+Status: Ready to continue (49-02 frontend)
+Last activity: 2026-06-06 -- Phase 49 Plan 01 executed (backend single-scene regenerate + keep endpoints; _generate_one_scene helper)
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Last activity: 2026-06-06 -- Phase 48 Plan 01 executed (unconditional ## Screenw
 
 **Recent Trend:**
 
-- Last 5 plans: 44-01 (6min), 45-01 (13min), 46-01 (3min), 47-01 (4min), 48-01 (15min)
+- Last 5 plans: 45-01 (13min), 46-01 (3min), 47-01 (4min), 48-01 (15min), 49-01 (10min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -84,6 +84,9 @@ Relevant to v4.2:
 - [Phase 47]: under-specified voices are derived + carried by the Phase 45 continuity block (no structured voice ledger), consistent with Phase 45's no-ledger decision
 - [Phase 48]: _generate_scripts carries an UNCONDITIONAL '## Screenwriting Craft' block (subtext/on-the-nose, economical action, show-don't-tell + 'no internal or unfilmable description', white-space pacing) as a plain f-string literal — added equally to both character paths so Phase 47's byte-identical empty-vs-absent contract holds
 - [Phase 48]: craft anchors chosen to NOT collide with continuity ('Story so far'/'Previous scene') or voice ('distinct, consistent voice') markers asserted ABSENT elsewhere; all 21 prior tests stay green; lines 394-462 untouched (additive only)
+- [Phase 49]: extracted _generate_one_scene as the SINGLE shared per-scene prompt source; _generate_scripts loop + new regenerate_single_scene both delegate to it (no divergent prompt); 27 prior tests stay green byte-for-byte
+- [Phase 49]: single-scene regenerate returns a PREVIEW (no DB write); keep persists only screenplays[episode_index] + the matching ScreenplayContent row and marks breakdown/shotlist stale; global synopsis left untouched on keep (D-49-05); episode_index is the implicit scene key (no migration, D-49-03)
+- [Phase 49]: regenerate/keep owner filter uses str() coercion (codebase _verify_project_ownership convention), not run_wizard's raw-UUID compare — Postgres-safe AND SQLite-test-safe
 
 ### Pending Todos
 
@@ -96,6 +99,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-06T12:18:00.000Z
-Stopped at: Completed 48-01-PLAN.md
+Last session: 2026-06-06T20:09:31Z
+Stopped at: Completed 49-01-PLAN.md
 Resume file: None
