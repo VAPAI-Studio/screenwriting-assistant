@@ -301,7 +301,8 @@ Plans:
   2. Action lines in generated output are visual and economical — present tense, no internal or unfilmable description
   3. Generated dialogue carries subtext rather than stating characters' intentions on-the-nose
   4. Craft guidance composes with the continuity context and voice profiles without bloating the prompt past token limits
-**Plans**: TBD
+**Plans**: 1 plan
+- [ ] 48-01-PLAN.md — Add an unconditional `## Screenwriting Craft` block (subtext, action economy, show-don't-tell, white space) to the _generate_scripts prompt + tests
 
 ### Phase 49: Side-by-Side Quality Compare
 **Goal**: The user can directly compare a scene regenerated with the improved path against its prior output to judge the cumulative quality improvement
