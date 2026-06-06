@@ -441,6 +441,69 @@ def test_keep_scene_version_persists_and_marks_stale(
     assert proj.shotlist_stale is True
 
 
+def test_keep_scene_version_updates_newest_duplicate_row(
+    client, db_session, mock_auth_headers
+):
+    """WR-01 regression: the batch-generate path appends ScreenplayContent rows and
+    never deletes them, so a re-generated project holds duplicate rows per
+    episode_index. keep-scene-version must update the NEWEST matching row (the one
+    the breakdown/shotlist services read), not a stale earlier duplicate."""
+    project = _create_owner_project(client, db_session, mock_auth_headers)
+    _seed_screenplay_editor(db_session, project.id)
+
+    # Simulate a later re-generation: append a NEWER duplicate row for episode 1.
+    # Set explicit created_at values so the "newest-first" ordering is exercised
+    # deterministically (SQLite func.now() is only second-resolution, so we cannot
+    # rely on wall-clock spacing to distinguish near-simultaneous rows).
+    from datetime import datetime, timedelta, timezone
+    base = datetime.now(timezone.utc)
+    # Backdate the seeded episode-1 row and forward-date the new one.
+    seeded_ep1 = next(
+        r for r in db_session.query(database.ScreenplayContent).filter(
+            database.ScreenplayContent.project_id == project.id
+        ).all()
+        if (r.formatted_content or {}).get("episode_index") == 1
+    )
+    seeded_ep1.created_at = base - timedelta(minutes=5)
+    newer = database.ScreenplayContent(
+        id=str(uuid.uuid4()),
+        project_id=project.id,
+        content="NEWER BODY 2",
+        formatted_content={"title": "Newer Scene 2", "content": "NEWER BODY 2", "episode_index": 1},
+        created_at=base,
+    )
+    db_session.add(newer)
+    db_session.commit()
+    newer_id = newer.id
+
+    resp = client.post(
+        "/api/wizards/keep-scene-version",
+        json={
+            "project_id": str(project.id),
+            "phase": "write",
+            "episode_index": 1,
+            "title": "Kept Title",
+            "content": "KEPT BODY",
+        },
+        headers=mock_auth_headers,
+    )
+    assert resp.status_code == 200, resp.text
+
+    db_session.expire_all()
+    ep1_rows = [
+        r for r in db_session.query(database.ScreenplayContent).filter(
+            database.ScreenplayContent.project_id == project.id
+        ).all()
+        if (r.formatted_content or {}).get("episode_index") == 1
+    ]
+    # The NEWEST row was updated; the older duplicate was left untouched.
+    by_id = {r.id: r for r in ep1_rows}
+    assert by_id[newer_id].content == "KEPT BODY"
+    older = [r for r in ep1_rows if r.id != newer_id]
+    assert len(older) == 1
+    assert older[0].content == "OLD BODY 2"
+
+
 def test_regenerate_endpoint_non_owner_404(client, db_session, mock_auth_headers):
     """A project owned by a different user returns 404 on regenerate-scene."""
     project = _create_other_user_project(db_session)

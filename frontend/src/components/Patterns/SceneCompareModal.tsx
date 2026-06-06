@@ -99,6 +99,8 @@ export function SceneCompareModal({
       } else {
         setGenerated(result);
         setGenError(null);
+        // A fresh result supersedes any prior failed-keep banner (WR-02).
+        setKeepError(null);
       }
     },
     onError: (err: any) => {

@@ -473,20 +473,27 @@ async def keep_scene_version(
     phase_data.content = content
     flag_modified(phase_data, "content")
 
-    # Update the matching ScreenplayContent row. Prefer matching by the stored
+    # Update the matching ScreenplayContent row. The batch-generate path appends
+    # rows and never deletes them (see apply_wizard_result_to_db), so a project
+    # that has been re-generated can hold duplicate rows per episode_index. Order
+    # NEWEST-first and take the most recent match so the kept version aligns with
+    # the latest generation that the breakdown/shotlist services also read — not a
+    # stale earlier row (WR-01). Prefer matching by the stored
     # formatted_content.episode_index; fall back to stable ordering when no row
     # carries the index (NO migration — D-49-03).
     rows = db.query(database.ScreenplayContent).filter(
         database.ScreenplayContent.project_id == project.id
     ).order_by(
-        database.ScreenplayContent.created_at, database.ScreenplayContent.id
+        database.ScreenplayContent.created_at.desc(), database.ScreenplayContent.id.desc()
     ).all()
     target = next(
         (r for r in rows if (r.formatted_content or {}).get("episode_index") == request.episode_index),
         None,
     )
     if target is None and request.episode_index < len(rows):
-        target = rows[request.episode_index]
+        # rows is newest-first; index from the end to keep positional alignment
+        # with the original ascending order.
+        target = rows[len(rows) - 1 - request.episode_index]
     if target is not None:
         target.content = request.content
         target.formatted_content = new_slot
