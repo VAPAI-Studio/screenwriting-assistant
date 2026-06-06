@@ -314,7 +314,7 @@ Plans:
   3. User can choose which version to keep, with the kept version persisting to `ScreenplayContent`
 **Plans**: 2 plans
 - [x] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
-- [ ] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger (build/lint + UAT)
+- [~] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger — AUTO tasks (1-3) complete, build clean; Task 4 manual UAT PENDING USER
 **UI hint**: yes
 
 ## Progress

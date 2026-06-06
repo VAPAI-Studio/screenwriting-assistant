@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: Script Quality
-status: executing
-stopped_at: Completed 49-01-PLAN.md
-last_updated: "2026-06-06T20:09:31Z"
-last_activity: "2026-06-06 -- Phase 49 Plan 01 executed (backend single-scene regenerate + keep endpoints; _generate_one_scene helper)"
+status: 49-02 frontend AUTO complete — Task 4 manual UAT PENDING USER
+stopped_at: Completed 49-02-PLAN.md AUTO tasks (Tasks 1-3); Task 4 human-verify UAT pending
+last_updated: "2026-06-06T20:19:07.011Z"
+last_activity: 2026-06-06 -- Phase 49 Plan 02 AUTO tasks executed (regenerateScene/keepSceneVersion client, SceneCompareModal, per-scene Regenerate & Compare trigger); UAT pending user
 progress:
   total_phases: 14
-  completed_phases: 13
-  total_plans: 19
+  completed_phases: 14
+  total_plans: 18
   completed_plans: 18
-  percent: 95
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Phase 49 (Side-by-Side Quality Compare) — backend slice (49-01) complete; 49-02 (frontend) pending
-Plan: 49-01 complete
-Status: Ready to continue (49-02 frontend)
-Last activity: 2026-06-06 -- Phase 49 Plan 01 executed (backend single-scene regenerate + keep endpoints; _generate_one_scene helper)
+Phase: Phase 49 (Side-by-Side Quality Compare) — 49-01 (backend) complete; 49-02 (frontend) AUTO complete, manual UAT pending
+Plan: 49-02 AUTO tasks (1-3) complete; Task 4 (human-verify UAT) PENDING USER
+Status: 49-02 frontend AUTO complete — awaiting user UAT (regenerate → compare → keep-new persistence + staleness)
+Last activity: 2026-06-06 -- Phase 49 Plan 02 AUTO tasks executed (regenerateScene/keepSceneVersion client, SceneCompareModal, per-scene Regenerate & Compare trigger); UAT pending user
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Last activity: 2026-06-06 -- Phase 49 Plan 01 executed (backend single-scene reg
 
 **Recent Trend:**
 
-- Last 5 plans: 45-01 (13min), 46-01 (3min), 47-01 (4min), 48-01 (15min), 49-01 (10min)
+- Last 5 plans: 46-01 (3min), 47-01 (4min), 48-01 (15min), 49-01 (10min), 49-02 (3min, AUTO only — UAT pending)
 - Trend: Stable
 
 ## Accumulated Context
