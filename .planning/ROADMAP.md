@@ -116,7 +116,7 @@
 - [ ] **Phase 45: Continuity-Aware Generation** - Scene script calls receive prior scene text + a maintained running synopsis so tone/setup/payoff hold across scenes
 - [x] **Phase 46: Format Fidelity (Native vs JSON Mode)** - Evaluate native screenplay output vs json_mode `{title, content}` wrapping; adopt the approach with better industry-standard formatting
 - [x] **Phase 47: Character Voice Injection** - Per-character voice/diction profiles injected into the script-writing prompt so dialogue is distinct and consistent per character
-- [ ] **Phase 48: Screenwriting Craft Guidance** - Craft directives (subtext, action-line economy, show-don't-tell, page pacing/white space) added to the generation prompt
+- [x] **Phase 48: Screenwriting Craft Guidance** - Craft directives (subtext, action-line economy, show-don't-tell, page pacing/white space) added to the generation prompt
 - [ ] **Phase 49: Side-by-Side Quality Compare** - User can regenerate a scene with the improved path and compare it against prior output to judge the improvement
 
 ## Phase Details
@@ -302,7 +302,7 @@ Plans:
   3. Generated dialogue carries subtext rather than stating characters' intentions on-the-nose
   4. Craft guidance composes with the continuity context and voice profiles without bloating the prompt past token limits
 **Plans**: 1 plan
-- [ ] 48-01-PLAN.md — Add an unconditional `## Screenwriting Craft` block (subtext, action economy, show-don't-tell, white space) to the _generate_scripts prompt + tests
+- [x] 48-01-PLAN.md — Add an unconditional `## Screenwriting Craft` block (subtext, action economy, show-don't-tell, white space) to the _generate_scripts prompt + tests
 
 ### Phase 49: Side-by-Side Quality Compare
 **Goal**: The user can directly compare a scene regenerated with the improved path against its prior output to judge the cumulative quality improvement

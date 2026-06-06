@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v6.0
 milestone_name: Script Quality
 status: verifying
-stopped_at: Completed 47-01-PLAN.md
-last_updated: "2026-06-06T11:55:29Z"
-last_activity: 2026-06-06 -- Phase 47 Plan 01 executed (character voice injection into _generate_scripts)
+stopped_at: Completed 48-01-PLAN.md
+last_updated: "2026-06-06T12:18:00.000Z"
+last_activity: 2026-06-06 -- Phase 48 Plan 01 executed (unconditional ## Screenwriting Craft block added to _generate_scripts)
 progress:
   total_phases: 14
-  completed_phases: 13
-  total_plans: 16
-  completed_plans: 16
-  percent: 93
+  completed_phases: 14
+  total_plans: 17
+  completed_plans: 17
+  percent: 96
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Phase 47 (Character Voice Injection) — complete
-Plan: 47-01 complete
+Phase: Phase 48 (Screenwriting Craft Guidance) — complete
+Plan: 48-01 complete
 Status: Ready to verify / continue
-Last activity: 2026-06-06 -- Phase 47 Plan 01 executed (character voice injection into _generate_scripts)
+Last activity: 2026-06-06 -- Phase 48 Plan 01 executed (unconditional ## Screenwriting Craft block added to _generate_scripts)
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Last activity: 2026-06-06 -- Phase 47 Plan 01 executed (character voice injectio
 
 **Recent Trend:**
 
-- Last 5 plans: 38-02 (3min), 44-01 (6min), 45-01 (13min), 46-01 (3min), 47-01 (4min)
+- Last 5 plans: 44-01 (6min), 45-01 (13min), 46-01 (3min), 47-01 (4min), 48-01 (15min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -82,6 +82,8 @@ Relevant to v4.2:
 - [Phase 47]: run_wizard injection guard broadened to wizard_type in ('scene_wizard','script_writer_wizard') so character profiles reach _generate_scripts; persisted WizardRun.config=request.config split preserved (no _characters re-persisted)
 - [Phase 47]: _generate_scripts injects a conditional character_block (reused _build_character_section + a 'distinct, consistent voice' instruction) that collapses to '' when _characters is empty/absent → byte-identical Phase 46 prompt; SCENE_MARKER, json_mode=False, return contract, continuity advance unchanged
 - [Phase 47]: under-specified voices are derived + carried by the Phase 45 continuity block (no structured voice ledger), consistent with Phase 45's no-ledger decision
+- [Phase 48]: _generate_scripts carries an UNCONDITIONAL '## Screenwriting Craft' block (subtext/on-the-nose, economical action, show-don't-tell + 'no internal or unfilmable description', white-space pacing) as a plain f-string literal — added equally to both character paths so Phase 47's byte-identical empty-vs-absent contract holds
+- [Phase 48]: craft anchors chosen to NOT collide with continuity ('Story so far'/'Previous scene') or voice ('distinct, consistent voice') markers asserted ABSENT elsewhere; all 21 prior tests stay green; lines 394-462 untouched (additive only)
 
 ### Pending Todos
 
@@ -94,6 +96,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-06T11:55:29Z
-Stopped at: Completed 47-01-PLAN.md
+Last session: 2026-06-06T12:18:00.000Z
+Stopped at: Completed 48-01-PLAN.md
 Resume file: None

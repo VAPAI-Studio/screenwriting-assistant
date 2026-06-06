@@ -22,9 +22,9 @@
 
 ### Screenwriting Craft (CRAFT)
 
-- [ ] **CRAFT-01**: The screenplay-generation prompt includes explicit craft guidance — subtext in dialogue, action-line economy, show-don't-tell, and page pacing / white space
-- [ ] **CRAFT-02**: Action lines in generated output are visual and economical (present tense, no internal/unfilmable description) per the craft guidance
-- [ ] **CRAFT-03**: Dialogue carries subtext rather than stating intentions on-the-nose, per the craft guidance
+- [x] **CRAFT-01**: The screenplay-generation prompt includes explicit craft guidance — subtext in dialogue, action-line economy, show-don't-tell, and page pacing / white space
+- [x] **CRAFT-02**: Action lines in generated output are visual and economical (present tense, no internal/unfilmable description) per the craft guidance
+- [x] **CRAFT-03**: Dialogue carries subtext rather than stating intentions on-the-nose, per the craft guidance
 
 ### Format Fidelity (FMT)
 
@@ -90,9 +90,9 @@
 | VOICE-01 | Phase 47 | Complete |
 | VOICE-02 | Phase 47 | Complete |
 | VOICE-03 | Phase 47 | Complete |
-| CRAFT-01 | Phase 48 | Pending |
-| CRAFT-02 | Phase 48 | Pending |
-| CRAFT-03 | Phase 48 | Pending |
+| CRAFT-01 | Phase 48 | Complete |
+| CRAFT-02 | Phase 48 | Complete |
+| CRAFT-03 | Phase 48 | Complete |
 | EVAL-01 | Phase 49 | Pending |
 | SHOW-01 | Phase 36 | Complete |
 | SHOW-02 | Phase 38 | Complete |
