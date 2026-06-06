@@ -119,20 +119,37 @@ Last updated: 2026-03-24
 
 ---
 
-## Current Milestone: v4.0 — TV Show Mode
+## Current Milestone: v6.0 — Script Quality
 
-**Goal:** Users can create TV shows with a series bible and manage multiple episodes, each going through the full production pipeline with bible context injected into all AI generation.
+**Goal:** Make the AI genuinely good at writing screenplays — improve the craft quality of generated scenes and scripts. This is an internal tool; the only thing that matters is output quality, not new feature surface.
 
 **Target features:**
-- Show entity: create/edit/delete shows with title and description
-- Home page shows Shows and Films as separate sections
-- Series bible: Characters, World/Setting, Season Arc, Tone & Style (freeform text)
-- Target episode duration setting per show (10/22/44/60 min or custom)
-- Bible + duration auto-injected into AI context for all episode generation
-- Episode creation inside a show (episode number + title)
-- Each episode has full screenplay → breakdown → shotlist → storyboard pipeline
-- Breadcrumb navigation: Show > Episode N: Title
+- Continuity-aware generation: each scene's script call sees the actual text (or running synopsis) of prior scenes, not just one-line summaries — so tone, voice, and setup/payoff hold across scenes
+- Per-character voice profiles injected into the script-writing prompt so characters have distinct diction (not just into scene planning)
+- Screenwriting craft guidance in prompts: subtext in dialogue, action-line economy, show-don't-tell, page pacing / white space
+- Format fidelity: evaluate native screenplay output vs. the current json_mode-wrapped `{title, content}` to ensure JSON wrapping isn't degrading formatting
+
+**Scope note:** Internal tool. Out of scope — industry export (.fdx/PDF), collaboration/multiplayer, AI-previz integration (separate platform, kept disconnected), public API platform, scheduling. Roadmap order: v6.0 Script Quality → v7.0 Breakdown Fidelity → v8.0 MCP Server.
 
 ---
 
-*Last updated: 2026-03-24 after milestone v4.0 started*
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd:complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
+---
+
+*Last updated: 2026-06-05 after milestone v6.0 started*
