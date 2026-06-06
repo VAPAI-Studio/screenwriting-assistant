@@ -10,9 +10,9 @@
 
 ### Continuity (CONT)
 
-- [ ] **CONT-01**: When generating a scene's screenplay, the AI receives the full text of the immediately preceding generated scene(s) as context, not just one-line summaries
-- [ ] **CONT-02**: A running synopsis / "story so far" is maintained across scene generations so later scenes stay consistent with established events without exceeding context limits
-- [ ] **CONT-03**: Setups and payoffs (objects, facts, character states introduced earlier) remain consistent across the generated scene sequence — a generated scene does not contradict an earlier generated scene
+- [x] **CONT-01**: When generating a scene's screenplay, the AI receives the full text of the immediately preceding generated scene(s) as context, not just one-line summaries
+- [x] **CONT-02**: A running synopsis / "story so far" is maintained across scene generations so later scenes stay consistent with established events without exceeding context limits
+- [x] **CONT-03**: Setups and payoffs (objects, facts, character states introduced earlier) remain consistent across the generated scene sequence — a generated scene does not contradict an earlier generated scene
 
 ### Character Voice (VOICE)
 
@@ -82,9 +82,9 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CONT-01 | Phase 45 | Pending |
-| CONT-02 | Phase 45 | Pending |
-| CONT-03 | Phase 45 | Pending |
+| CONT-01 | Phase 45 | Complete |
+| CONT-02 | Phase 45 | Complete |
+| CONT-03 | Phase 45 | Complete |
 | FMT-01 | Phase 46 | Pending |
 | FMT-02 | Phase 46 | Pending |
 | VOICE-01 | Phase 47 | Pending |

@@ -266,7 +266,7 @@ Plans:
   4. Existing single-scene / non-sequential generation still works unchanged when there is no prior scene
 **Plans:** 1 plan
 Plans:
-- [ ] 45-01-PLAN.md — Thread running synopsis + prev-scene text through _generate_scripts, add synopsis-update helper, persist synopsis, and continuity tests
+- [x] 45-01-PLAN.md — Thread running synopsis + prev-scene text through _generate_scripts, add synopsis-update helper, persist synopsis, and continuity tests (completed 2026-06-06)
 
 ### Phase 46: Format Fidelity (Native vs JSON Mode)
 **Goal**: Screenplay output preserves industry-standard formatting, with the generation call shape (native output vs json_mode `{title, content}`) settled to whichever yields better formatting
