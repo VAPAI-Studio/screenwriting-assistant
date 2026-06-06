@@ -250,6 +250,58 @@ climax, fallout, push_forward)."""
             logger.error(f"Scene generation error: {e}")
             return {"scenes": [], "error": str(e)}
 
+    async def _update_synopsis(
+        self, prev_synopsis: str, new_scene_text: str, scene_summary: str
+    ) -> str:
+        """Regenerate the cumulative "story so far" prose synopsis after a scene.
+
+        The whole synopsis is re-summarized each call (D-03) — never truncated
+        mid-fact — and kept under a fixed word cap so it stays bounded on long,
+        many-scene scripts. Prose-only output (D-04), routed through the
+        provider-abstracted chat_completion (D-02) with json_mode=False.
+
+        On any failure, logs and returns the previous synopsis unchanged so a
+        synopsis-update error can never abort the full script-generation run.
+        """
+        word_cap = 400  # ~300-500 words per D-03; bounded so prompts stay small
+        prev_block = (
+            f"## Current story-so-far synopsis:\n{prev_synopsis}\n\n"
+            if prev_synopsis
+            else ""
+        )
+        prompt = f"""You maintain a running "story so far" synopsis for a screenplay being written scene by scene.
+
+{prev_block}## The scene just written (summary: "{scene_summary}"):
+{new_scene_text}
+
+Rewrite the ENTIRE cumulative synopsis as a single continuous prose narrative that
+incorporates the scene just written into everything that came before. The synopsis must:
+- Carry forward established facts, objects, character states, relationships, and unresolved setups so later scenes stay consistent.
+- Be a complete re-summary of the whole story so far (do NOT just append the new scene; integrate it).
+- Stay under {word_cap} words. Tighten earlier material if needed rather than cutting facts mid-thought.
+- Be prose only — no headings, no bullet lists, no JSON.
+
+Return only the synopsis prose."""
+
+        try:
+            text = await chat_completion(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a precise story editor who maintains a concise, factually-consistent running synopsis. Return prose only.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.3,
+                max_tokens=700,
+                json_mode=False,
+            )
+            updated = (text or "").strip()
+            return updated if updated else prev_synopsis
+        except Exception as e:
+            logger.error(f"Synopsis update error: {e}")
+            return prev_synopsis
+
     async def _generate_scripts(self, config: Dict, project_context: str, template: Dict) -> Dict:
         episodes = config.get("episodes", [])
         runtime_target = config.get("runtime_target", "")
@@ -264,9 +316,27 @@ climax, fallout, push_forward)."""
             for i, ep in enumerate(episodes)
         )
 
+        # Continuity state, rebuilt fresh from scratch each run (D-07). Empty for
+        # the first/single scene so no continuity block is injected (D-05).
+        synopsis = ""
+        prev_scene_text = ""
+
         screenplays = []
         for i, ep in enumerate(episodes):
             summary = ep.get("summary", f"Scene {i + 1}")
+
+            # Continuity block — injected ONLY when prior continuity state exists
+            # (D-01/D-05). First/single scene gets nothing → behavior unchanged.
+            continuity_block = (
+                f"""## Story so far (running synopsis of all earlier scenes):
+{synopsis}
+
+## Previous scene (full text — match its tone, voice, and continuity):
+{prev_scene_text}
+"""
+                if (synopsis or prev_scene_text)
+                else ""
+            )
 
             prompt = f"""You are an expert screenwriter.
 
@@ -279,7 +349,7 @@ climax, fallout, push_forward)."""
 ## Full scene outline (for pacing context):
 {scene_outline}
 
-## YOUR TASK: Write scene {i + 1} of {len(episodes)}
+{continuity_block}## YOUR TASK: Write scene {i + 1} of {len(episodes)}
 Scene summary: "{summary}"
 
 ## Full scene data:
@@ -313,6 +383,11 @@ Return a JSON object with:
                 result = json.loads(text)
                 result["episode_index"] = i
                 screenplays.append(result)
+
+                # Advance continuity state ONLY on success — a failed scene must
+                # not poison prev_scene_text or the synopsis (D-05).
+                prev_scene_text = result.get("content", "")
+                synopsis = await self._update_synopsis(synopsis, prev_scene_text, summary)
             except Exception as e:
                 logger.error(f"Script generation error for scene {i + 1}: {e}")
                 screenplays.append({
@@ -322,7 +397,7 @@ Return a JSON object with:
                     "error": str(e),
                 })
 
-        return {"screenplays": screenplays}
+        return {"screenplays": screenplays, "synopsis": synopsis}
 
     async def fill_blanks(
         self,
