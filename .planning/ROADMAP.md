@@ -342,6 +342,9 @@ Plans:
   1. An extracted element carries its appearance scene(s), not just a flat global entry
   2. Each appearance has a short context note (the action/moment) surfaced in the breakdown UI
   3. The same element across multiple scenes is one element with multiple appearances, not duplicated rows
+**Plans**: 1 plan
+Plans:
+- [ ] 51-01-PLAN.md — Thread per-appearance context into ElementSceneLink.context + surface it on card scene chips (detail list already shows it); verify APPR-01/APPR-03
 
 ### Phase 52: Expanded Categories
 **Goal**: The element taxonomy is broadened to cover additional production categories (wardrobe, makeup/hair, SFX/VFX, vehicles, animals, stunts, etc.), additively, with UI filter/group support
