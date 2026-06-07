@@ -281,6 +281,11 @@ export const BREAKDOWN_CATEGORIES: Array<{ value: BreakdownCategory; label: stri
   { value: 'prop', label: 'Props' },
   { value: 'wardrobe', label: 'Wardrobe' },
   { value: 'vehicle', label: 'Vehicles' },
+  { value: 'set_dressing', label: 'Set Dressing' },
+  { value: 'animal', label: 'Animal' },
+  { value: 'sfx', label: 'SFX' },
+  { value: 'makeup_hair', label: 'Makeup & Hair' },
+  { value: 'extras', label: 'Extras' },
 ];
 
 export const CATEGORY_COLORS: Record<BreakdownCategory, string> = {
@@ -289,6 +294,11 @@ export const CATEGORY_COLORS: Record<BreakdownCategory, string> = {
   prop:      'rgb(74, 222, 128)',   // green-400
   wardrobe:  'rgb(192, 132, 252)', // purple-400
   vehicle:   'rgb(248, 113, 113)', // red-400
+  set_dressing: 'rgb(45, 212, 191)',  // teal-400
+  animal:       'rgb(251, 146, 60)',  // orange-400
+  sfx:          'rgb(251, 113, 133)', // rose-400
+  makeup_hair:  'rgb(232, 121, 249)', // fuchsia-400
+  extras:       'rgb(148, 163, 184)', // slate-400
 };
 
 export const ELEMENT_EXTENDED_FIELDS: Record<BreakdownCategory, Array<{ key: string; label: string; type: 'text' | 'textarea' }>> = {
@@ -315,6 +325,31 @@ export const ELEMENT_EXTENDED_FIELDS: Record<BreakdownCategory, Array<{ key: str
   vehicle: [
     { key: 'specs', label: 'Specifications', type: 'textarea' },
     { key: 'owner', label: 'Owner / Driver', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+  set_dressing: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'owner', label: 'Owner / Responsible', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+  animal: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'owner', label: 'Handler / Responsible', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+  sfx: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'owner', label: 'Owner / Responsible', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+  makeup_hair: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'owner', label: 'Artist / Responsible', type: 'text' },
+    { key: 'status', label: 'Status', type: 'text' },
+  ],
+  extras: [
+    { key: 'specs', label: 'Specifications', type: 'textarea' },
+    { key: 'count', label: 'Headcount', type: 'text' },
     { key: 'status', label: 'Status', type: 'text' },
   ],
 };

@@ -266,7 +266,7 @@ export interface SnippetListResponse {
 // Breakdown types (v2.0 — Phase 13)
 // ============================================================
 
-export type BreakdownCategory = 'character' | 'location' | 'prop' | 'wardrobe' | 'vehicle';
+export type BreakdownCategory = 'character' | 'location' | 'prop' | 'wardrobe' | 'vehicle' | 'set_dressing' | 'animal' | 'sfx' | 'makeup_hair' | 'extras';
 
 export interface SceneLink {
   id: string;
