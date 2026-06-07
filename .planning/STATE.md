@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: Breakdown Fidelity
-status: In progress
-stopped_at: Completed 51-01-PLAN.md
-last_updated: "2026-06-07T05:30:00.000Z"
-last_activity: 2026-06-07 — Completed Phase 51 Plan 01 (per-appearance context)
+status: completed
+stopped_at: Completed 52-01-PLAN.md
+last_updated: "2026-06-07T00:00:00.000Z"
+last_activity: 2026-06-07 — Completed 52-01-PLAN.md
 progress:
   total_phases: 11
-  completed_phases: 9
-  total_plans: 12
-  completed_plans: 12
-  percent: 82
+  completed_phases: 11
+  total_plans: 14
+  completed_plans: 14
+  percent: 100
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 51-per-appearance-context
+Phase: 52-expanded-categories
 Plan: 01 (complete)
-Status: Phase 51 Plan 01 complete — ElementSceneLink.context populated + card chip tooltip (APPR-01/02/03)
-Last activity: 2026-06-07 — Completed 51-01-PLAN.md
+Status: Phase 52 Plan 01 complete — breakdown taxonomy expanded 5→10 categories in lockstep across all 6 sites (CATG-01/02/03)
+Last activity: 2026-06-07 — Completed 52-01-PLAN.md
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Last activity: 2026-06-07 — Completed 51-01-PLAN.md
 
 **Recent Trend:**
 
-- Last 5 plans: 46-01 (3min), 47-01 (4min), 48-01 (15min), 49-01 (10min), 49-02 (3min, AUTO only — UAT pending)
+- Last 5 plans: 48-01 (15min), 49-01 (10min), 49-02 (3min), 51-01, 52-01 (~12min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -88,6 +88,8 @@ Relevant to v4.2:
 - [Phase 49]: single-scene regenerate returns a PREVIEW (no DB write); keep persists only screenplays[episode_index] + the matching ScreenplayContent row and marks breakdown/shotlist stale; global synopsis left untouched on keep (D-49-05); episode_index is the implicit scene key (no migration, D-49-03)
 - [Phase 49]: regenerate/keep owner filter uses str() coercion (codebase _verify_project_ownership convention), not run_wizard's raw-UUID compare — Postgres-safe AND SQLite-test-safe
 - [Phase ?]: [Phase 50]: breakdown prompt restructured to per-scene '### Scene {i+1}' indexed text in the shared 1-based scene_index space; _align_screenplay_to_scenes never raises; full-coverage gate falls back to concatenated form; single AI call + on-screen rules preserved
+- [Phase 52]: breakdown taxonomy expanded 5→10 (set_dressing, animal, sfx, makeup_hair, extras) additively across 6 lockstep sites (enum, schema regex gate, prompt CATEGORIES + ExtractedElement desc, FE union, FE constants); category stays String(50) so NO migration and existing rows valid (CATG-02)
+- [Phase 52]: CRITICAL RULES + DEDUPLICATION prompt blocks preserved verbatim; new categories are on-screen-only with a precedence note (ridden horse → animal; set_dressing vs prop = handled/featured → prop else set_dressing); tsc exhaustiveness on Record<BreakdownCategory,...> maps is the FE build gate
 
 ### Pending Todos
 
@@ -100,6 +102,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-07T04:53:57.143Z
-Stopped at: Completed 49-01-PLAN.md
+Last session: 2026-06-07
+Stopped at: Completed 52-01-PLAN.md
 Resume file: None

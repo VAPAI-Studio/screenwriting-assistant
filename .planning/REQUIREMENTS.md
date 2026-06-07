@@ -24,9 +24,9 @@
 
 ### Expanded Categories (CATG)
 
-- [ ] **CATG-01**: The element taxonomy is broadened beyond the current set to cover additional production-relevant categories (e.g. wardrobe, makeup/hair, SFX/VFX, vehicles, animals, stunts) — exact final list settled during phase discussion
-- [ ] **CATG-02**: Existing breakdown categories and existing extracted data remain valid — new categories are additive, no data migration that drops prior elements
-- [ ] **CATG-03**: The breakdown UI displays and lets the user filter/group by the expanded categories
+- [x] **CATG-01**: The element taxonomy is broadened beyond the current set to cover additional production-relevant categories (e.g. wardrobe, makeup/hair, SFX/VFX, vehicles, animals, stunts) — exact final list settled during phase discussion
+- [x] **CATG-02**: Existing breakdown categories and existing extracted data remain valid — new categories are additive, no data migration that drops prior elements
+- [x] **CATG-03**: The breakdown UI displays and lets the user filter/group by the expanded categories
 
 ### Re-Extraction on Change (REEX)
 
@@ -129,9 +129,9 @@
 | APPR-01 | Phase 51 | Planned |
 | APPR-02 | Phase 51 | Planned |
 | APPR-03 | Phase 51 | Planned |
-| CATG-01 | Phase 52 | Planned |
-| CATG-02 | Phase 52 | Planned |
-| CATG-03 | Phase 52 | Planned |
+| CATG-01 | Phase 52 | Complete |
+| CATG-02 | Phase 52 | Complete |
+| CATG-03 | Phase 52 | Complete |
 | REEX-01 | Phase 53 | Planned |
 | REEX-02 | Phase 53 | Planned |
 | SHOW-01 | Phase 36 | Complete |
