@@ -31,6 +31,7 @@ from app.services.breakdown_service import (
     ExtractedSceneAppearance,
     ExtractionContext,
 )
+from app.api.endpoints.phase_data import _mark_breakdown_stale
 
 
 MOCK_USER_ID = "12345678-1234-5678-1234-567812345678"
@@ -789,6 +790,219 @@ class TestBreakdownService:
         prompt = breakdown_service._build_user_prompt(ctx)
         assert "## Screenplay Content" in prompt
         assert "### Scene" not in prompt
+
+    # ----------------------------------------------------------------
+    # Phase 53 / REEX-02 (D-53-01): a user_modified element's scene links
+    # are NOT churned (wiped/recreated) on re-extraction.
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_user_modified_links_not_churned_on_reextract(self, mock_ai, db_session):
+        """REEX-02 / D-53-01: once a user owns an element (user_modified=True), its
+        curated scene links are left entirely untouched on re-extract -- even when
+        the AI attributes that element to DIFFERENT scenes. SYNC-01 description
+        preservation still holds."""
+        project_id, scene_ids = _setup_project_with_screenplay(db_session)
+
+        # Pre-create a user-owned element with an existing link to scene 0.
+        existing = BreakdownElement(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            category="prop",
+            name="Magic Sword",
+            description="User's description",
+            source="user",
+            user_modified=True,
+        )
+        db_session.add(existing)
+        db_session.flush()
+
+        # Existing AI-sourced link -> scene_ids[0]. Source="ai" means reconcile
+        # WOULD delete it if the guard were absent, so this proves the guard.
+        original_link = ElementSceneLink(
+            element_id=str(existing.id),
+            scene_item_id=scene_ids[0],
+            context="User-curated: sword in the castle",
+            source="ai",
+        )
+        db_session.add(original_link)
+        db_session.commit()
+
+        # AI re-extracts the same element but attributes it to DIFFERENT scenes
+        # (2 and 3) with a different description.
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="prop",
+                canonical_name="Magic Sword",
+                description="AI description",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=2, context="In the forest"),
+                    ExtractedSceneAppearance(scene_index=3, context="In the throne room"),
+                ],
+            ),
+        ])
+
+        await breakdown_service.extract(db_session, project_id)
+
+        # Links UNCHANGED: still exactly the original single link to scene_ids[0].
+        db_session.expire_all()
+        links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(existing.id),
+        ).all()
+        assert len(links) == 1
+        assert links[0].scene_item_id == scene_ids[0]
+        assert links[0].context == "User-curated: sword in the castle"
+
+        # SYNC-01: description preserved.
+        db_session.refresh(existing)
+        assert existing.description == "User's description"
+        assert existing.user_modified is True
+
+    # ----------------------------------------------------------------
+    # Phase 53 / REEX-02 scoping regression (D-53-01): the guard is scoped to
+    # user_modified ONLY -- non-user_modified elements STILL reconcile.
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_non_user_modified_links_still_reconcile(self, mock_ai, db_session):
+        """REEX-02 scoping: a NON-user_modified element's AI links still reconcile
+        to the current AI scenes -- proving the guard cannot silently disable link
+        tracking for AI-owned elements."""
+        project_id, scene_ids = _setup_project_with_screenplay(db_session)
+
+        # Pre-create an AI-owned (not user_modified) element with an AI link to
+        # scene 0. Reconcile must move it to the newly attributed scene.
+        ai_elem = BreakdownElement(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            category="prop",
+            name="Magic Sword",
+            description="An old AI description",
+            source="ai",
+            user_modified=False,
+        )
+        db_session.add(ai_elem)
+        db_session.flush()
+
+        old_link = ElementSceneLink(
+            element_id=str(ai_elem.id),
+            scene_item_id=scene_ids[0],
+            context="Old AI scene",
+            source="ai",
+        )
+        db_session.add(old_link)
+        db_session.commit()
+
+        # AI now attributes the element to scene 3 (scene_ids[2]) only.
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="prop",
+                canonical_name="Magic Sword",
+                description="Refreshed AI description",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=3, context="Now in throne room"),
+                ],
+            ),
+        ])
+
+        await breakdown_service.extract(db_session, project_id)
+
+        # The old AI link to scene_ids[0] is gone; the link now points at scene_ids[2].
+        db_session.expire_all()
+        links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(ai_elem.id),
+        ).all()
+        assert len(links) == 1
+        assert links[0].scene_item_id == scene_ids[2]
+        assert scene_ids[0] not in {link.scene_item_id for link in links}
+
+    # ----------------------------------------------------------------
+    # Phase 53 / REEX-01 full chain (D-53-02): stale -> re-extract -> user edits
+    # preserved + AI refreshed + stale cleared.
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_reextraction_chain_preserves_user_and_clears_stale(self, mock_ai, db_session):
+        """REEX-01 + REEX-02 end-to-end (D-53-02): a breakdown marked stale is
+        refreshed by extract() -- the user_modified element (description AND links)
+        is preserved, a fresh AI element is created, and breakdown_stale clears."""
+        project_id, scene_ids = _setup_project_with_screenplay(db_session)
+
+        # Seed a user-owned element with a curated link to scene 0.
+        user_elem = BreakdownElement(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            category="prop",
+            name="Magic Sword",
+            description="User's description",
+            source="user",
+            user_modified=True,
+        )
+        db_session.add(user_elem)
+        db_session.flush()
+
+        db_session.add(ElementSceneLink(
+            element_id=str(user_elem.id),
+            scene_item_id=scene_ids[0],
+            context="User-curated link",
+            source="ai",
+        ))
+        db_session.commit()
+
+        # Simulate a scene change: mark breakdown stale (a non-deleted element
+        # exists, so this flips the flag). Then commit and assert True.
+        _mark_breakdown_stale(db_session, project_id)
+        db_session.commit()
+        db_session.expire_all()
+        before = db_session.query(Project).filter(Project.id == project_id).first()
+        assert before.breakdown_stale is True
+
+        # AI re-extracts: (a) the user element attributed to different scenes +
+        # different description (must be ignored), and (b) a fresh AI element.
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="prop",
+                canonical_name="Magic Sword",
+                description="AI would-overwrite description",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=3, context="AI moved it"),
+                ],
+            ),
+            ExtractedElement(
+                category="character",
+                canonical_name="Knight",
+                description="A brave knight",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=2, context="Rides through forest"),
+                ],
+            ),
+        ])
+
+        await breakdown_service.extract(db_session, project_id)
+
+        # User element: description preserved + link still points at scene_ids[0].
+        db_session.expire_all()
+        db_session.refresh(user_elem)
+        assert user_elem.description == "User's description"
+        user_links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(user_elem.id),
+        ).all()
+        assert len(user_links) == 1
+        assert user_links[0].scene_item_id == scene_ids[0]
+        assert user_links[0].context == "User-curated link"
+
+        # Fresh AI element created with its scene link reconciled to scene_ids[1].
+        knight = db_session.query(BreakdownElement).filter(
+            BreakdownElement.project_id == project_id,
+            BreakdownElement.name == "Knight",
+        ).first()
+        assert knight is not None
+        knight_links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(knight.id),
+        ).all()
+        assert len(knight_links) == 1
+        assert knight_links[0].scene_item_id == scene_ids[1]
+
+        # Stale flag cleared after the extraction commit.
+        after = db_session.query(Project).filter(Project.id == project_id).first()
+        assert after.breakdown_stale is False
 
 
 # ============================================================
