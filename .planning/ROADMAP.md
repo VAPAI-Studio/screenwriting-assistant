@@ -329,6 +329,11 @@ Plans:
   3. The on-screen-only rules (no dialogue-only mentions, no abstractions) still hold on the fuller text
   4. Existing breakdown extraction tests/behavior do not regress
 
+**Plans:** 1 plan
+
+Plans:
+- [ ] 50-01-PLAN.md — Scene-scoped extraction prompt: deterministic SC ordering, episode_index alignment helper, per-scene indexed user prompt with graceful fallback (BFID-01/02/03)
+
 ### Phase 51: Per-Appearance Context
 **Goal**: Each extracted element records which scene(s) it appears in and a short how/where context note, with cross-scene duplicates consolidated into one element with multiple appearances
 **Depends on**: Phase 50 (scene-scoped extraction)
