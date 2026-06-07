@@ -196,40 +196,41 @@ class BreakdownService:
         self, screenplays: List, scene_summaries: List[dict]
     ) -> Dict[int, str]:
         """
-        Align ScreenplayContent rows to the scene list by formatted_content.episode_index
-        (positional fallback), returning {0-based scene index -> full scene text}.
+        Align ScreenplayContent rows to the scene list STRICTLY by
+        formatted_content.episode_index, returning {0-based scene index -> full
+        scene text}.
 
-        Phase 50 (D-50-01): copies the robust join from wizards.py:keep_scene_version
-        (484-499). The batch-generate path APPENDS ScreenplayContent rows and never
-        deletes them, so a project can hold DUPLICATE rows per episode_index — prefer
-        an episode_index match; fall back positionally only when no row carries the
-        index. `screenplays` arrives newest-first (created_at.desc, id.desc), so the
-        positional fallback indexes from the END to recover ascending scene order.
+        Phase 50 (D-50-01): episode_index is the ONLY reliable join key (set by the
+        v6.0 generation path on every row it writes). We deliberately do NOT attempt
+        a positional fallback for rows that lack episode_index: the batch-generate
+        path appends rows and never deletes them, and `created_at` is only
+        second-resolution on some backends (SQLite), so insertion order is NOT
+        reliably recoverable — a positional guess can silently REVERSE scene order
+        and mis-attribute every element (caught by test
+        test_legacy_positional_fallback_*). When a scene has no episode_index match
+        (legacy/duplicate/ambiguous data), it is simply omitted from the mapping;
+        the builder's strict full-coverage gate then drops the aligned path entirely
+        and falls back to the safe concatenated form.
 
-        Rows with empty content are skipped. This helper NEVER raises: on any
-        ambiguity it simply omits that scene from the mapping, and the builder's
-        full-coverage gate then drops the whole aligned path and falls back to the
-        concatenated form. (T-50-01 mitigation: extraction must never crash.)
+        On duplicate rows per episode_index, the FIRST match wins — `screenplays`
+        arrives newest-first (created_at.desc, id.desc), so the most recent row for
+        that scene is used (consistent with v6.0 keep-scene-version's newest-first
+        preference).
+
+        Rows with empty content are skipped. This helper NEVER raises (T-50-01
+        mitigation: extraction must never crash).
         """
         mapping: Dict[int, str] = {}
         try:
             rows = list(screenplays)
+
+            def _ep_index(r):
+                return (getattr(r, "formatted_content", None) or {}).get("episode_index")
+
             for i in range(len(scene_summaries)):
-                target = next(
-                    (
-                        r
-                        for r in rows
-                        if (getattr(r, "formatted_content", None) or {}).get(
-                            "episode_index"
-                        )
-                        == i
-                    ),
-                    None,
-                )
-                if target is None and i < len(rows):
-                    # rows is newest-first; index from the end to recover the
-                    # original ascending (scene 0 = oldest) order.
-                    target = rows[len(rows) - 1 - i]
+                # First match wins; rows is newest-first so this is the most recent
+                # row carrying episode_index == i. No positional fallback (unreliable).
+                target = next((r for r in rows if _ep_index(r) == i), None)
                 if target is None:
                     continue
                 text = getattr(target, "content", None)

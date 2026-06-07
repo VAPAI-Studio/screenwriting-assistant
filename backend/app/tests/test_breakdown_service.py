@@ -203,6 +203,62 @@ def _setup_project_with_aligned_screenplay(db_session):
     return project_id, scene_item_ids
 
 
+def _setup_project_with_legacy_positional_screenplay(db_session):
+    """Phase 50 (IN-01): 3 ScreenplayContent rows with NO episode_index (pure-legacy
+    case), inserted in scene order. The breakdown query orders newest-first, so the
+    positional-from-end fallback in _align_screenplay_to_scenes must recover ascending
+    scene order (scene 0 -> oldest row text). Distinct per-scene text proves the
+    mapping isn't reversed.
+
+    Returns (project_id, scene_item_ids_list).
+    """
+    project_id = str(uuid.uuid4())
+    project = Project(id=project_id, owner_id=MOCK_USER_ID, title="Legacy Film")
+    db_session.add(project)
+    db_session.flush()
+
+    # No formatted_content.episode_index on any row -> pure-legacy positional path.
+    scene_texts = [
+        "INT. CAVE - NIGHT\nThe MINER lights a LANTERN.",
+        "EXT. RIVER - DAY\nThe MINER crosses on a RAFT.",
+        "INT. BANK - DAY\nThe MINER deposits the GOLD.",
+    ]
+    for text in scene_texts:
+        sc = ScreenplayContent(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            content=text,
+            formatted_content={"content": text},  # deliberately NO episode_index
+        )
+        db_session.add(sc)
+        db_session.flush()  # distinct created_at ordering per row insert
+
+    scenes_pd = PhaseData(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        phase="scenes",
+        subsection_key="scene_list",
+        content={},
+    )
+    db_session.add(scenes_pd)
+    db_session.flush()
+
+    scene_item_ids = []
+    for i in range(3):
+        scene_id = str(uuid.uuid4())
+        db_session.add(ListItem(
+            id=scene_id,
+            phase_data_id=str(scenes_pd.id),
+            item_type="scene",
+            content={"summary": f"Scene {i + 1} summary"},
+            sort_order=i,
+        ))
+        scene_item_ids.append(scene_id)
+    db_session.flush()
+    db_session.commit()
+    return project_id, scene_item_ids
+
+
 class TestBreakdownService:
     """Integration and unit tests for BreakdownService."""
 
@@ -508,6 +564,30 @@ class TestBreakdownService:
         # Aligned-form attribution instruction; NOT the concatenated fallback blob
         assert "Attribute each element to the scene index/indices" in prompt
         assert "## Screenplay Content" not in prompt
+
+    # ----------------------------------------------------------------
+    # Phase 50 / IN-01: legacy rows (no episode_index) must NOT mis-align
+    # ----------------------------------------------------------------
+    def test_legacy_rows_without_index_use_safe_concatenated_fallback(self, db_session):
+        """IN-01 (data-correctness): rows with NO episode_index have no reliable
+        scene-join key (created_at is only second-resolution; insertion order is not
+        recoverable). The aligner must therefore NOT positionally guess (a guess can
+        silently REVERSE scene order and mis-attribute every element). Instead it
+        omits unmatched scenes, the strict full-coverage gate fails, and the prompt
+        falls back to the safe concatenated `## Screenplay Content` form — never the
+        per-scene `### Scene` aligned form. All scene texts still reach the AI."""
+        project_id, _ = _setup_project_with_legacy_positional_screenplay(db_session)
+
+        ctx = breakdown_service._build_extraction_context(db_session, project_id)
+        prompt = breakdown_service._build_user_prompt(ctx)
+
+        # Safe fallback path: concatenated form, NOT the aligned per-scene headers.
+        assert "## Screenplay Content" in prompt
+        assert "### Scene 1:" not in prompt
+        # All three scene texts still reach the AI (BFID-01 holds in fallback).
+        assert "lights a LANTERN" in prompt
+        assert "crosses on a RAFT" in prompt
+        assert "deposits the GOLD" in prompt
 
     # ----------------------------------------------------------------
     # Phase 50 / BFID-02: attribution mapping via the aligned path
