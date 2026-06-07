@@ -789,3 +789,51 @@ class TestBreakdownService:
         prompt = breakdown_service._build_user_prompt(ctx)
         assert "## Screenplay Content" in prompt
         assert "### Scene" not in prompt
+
+
+# ============================================================
+# Phase 52 (CATG-01, D-52-04): New-category extraction persists
+# ============================================================
+class TestExpandedCategoryExtraction:
+    """An AI extraction returning a new-category element persists with that
+    category and is queryable from the DB (CATG-01, D-52-04)."""
+
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_new_category_element_persists(self, mock_ai, db_session):
+        """extract() with a mocked AI returning a set_dressing element (plus an
+        existing-category character) persists a BreakdownElement with
+        category='set_dressing'."""
+        project_id, scene_ids = _setup_project_with_screenplay(db_session)
+
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="character",
+                canonical_name="Knight",
+                description="A brave knight",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=1, context="Draws sword"),
+                ],
+            ),
+            ExtractedElement(
+                category="set_dressing",
+                canonical_name="Antique Couch",
+                description="A velvet couch dressing the throne room",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=3, context="In the throne room"),
+                ],
+            ),
+        ])
+
+        run = await breakdown_service.extract(db_session, project_id)
+        assert run.status == "completed"
+
+        elements = db_session.query(BreakdownElement).filter(
+            BreakdownElement.project_id == project_id
+        ).all()
+        categories = {e.category for e in elements}
+        assert "set_dressing" in categories
+        assert "character" in categories
+
+        set_dressing_rows = [e for e in elements if e.category == "set_dressing"]
+        assert len(set_dressing_rows) == 1
+        assert set_dressing_rows[0].name == "Antique Couch"

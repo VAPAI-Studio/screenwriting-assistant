@@ -891,3 +891,35 @@ class TestUpdateElementMetadata:
         assert result_meta == new_metadata
         # "notes" key should NOT be present (full replace, not merge)
         assert "notes" not in result_meta
+
+
+# ============================================================
+# Phase 52 (CATG-01): Expanded category taxonomy — schema gate
+# ============================================================
+class TestExpandedCategorySchema:
+    """The BreakdownElementCreate regex gate accepts the 5 new categories
+    and still rejects values outside the 10-value allow-list (CATG-01, D-52-02)."""
+
+    def test_new_category_accepted(self):
+        """A new category (set_dressing) validates with no error."""
+        from app.models.schemas import BreakdownElementCreate
+
+        model = BreakdownElementCreate(category="set_dressing", name="Antique Couch")
+        assert model.category == "set_dressing"
+
+    def test_all_new_categories_accepted(self):
+        """All 5 new categories validate."""
+        from app.models.schemas import BreakdownElementCreate
+
+        for cat in ("set_dressing", "animal", "sfx", "makeup_hair", "extras"):
+            model = BreakdownElementCreate(category=cat, name="X")
+            assert model.category == cat
+
+    def test_unknown_category_rejected(self):
+        """A value outside the 10-value set still raises a validation error —
+        the gate is real, not removed (CATG-01, T-52-01)."""
+        import pydantic
+        from app.models.schemas import BreakdownElementCreate
+
+        with pytest.raises(pydantic.ValidationError):
+            BreakdownElementCreate(category="not_a_category", name="X")
