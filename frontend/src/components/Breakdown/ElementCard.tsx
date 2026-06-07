@@ -254,6 +254,7 @@ export function ElementCard({ element, projectId, category }: ElementCardProps) 
               {element.scene_links.map((link, index) => (
                 <button
                   key={link.id}
+                  title={link.context || undefined}
                   onClick={e => {
                     e.stopPropagation();
                     navigate(ROUTES.PROJECT_WORKSPACE(projectId, 'scenes', 'scene_list', link.scene_item_id));
