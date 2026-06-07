@@ -569,6 +569,15 @@ class BreakdownService:
                 db_element = result["element_map"].get(extracted_el.canonical_name)
                 if db_element is None:
                     continue  # Was skipped (deleted)
+                if db_element.user_modified:
+                    # REEX-02 (D-53-01): user-owned element -- leave its scene
+                    # links untouched on re-extract. The user has taken ownership
+                    # of this element (PUT sets user_modified=True), so we do NOT
+                    # wipe/recreate its AI-sourced links. Membership in element_map
+                    # is preserved; only the reconcile CALL is skipped. Scoped to
+                    # user_modified only -- non-user_modified elements still
+                    # reconcile so their links track the current script.
+                    continue
                 scene_links = self._map_scene_indices_to_ids(ctx, extracted_el.scene_appearances)
                 self._reconcile_scene_links(db, db_element, scene_links)
 
