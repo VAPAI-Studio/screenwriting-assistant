@@ -71,6 +71,10 @@ class ExtractionContext:
     character_names: List[str]          # From story.characters ListItem names
     scene_summaries: List[dict]        # [{id: str, summary: str, sort_order: int}]
     project_title: str
+    # Phase 50 (D-50-01/BFID-02): per-scene full text keyed by 0-based scene index,
+    # aligned to scene_summaries order. None/empty => _build_user_prompt falls back to
+    # the concatenated form. Kept alongside screenplay_texts for the graceful fallback.
+    scene_texts_by_index: Optional[Dict[int, str]] = None
 
 
 # ---------------------------------------------------------------------------
@@ -121,9 +125,14 @@ class BreakdownService:
         - PhaseData(phase=scenes, subsection_key=scene_list) -> ListItem summaries
         - Project for title
         """
-        # 1. Fetch screenplay content
+        # 1. Fetch screenplay content. Phase 50 (D-50-01): order deterministically
+        # (newest-first) so per-scene alignment and the concatenated fallback are
+        # both stable across runs. Mirrors wizards.py:keep_scene_version (484-488).
         screenplays = db.query(database.ScreenplayContent).filter(
             database.ScreenplayContent.project_id == str(project_id)
+        ).order_by(
+            database.ScreenplayContent.created_at.desc(),
+            database.ScreenplayContent.id.desc(),
         ).all()
 
         # 2. Fetch character names from story.characters
@@ -168,12 +177,69 @@ class BreakdownService:
             database.Project.id == str(project_id)
         ).first()
 
+        # Phase 50 (D-50-01/BFID-02): attempt to align per-scene text to the scene
+        # list by episode_index (positional fallback). NEVER raises; returns {} on
+        # any mismatch so _build_user_prompt degrades to the concatenated form.
+        scene_texts_by_index = self._align_screenplay_to_scenes(
+            screenplays, scene_summaries
+        )
+
         return ExtractionContext(
             screenplay_texts=[sc.content for sc in screenplays if sc.content],
             character_names=character_names,
             scene_summaries=scene_summaries,
             project_title=project.title if project else "",
+            scene_texts_by_index=scene_texts_by_index,
         )
+
+    def _align_screenplay_to_scenes(
+        self, screenplays: List, scene_summaries: List[dict]
+    ) -> Dict[int, str]:
+        """
+        Align ScreenplayContent rows to the scene list by formatted_content.episode_index
+        (positional fallback), returning {0-based scene index -> full scene text}.
+
+        Phase 50 (D-50-01): copies the robust join from wizards.py:keep_scene_version
+        (484-499). The batch-generate path APPENDS ScreenplayContent rows and never
+        deletes them, so a project can hold DUPLICATE rows per episode_index — prefer
+        an episode_index match; fall back positionally only when no row carries the
+        index. `screenplays` arrives newest-first (created_at.desc, id.desc), so the
+        positional fallback indexes from the END to recover ascending scene order.
+
+        Rows with empty content are skipped. This helper NEVER raises: on any
+        ambiguity it simply omits that scene from the mapping, and the builder's
+        full-coverage gate then drops the whole aligned path and falls back to the
+        concatenated form. (T-50-01 mitigation: extraction must never crash.)
+        """
+        mapping: Dict[int, str] = {}
+        try:
+            rows = list(screenplays)
+            for i in range(len(scene_summaries)):
+                target = next(
+                    (
+                        r
+                        for r in rows
+                        if (getattr(r, "formatted_content", None) or {}).get(
+                            "episode_index"
+                        )
+                        == i
+                    ),
+                    None,
+                )
+                if target is None and i < len(rows):
+                    # rows is newest-first; index from the end to recover the
+                    # original ascending (scene 0 = oldest) order.
+                    target = rows[len(rows) - 1 - i]
+                if target is None:
+                    continue
+                text = getattr(target, "content", None)
+                if not text:
+                    continue
+                mapping[i] = text
+        except Exception as e:  # noqa: BLE001 - alignment must never crash extraction
+            logger.warning("Scene alignment failed; falling back to concatenated prompt: %s", e)
+            return {}
+        return mapping
 
     def _build_user_prompt(self, ctx: ExtractionContext) -> str:
         """
@@ -191,13 +257,39 @@ class BreakdownService:
                 parts.append(f"- {name}")
             parts.append("")
 
-        # Scene list with indices for reliable matching
+        # Phase 50 (D-50-01/BFID-02): take the ALIGNED per-scene path ONLY when the
+        # mapping covers EVERY scene with exactly one non-empty text (strict
+        # full-coverage gate). On any gap/ambiguity, fall back to the concatenated
+        # form below so extraction never crashes or mis-labels (T-50-01).
+        by_index = ctx.scene_texts_by_index or {}
+        full_coverage = bool(ctx.scene_summaries) and all(
+            by_index.get(i) for i in range(len(ctx.scene_summaries))
+        )
+
+        if full_coverage:
+            # Aligned path: each scene's summary + its FULL text under its own
+            # explicit 1-based header, in the SAME index space scene_appearances /
+            # _map_scene_indices_to_ids use.
+            parts.append(
+                "## Scenes (extract elements against the scene under which their text appears)"
+            )
+            for i, scene in enumerate(ctx.scene_summaries):
+                parts.append(f"### Scene {i + 1}: {scene['summary']}")
+                parts.append(by_index[i])
+                parts.append("")
+            parts.append(
+                "\nAttribute each element to the scene index/indices under which its "
+                "text appears."
+            )
+            return "\n".join(parts)
+
+        # Fallback path (UNCHANGED concatenated form): 1-based summary list + a
+        # separate concatenated screenplay blob.
         parts.append("## Scenes")
         for i, scene in enumerate(ctx.scene_summaries):
             parts.append(f"Scene {i + 1}: {scene['summary']}")
         parts.append("")
 
-        # Full screenplay text
         parts.append("## Screenplay Content")
         for text in ctx.screenplay_texts:
             parts.append(text)
