@@ -118,6 +118,91 @@ def _mock_extraction_response(elements):
     return ExtractionResponse(elements=elements)
 
 
+def _setup_project_with_aligned_screenplay(db_session):
+    """Phase 50: project whose 3 ScreenplayContent rows each carry
+    formatted_content.episode_index (0,1,2) with distinct per-scene content, so the
+    ALIGNED per-scene prompt path is exercised. Mirrors the shape of
+    _setup_project_with_screenplay but with one SC row per scene.
+
+    Returns (project_id, scene_item_ids_list).
+    """
+    project_id = str(uuid.uuid4())
+
+    project = Project(
+        id=project_id,
+        owner_id=MOCK_USER_ID,
+        title="Aligned Film",
+    )
+    db_session.add(project)
+    db_session.flush()
+
+    # One ScreenplayContent row per scene, each carrying episode_index + distinct text.
+    scene_texts = [
+        "INT. CASTLE - NIGHT\nThe KNIGHT draws a MAGIC SWORD from the stone.",
+        "EXT. FOREST - DAY\nThe KNIGHT rides through on a HORSE.",
+        "INT. THRONE ROOM - DAY\nThe KNIGHT presents the MAGIC SWORD to the KING.",
+    ]
+    for i, text in enumerate(scene_texts):
+        sc = ScreenplayContent(
+            id=str(uuid.uuid4()),
+            project_id=project_id,
+            content=text,
+            formatted_content={"episode_index": i, "content": text},
+        )
+        db_session.add(sc)
+    db_session.flush()
+
+    # Characters PhaseData + ListItems
+    chars_pd = PhaseData(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        phase="story",
+        subsection_key="characters",
+        content={},
+    )
+    db_session.add(chars_pd)
+    db_session.flush()
+
+    for name in ["Knight", "King"]:
+        li = ListItem(
+            id=str(uuid.uuid4()),
+            phase_data_id=str(chars_pd.id),
+            item_type="character",
+            content={"name": name},
+            sort_order=0,
+        )
+        db_session.add(li)
+    db_session.flush()
+
+    # Scenes PhaseData + 3 ListItems (sort_order 0,1,2)
+    scenes_pd = PhaseData(
+        id=str(uuid.uuid4()),
+        project_id=project_id,
+        phase="scenes",
+        subsection_key="scene_list",
+        content={},
+    )
+    db_session.add(scenes_pd)
+    db_session.flush()
+
+    scene_item_ids = []
+    for i in range(3):
+        scene_id = str(uuid.uuid4())
+        li = ListItem(
+            id=scene_id,
+            phase_data_id=str(scenes_pd.id),
+            item_type="scene",
+            content={"summary": f"Scene {i + 1} summary"},
+            sort_order=i,
+        )
+        db_session.add(li)
+        scene_item_ids.append(scene_id)
+    db_session.flush()
+
+    db_session.commit()
+    return project_id, scene_item_ids
+
+
 class TestBreakdownService:
     """Integration and unit tests for BreakdownService."""
 
@@ -398,3 +483,107 @@ class TestBreakdownService:
         ).all()
         assert len(all_lamps) == 1  # Only the deleted one
         assert all_lamps[0].is_deleted is True
+
+    # ----------------------------------------------------------------
+    # Phase 50 / BFID-02: aligned per-scene prompt shape
+    # ----------------------------------------------------------------
+    def test_aligned_prompt_emits_per_scene_indexed_text(self, db_session):
+        """BFID-02: when SC rows align to scenes by episode_index, the prompt emits
+        each scene's FULL text under its own 1-based '### Scene {i+1}' header."""
+        project_id, _ = _setup_project_with_aligned_screenplay(db_session)
+
+        ctx = breakdown_service._build_extraction_context(db_session, project_id)
+        prompt = breakdown_service._build_user_prompt(ctx)
+
+        # Per-scene indexed headers present
+        assert "### Scene 1:" in prompt
+        assert "### Scene 2:" in prompt
+        assert "### Scene 3:" in prompt
+
+        # Each scene's distinct full text appears under the aligned structure
+        assert "draws a MAGIC SWORD from the stone" in prompt
+        assert "rides through on a HORSE" in prompt
+        assert "presents the MAGIC SWORD to the KING" in prompt
+
+        # Aligned-form attribution instruction; NOT the concatenated fallback blob
+        assert "Attribute each element to the scene index/indices" in prompt
+        assert "## Screenplay Content" not in prompt
+
+    # ----------------------------------------------------------------
+    # Phase 50 / BFID-02: attribution mapping via the aligned path
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_aligned_attribution_maps_to_scene_ids(self, mock_ai, db_session):
+        """BFID-02: with the aligned fixture, an AI response attributing an element to
+        scene_index 1 and 3 links it to scene_ids[0] and scene_ids[2] (proves the
+        unchanged _map_scene_indices_to_ids still maps the shared 1-based space)."""
+        project_id, scene_ids = _setup_project_with_aligned_screenplay(db_session)
+
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="character",
+                canonical_name="Knight",
+                description="A brave knight",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=1, context="Draws sword"),
+                    ExtractedSceneAppearance(scene_index=3, context="Presents sword"),
+                ],
+            ),
+        ])
+
+        await breakdown_service.extract(db_session, project_id)
+
+        element = db_session.query(BreakdownElement).filter(
+            BreakdownElement.project_id == project_id,
+            BreakdownElement.name == "Knight",
+        ).first()
+        assert element is not None
+
+        links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(element.id),
+        ).all()
+        linked_scene_ids = {link.scene_item_id for link in links}
+        assert scene_ids[0] in linked_scene_ids  # scene_index 1 -> scene_ids[0]
+        assert scene_ids[2] in linked_scene_ids  # scene_index 3 -> scene_ids[2]
+
+    # ----------------------------------------------------------------
+    # Phase 50 / BFID-03: on-screen-only rules preserved verbatim
+    # ----------------------------------------------------------------
+    def test_on_screen_only_rules_preserved(self):
+        """BFID-03 regression guard: the on-screen-only extraction rules remain in
+        EXTRACTION_SYSTEM_PROMPT."""
+        from app.services.breakdown_service import EXTRACTION_SYSTEM_PROMPT
+
+        assert "PHYSICALLY PRESENT ON SCREEN" in EXTRACTION_SYSTEM_PROMPT
+        # A second rule fragment: dialogue/backstory exclusion
+        assert "merely mentioned in dialogue or backstory" in EXTRACTION_SYSTEM_PROMPT
+
+    # ----------------------------------------------------------------
+    # Phase 50 / D-50-01: graceful fallback never crashes extraction
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_graceful_fallback_on_count_mismatch(self, mock_ai, db_session):
+        """D-50-01: 1 SC row (no episode_index) + 3 scenes => alignment cannot cover
+        all scenes; extract() still completes and the prompt uses the concatenated
+        fallback form (no '### Scene' header)."""
+        project_id, _ = _setup_project_with_screenplay(db_session)
+
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="prop",
+                canonical_name="Magic Sword",
+                description="An enchanted blade",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=1, context="Drawn"),
+                ],
+            ),
+        ])
+
+        run = await breakdown_service.extract(db_session, project_id)
+        assert run.status == "completed"  # no crash
+
+        # The builder degrades to the concatenated form for this ctx.
+        ctx = breakdown_service._build_extraction_context(db_session, project_id)
+        prompt = breakdown_service._build_user_prompt(ctx)
+        assert "## Screenplay Content" in prompt
+        assert "### Scene" not in prompt
