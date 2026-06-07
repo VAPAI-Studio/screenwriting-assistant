@@ -458,6 +458,89 @@ class TestBreakdownService:
         assert scene_ids[2] in linked_scene_ids
 
     # ----------------------------------------------------------------
+    # APPR-02: Per-appearance context persisted (D-51-01)
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_scene_link_context_persisted(self, mock_ai, db_session):
+        """ElementSceneLink.context holds the AI's per-appearance context (was "" before Phase 51)."""
+        project_id, scene_ids = _setup_project_with_screenplay(db_session)
+
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="character",
+                canonical_name="Knight",
+                description="A brave knight",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=1, context="Draws sword"),
+                    ExtractedSceneAppearance(scene_index=3, context="Presents sword"),
+                ],
+            ),
+        ])
+
+        await breakdown_service.extract(db_session, project_id)
+
+        element = db_session.query(BreakdownElement).filter(
+            BreakdownElement.project_id == project_id,
+            BreakdownElement.name == "Knight",
+        ).first()
+        assert element is not None
+
+        links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(element.id),
+        ).all()
+        # Map each link to its scene -> context, proving the "" -> real-context change.
+        context_by_scene = {link.scene_item_id: link.context for link in links}
+        assert context_by_scene[scene_ids[0]] == "Draws sword"   # scene_index 1
+        assert context_by_scene[scene_ids[2]] == "Presents sword"  # scene_index 3
+
+    # ----------------------------------------------------------------
+    # APPR-03: Two-scene element consolidates to one element, two links (D-51-03)
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_appearance_consolidation_one_element_two_links(self, mock_ai, db_session):
+        """An element across two scenes consolidates to ONE element with TWO scene links (APPR-03 verify)."""
+        project_id, scene_ids = _setup_project_with_screenplay(db_session)
+
+        # Two same-name same-category extracted elements, each in a distinct scene:
+        # the existing _deduplicate_elements path must merge them into one.
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="prop",
+                canonical_name="Magic Sword",
+                description="A glowing blade",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=1, context="Drawn from stone"),
+                ],
+            ),
+            ExtractedElement(
+                category="prop",
+                canonical_name="Magic Sword",
+                description="(duplicate) the sword again",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=3, context="Presented to king"),
+                ],
+            ),
+        ])
+
+        await breakdown_service.extract(db_session, project_id)
+
+        # APPR-03: exactly one element with the matching name
+        elements = db_session.query(BreakdownElement).filter(
+            BreakdownElement.project_id == project_id,
+            BreakdownElement.name == "Magic Sword",
+        ).all()
+        assert len(elements) == 1
+        element = elements[0]
+
+        # APPR-01: element exposes its scene links; APPR-03: exactly two links
+        links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(element.id),
+        ).all()
+        assert len(links) == 2
+        linked_scene_ids = {link.scene_item_id for link in links}
+        assert linked_scene_ids == {scene_ids[0], scene_ids[2]}
+
+    # ----------------------------------------------------------------
     # SYNC-01: User-modified elements preserved
     # ----------------------------------------------------------------
     @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
