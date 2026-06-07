@@ -366,6 +366,9 @@ Plans:
   1. A scene-text change flags the breakdown stale via the existing staleness mechanism
   2. Re-extraction refreshes against the changed scene text
   3. User-added/edited breakdown elements are preserved across re-extraction (merge policy settled in discussion)
+**Plans**: 1 plan
+Plans:
+- [ ] 53-01-PLAN.md — Guard the extract loop so user_modified elements' scene links are never churned on re-extract (D-53-01), plus REEX-02 link-preservation/scoping tests and the REEX-01 full stale->re-extract->preserve->clear chain test (D-53-02); backend-only, no schema/migration (REEX-01/02)
 
 ## Progress
 
