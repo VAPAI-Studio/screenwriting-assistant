@@ -42,7 +42,7 @@ class ExtractedSceneAppearance(BaseModel):
 class ExtractedElement(BaseModel):
     """A production element extracted from the screenplay."""
     category: str = Field(
-        description="One of: character, location, prop, wardrobe, vehicle"
+        description="One of: character, location, prop, wardrobe, vehicle, set_dressing, animal, sfx, makeup_hair, extras"
     )
     canonical_name: str = Field(
         description="The standard canonical name for this element, deduplicated across scenes"
@@ -103,7 +103,16 @@ CATEGORIES:
 - location: Distinct shooting locations (INT./EXT. settings)
 - prop: Physical objects handled or prominently featured
 - wardrobe: Notable costume pieces or accessories
-- vehicle: Cars, trucks, bikes, boats, aircraft"""
+- vehicle: Cars, trucks, bikes, boats, aircraft
+- set_dressing: Furniture and décor that dress a location but are not handled as a prop (couch, paintings, rugs, lamps) -- must be visible on screen
+- animal: Animals appearing on screen (dogs, horses, birds) -- must be physically present, not merely mentioned
+- sfx: Practical/special effects that physically occur on screen (fire, smoke, rain, explosions, breaking glass) -- only what is actually shown, never implied or off-screen
+- makeup_hair: Notable makeup, hair, or prosthetics as a production element (wounds, aging, distinctive hairstyles, prosthetic appliances) -- visible on screen
+- extras: Background performers or crowds visible on screen (restaurant patrons, soldiers in the background, a crowd)
+
+PRECEDENCE FOR AMBIGUOUS CASES:
+- A ridden or driven horse (or any living creature) is an animal, not a vehicle -- the living creature wins.
+- set_dressing vs prop: if a character handles or the scene features the object, it is a prop; otherwise it is set_dressing."""
 
 
 # ---------------------------------------------------------------------------

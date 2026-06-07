@@ -141,6 +141,11 @@ class BreakdownCategory(str, enum.Enum):
     PROP = "prop"
     WARDROBE = "wardrobe"
     VEHICLE = "vehicle"
+    SET_DRESSING = "set_dressing"
+    ANIMAL = "animal"
+    SFX = "sfx"
+    MAKEUP_HAIR = "makeup_hair"
+    EXTRAS = "extras"
 
 
 class Project(Base):

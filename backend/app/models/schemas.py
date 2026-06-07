@@ -695,7 +695,7 @@ class PipelineMapResponse(BaseModel):
 # ============================================================
 
 class BreakdownElementCreate(BaseModel):
-    category: str = Field(..., pattern="^(character|location|prop|wardrobe|vehicle)$")
+    category: str = Field(..., pattern="^(character|location|prop|wardrobe|vehicle|set_dressing|animal|sfx|makeup_hair|extras)$")
     name: str = Field(..., min_length=1, max_length=500)
     description: str = ""
     metadata: Dict = Field(default_factory=dict)
