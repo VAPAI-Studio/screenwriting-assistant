@@ -354,6 +354,9 @@ Plans:
   1. The extraction taxonomy includes the expanded categories (final list settled in discussion)
   2. Existing categories and previously extracted elements remain valid — additive, no destructive migration
   3. The breakdown UI displays and lets the user filter/group by the expanded categories
+**Plans**: 1 plan
+Plans:
+- [ ] 52-01-PLAN.md — Broaden breakdown taxonomy to 10 categories (+set_dressing, animal, sfx, makeup_hair, extras) across all 6 definition sites in lockstep + prompt guidance + tests; CategoryTabs auto-renders (CATG-01/02/03)
 
 ### Phase 53: Re-Extraction on Change
 **Goal**: When a scene's screenplay changes (v6.0 regenerate-and-keep or a manual edit), the breakdown is flagged stale and re-extraction refreshes that scene's elements without discarding user-edited breakdown data
