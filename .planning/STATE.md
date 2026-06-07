@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v6.0
-milestone_name: Script Quality
-status: 49-02 frontend AUTO complete — Task 4 manual UAT PENDING USER
-stopped_at: Completed 49-02-PLAN.md AUTO tasks (Tasks 1-3); Task 4 human-verify UAT pending
-last_updated: "2026-06-06T20:19:07.011Z"
-last_activity: 2026-06-06 -- Phase 49 Plan 02 AUTO tasks executed (regenerateScene/keepSceneVersion client, SceneCompareModal, per-scene Regenerate & Compare trigger); UAT pending user
+milestone: v7.0
+milestone_name: Breakdown Fidelity
+status: planning
+last_updated: "2026-06-07T04:16:27.640Z"
+last_activity: 2026-06-07
 progress:
-  total_phases: 14
-  completed_phases: 14
-  total_plans: 18
-  completed_plans: 18
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Phase 49 (Side-by-Side Quality Compare) — 49-01 (backend) complete; 49-02 (frontend) AUTO complete, manual UAT pending
-Plan: 49-02 AUTO tasks (1-3) complete; Task 4 (human-verify UAT) PENDING USER
-Status: 49-02 frontend AUTO complete — awaiting user UAT (regenerate → compare → keep-new persistence + staleness)
-Last activity: 2026-06-06 -- Phase 49 Plan 02 AUTO tasks executed (regenerateScene/keepSceneVersion client, SceneCompareModal, per-scene Regenerate & Compare trigger); UAT pending user
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-07 — Milestone v7.0 started
 
 ## Performance Metrics
 
