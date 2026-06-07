@@ -466,14 +466,23 @@ class BreakdownService:
 
         AI returns 1-based indices; scene_summaries is 0-indexed.
         Invalid indices (out of range) are skipped with a warning.
+
+        De-duplicates by scene_id, keeping the FIRST appearance's context (IN-01):
+        the AI can legitimately emit the same scene_index twice for one element,
+        which would otherwise create two links for the same (element, scene) pair
+        and violate the uq_element_scene unique constraint — failing the whole
+        extraction transaction.
         """
         scene_links: List[Tuple[str, str]] = []
+        seen_ids: set = set()
         for appearance in scene_appearances:
             zero_based = appearance.scene_index - 1
             if 0 <= zero_based < len(ctx.scene_summaries):
-                scene_links.append(
-                    (ctx.scene_summaries[zero_based]["id"], appearance.context)
-                )
+                scene_id = ctx.scene_summaries[zero_based]["id"]
+                if scene_id in seen_ids:
+                    continue  # keep first context for this scene; skip duplicate
+                seen_ids.add(scene_id)
+                scene_links.append((scene_id, appearance.context))
             else:
                 logger.warning(
                     "Invalid scene_index %d (total scenes: %d) -- skipping",

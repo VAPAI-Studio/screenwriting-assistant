@@ -489,9 +489,48 @@ class TestBreakdownService:
             ElementSceneLink.element_id == str(element.id),
         ).all()
         # Map each link to its scene -> context, proving the "" -> real-context change.
+        assert len(links) == 2  # IN-02: exactly the two appearances persisted
         context_by_scene = {link.scene_item_id: link.context for link in links}
         assert context_by_scene[scene_ids[0]] == "Draws sword"   # scene_index 1
         assert context_by_scene[scene_ids[2]] == "Presents sword"  # scene_index 3
+
+    # ----------------------------------------------------------------
+    # IN-01: duplicate scene_index in one element's appearances must not
+    # violate uq_element_scene (would fail the whole extraction transaction)
+    # ----------------------------------------------------------------
+    @patch("app.services.breakdown_service.chat_completion_structured", new_callable=AsyncMock)
+    async def test_duplicate_scene_index_deduped_no_constraint_violation(self, mock_ai, db_session):
+        """The AI can emit the same scene_index twice for one element. The mapper
+        de-dups by scene_id (keeping the first context) so only ONE link is created
+        for that (element, scene) — no uq_element_scene violation, extraction completes."""
+        project_id, scene_ids = _setup_project_with_screenplay(db_session)
+
+        mock_ai.return_value = _mock_extraction_response([
+            ExtractedElement(
+                category="prop",
+                canonical_name="Lantern",
+                description="An old lantern",
+                scene_appearances=[
+                    ExtractedSceneAppearance(scene_index=1, context="On the table"),
+                    ExtractedSceneAppearance(scene_index=1, context="Knocked over"),  # dup scene
+                ],
+            ),
+        ])
+
+        run = await breakdown_service.extract(db_session, project_id)
+        assert run.status == "completed"  # did not crash on the unique constraint
+
+        element = db_session.query(BreakdownElement).filter(
+            BreakdownElement.project_id == project_id,
+            BreakdownElement.name == "Lantern",
+        ).first()
+        assert element is not None
+        links = db_session.query(ElementSceneLink).filter(
+            ElementSceneLink.element_id == str(element.id),
+        ).all()
+        assert len(links) == 1  # de-duped to one link for scene 1
+        assert links[0].scene_item_id == scene_ids[0]
+        assert links[0].context == "On the table"  # first context kept
 
     # ----------------------------------------------------------------
     # APPR-03: Two-scene element consolidates to one element, two links (D-51-03)
