@@ -18,9 +18,9 @@
 
 ### Per-Appearance Context (APPR)
 
-- [ ] **APPR-01**: Each extracted element records the scene(s) it appears in (per-appearance context), not just a flat global element list
-- [ ] **APPR-02**: For each appearance, a short context note captures how/where the element appears (the action or moment), surfaced in the breakdown UI
-- [ ] **APPR-03**: The same element appearing across multiple scenes is consolidated into one element with multiple appearances (not duplicated)
+- [x] **APPR-01**: Each extracted element records the scene(s) it appears in (per-appearance context), not just a flat global element list
+- [x] **APPR-02**: For each appearance, a short context note captures how/where the element appears (the action or moment), surfaced in the breakdown UI
+- [x] **APPR-03**: The same element appearing across multiple scenes is consolidated into one element with multiple appearances (not duplicated)
 
 ### Expanded Categories (CATG)
 

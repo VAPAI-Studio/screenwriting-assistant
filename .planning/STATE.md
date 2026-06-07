@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: Breakdown Fidelity
 status: In progress
-stopped_at: Completed 50-01-PLAN.md
-last_updated: "2026-06-07T05:00:00.000Z"
-last_activity: 2026-06-07 — Completed Phase 50 Plan 01 (scene-scoped extraction)
+stopped_at: Completed 51-01-PLAN.md
+last_updated: "2026-06-07T05:30:00.000Z"
+last_activity: 2026-06-07 — Completed Phase 51 Plan 01 (per-appearance context)
 progress:
   total_phases: 11
-  completed_phases: 8
-  total_plans: 11
-  completed_plans: 11
-  percent: 73
+  completed_phases: 9
+  total_plans: 12
+  completed_plans: 12
+  percent: 82
 ---
 
 # Project State
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 50-scene-text-extraction
+Phase: 51-per-appearance-context
 Plan: 01 (complete)
-Status: Phase 50 Plan 01 complete — scene-scoped extraction prompt shipped
-Last activity: 2026-06-07 — Completed 50-01-PLAN.md
+Status: Phase 51 Plan 01 complete — ElementSceneLink.context populated + card chip tooltip (APPR-01/02/03)
+Last activity: 2026-06-07 — Completed 51-01-PLAN.md
 
 ## Performance Metrics
 
@@ -100,6 +100,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-07T04:33:31.065Z
+Last session: 2026-06-07T04:53:57.143Z
 Stopped at: Completed 49-01-PLAN.md
 Resume file: None
