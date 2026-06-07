@@ -30,8 +30,8 @@
 
 ### Re-Extraction on Change (REEX)
 
-- [ ] **REEX-01**: When a scene's screenplay changes (regenerate-and-keep from v6.0, or a manual script edit), the breakdown is flagged stale via the existing staleness mechanism
-- [ ] **REEX-02**: Re-extraction refreshes the breakdown against the changed scene text without discarding user-added/edited breakdown elements (preserve manual edits where feasible — exact merge policy settled during phase discussion)
+- [x] **REEX-01**: When a scene's screenplay changes (regenerate-and-keep from v6.0, or a manual script edit), the breakdown is flagged stale via the existing staleness mechanism
+- [x] **REEX-02**: Re-extraction refreshes the breakdown against the changed scene text without discarding user-added/edited breakdown elements (preserve manual edits where feasible — exact merge policy settled during phase discussion)
 
 ## v6.0 Requirements — Script Quality
 

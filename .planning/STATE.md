@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: Breakdown Fidelity
 status: completed
-stopped_at: Completed 52-01-PLAN.md
-last_updated: "2026-06-07T00:00:00.000Z"
-last_activity: 2026-06-07 — Completed 52-01-PLAN.md
+stopped_at: Completed 53-01-PLAN.md
+last_updated: "2026-06-07T05:31:04.212Z"
+last_activity: 2026-06-07 — Completed 53-01-PLAN.md
 progress:
   total_phases: 11
   completed_phases: 11
@@ -25,10 +25,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 52-expanded-categories
+Phase: 53-re-extraction-on-change
 Plan: 01 (complete)
-Status: Phase 52 Plan 01 complete — breakdown taxonomy expanded 5→10 categories in lockstep across all 6 sites (CATG-01/02/03)
-Last activity: 2026-06-07 — Completed 52-01-PLAN.md
+Status: Phase 53 Plan 01 complete — extract loop skips _reconcile_scene_links for user_modified elements so user-owned scene links survive re-extract (REEX-02, D-53-01); full REEX-01 stale→re-extract→preserve→clear chain proven by tests (D-53-02); 71/71 breakdown+staleness tests green
+Last activity: 2026-06-07 — Completed 53-01-PLAN.md
 
 ## Performance Metrics
 
@@ -40,7 +40,7 @@ Last activity: 2026-06-07 — Completed 52-01-PLAN.md
 
 **Recent Trend:**
 
-- Last 5 plans: 48-01 (15min), 49-01 (10min), 49-02 (3min), 51-01, 52-01 (~12min)
+- Last 5 plans: 49-02 (3min), 51-01, 52-01 (~12min), 53-01 (~3min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -90,6 +90,7 @@ Relevant to v4.2:
 - [Phase ?]: [Phase 50]: breakdown prompt restructured to per-scene '### Scene {i+1}' indexed text in the shared 1-based scene_index space; _align_screenplay_to_scenes never raises; full-coverage gate falls back to concatenated form; single AI call + on-screen rules preserved
 - [Phase 52]: breakdown taxonomy expanded 5→10 (set_dressing, animal, sfx, makeup_hair, extras) additively across 6 lockstep sites (enum, schema regex gate, prompt CATEGORIES + ExtractedElement desc, FE union, FE constants); category stays String(50) so NO migration and existing rows valid (CATG-02)
 - [Phase 52]: CRITICAL RULES + DEDUPLICATION prompt blocks preserved verbatim; new categories are on-screen-only with a precedence note (ridden horse → animal; set_dressing vs prop = handled/featured → prop else set_dressing); tsc exhaustiveness on Record<BreakdownCategory,...> maps is the FE build gate
+- [Phase 53]: extract loop skips _reconcile_scene_links when db_element.user_modified is True (loop guard, D-53-01) — user-owned elements' scene links are left untouched on re-extract; element_map membership preserved; non-user_modified elements STILL reconcile (Test B proves the guard is scoped to user_modified only); additive guard only, no schema change/migration/FE change (D-53-03); REEX-01 full chain (stale→re-extract→preserve→clear) proven by an integration test (D-53-02)
 
 ### Pending Todos
 
@@ -102,6 +103,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-07
-Stopped at: Completed 52-01-PLAN.md
+Last session: 2026-06-07T05:31:04.204Z
+Stopped at: Completed 53-01-PLAN.md
 Resume file: None
