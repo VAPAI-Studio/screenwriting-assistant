@@ -12,7 +12,7 @@ user prompt formatter. Plan 11-02 implements the full extraction pipeline.
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -421,13 +421,14 @@ class BreakdownService:
         self,
         db: Session,
         element: database.BreakdownElement,
-        new_scene_ids: List[str],
+        new_links: List[Tuple[str, str]],
     ) -> None:
         """
         Reconcile scene links for an element after extraction.
 
         - Delete ALL existing AI-sourced links for this element
-        - Create new AI-sourced links for each scene_id
+        - Create new AI-sourced links for each (scene_id, context) pair,
+          persisting the AI's per-appearance context (APPR-02 / D-51-01)
         - Preserve user-sourced links (never delete them)
         """
         # Delete all existing AI-sourced scene links for this element
@@ -436,7 +437,7 @@ class BreakdownService:
             database.ElementSceneLink.source == "ai",
         ).delete(synchronize_session="fetch")
 
-        for scene_id in new_scene_ids:
+        for scene_id, context in new_links:
             # Check if a user-sourced link already exists for this pair
             user_link = db.query(database.ElementSceneLink).filter(
                 database.ElementSceneLink.element_id == str(element.id),
@@ -449,7 +450,7 @@ class BreakdownService:
             link = database.ElementSceneLink(
                 element_id=str(element.id),
                 scene_item_id=str(scene_id),
-                context="",
+                context=context,
                 source="ai",
             )
             db.add(link)
@@ -458,25 +459,28 @@ class BreakdownService:
         self,
         ctx: ExtractionContext,
         scene_appearances: List[ExtractedSceneAppearance],
-    ) -> List[str]:
+    ) -> List[Tuple[str, str]]:
         """
-        Convert 1-based scene_index values from AI response to ListItem IDs.
+        Convert 1-based scene_index values from AI response to
+        (ListItem ID, per-appearance context) pairs (APPR-02 / D-51-01).
 
         AI returns 1-based indices; scene_summaries is 0-indexed.
         Invalid indices (out of range) are skipped with a warning.
         """
-        scene_ids: List[str] = []
+        scene_links: List[Tuple[str, str]] = []
         for appearance in scene_appearances:
             zero_based = appearance.scene_index - 1
             if 0 <= zero_based < len(ctx.scene_summaries):
-                scene_ids.append(ctx.scene_summaries[zero_based]["id"])
+                scene_links.append(
+                    (ctx.scene_summaries[zero_based]["id"], appearance.context)
+                )
             else:
                 logger.warning(
                     "Invalid scene_index %d (total scenes: %d) -- skipping",
                     appearance.scene_index,
                     len(ctx.scene_summaries),
                 )
-        return scene_ids
+        return scene_links
 
     def _record_run(
         self,
@@ -547,8 +551,8 @@ class BreakdownService:
                 db_element = result["element_map"].get(extracted_el.canonical_name)
                 if db_element is None:
                     continue  # Was skipped (deleted)
-                scene_ids = self._map_scene_indices_to_ids(ctx, extracted_el.scene_appearances)
-                self._reconcile_scene_links(db, db_element, scene_ids)
+                scene_links = self._map_scene_indices_to_ids(ctx, extracted_el.scene_appearances)
+                self._reconcile_scene_links(db, db_element, scene_links)
 
             # 6. Record run
             run = self._record_run(
