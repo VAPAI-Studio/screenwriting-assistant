@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: Breakdown Fidelity
-status: planning
-last_updated: "2026-06-07T04:16:27.640Z"
-last_activity: 2026-06-07
+status: In progress
+stopped_at: Completed 50-01-PLAN.md
+last_updated: "2026-06-07T05:00:00.000Z"
+last_activity: 2026-06-07 — Completed Phase 50 Plan 01 (scene-scoped extraction)
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 11
+  completed_phases: 8
+  total_plans: 11
+  completed_plans: 11
+  percent: 73
 ---
 
 # Project State
@@ -24,16 +25,16 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-06-07 — Milestone v7.0 started
+Phase: 50-scene-text-extraction
+Plan: 01 (complete)
+Status: Phase 50 Plan 01 complete — scene-scoped extraction prompt shipped
+Last activity: 2026-06-07 — Completed 50-01-PLAN.md
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 57 (lifetime)
+- Total plans completed: 58 (lifetime)
 - Average duration: ~3min (recent)
 - Total execution time: ~2.85 hours (lifetime)
 
@@ -86,6 +87,7 @@ Relevant to v4.2:
 - [Phase 49]: extracted _generate_one_scene as the SINGLE shared per-scene prompt source; _generate_scripts loop + new regenerate_single_scene both delegate to it (no divergent prompt); 27 prior tests stay green byte-for-byte
 - [Phase 49]: single-scene regenerate returns a PREVIEW (no DB write); keep persists only screenplays[episode_index] + the matching ScreenplayContent row and marks breakdown/shotlist stale; global synopsis left untouched on keep (D-49-05); episode_index is the implicit scene key (no migration, D-49-03)
 - [Phase 49]: regenerate/keep owner filter uses str() coercion (codebase _verify_project_ownership convention), not run_wizard's raw-UUID compare — Postgres-safe AND SQLite-test-safe
+- [Phase ?]: [Phase 50]: breakdown prompt restructured to per-scene '### Scene {i+1}' indexed text in the shared 1-based scene_index space; _align_screenplay_to_scenes never raises; full-coverage gate falls back to concatenated form; single AI call + on-screen rules preserved
 
 ### Pending Todos
 
@@ -98,6 +100,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-06T20:09:31Z
+Last session: 2026-06-07T04:33:31.065Z
 Stopped at: Completed 49-01-PLAN.md
 Resume file: None

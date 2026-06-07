@@ -12,9 +12,9 @@
 
 ### Scene-Text Extraction (BFID)
 
-- [ ] **BFID-01**: Breakdown extraction runs against the full per-scene screenplay text (from `ScreenplayContent.content`), not one-line scene summaries — so elements present in action/dialogue are caught
-- [ ] **BFID-02**: Extraction is scene-scoped — each scene's elements are extracted from that scene's text, so an element can be attributed to the scene(s) it actually appears in
-- [ ] **BFID-03**: Existing "physically present on screen" extraction rules are preserved (no elements merely mentioned in dialogue/backstory, no abstract concepts) while operating on the fuller scene text
+- [x] **BFID-01**: Breakdown extraction runs against the full per-scene screenplay text (from `ScreenplayContent.content`), not one-line scene summaries — so elements present in action/dialogue are caught
+- [x] **BFID-02**: Extraction is scene-scoped — each scene's elements are extracted from that scene's text, so an element can be attributed to the scene(s) it actually appears in
+- [x] **BFID-03**: Existing "physically present on screen" extraction rules are preserved (no elements merely mentioned in dialogue/backstory, no abstract concepts) while operating on the fuller scene text
 
 ### Per-Appearance Context (APPR)
 
