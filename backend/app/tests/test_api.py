@@ -199,3 +199,226 @@ class TestMiddleware:
         assert response.headers.get("X-Content-Type-Options") == "nosniff"
         assert response.headers.get("X-Frame-Options") == "DENY"
         assert response.headers.get("X-XSS-Protection") == "1; mode=block"
+
+
+# MOCK_USER_ID matches the user returned by mock-token auth in development
+# (auth_service.MockAuthService) and the owner pattern used by
+# test_breakdown_service so _verify_project_ownership passes.
+MOCK_USER_ID = "12345678-1234-5678-1234-567812345678"
+
+
+def _make_project(db_session):
+    """Create an owned Project via the test DB session and return its id (str)."""
+    import uuid as _uuid
+    from app.models.database import Project
+
+    project_id = str(_uuid.uuid4())
+    project = Project(
+        id=project_id,
+        owner_id=MOCK_USER_ID,
+        title="Hand-Written Film",
+    )
+    db_session.add(project)
+    db_session.commit()
+    return project_id
+
+
+# A two-scene hand-written payload (mirrors the {title, content, episode_index}
+# contract the frontend splitter produces).
+TWO_SCENES = {
+    "screenplays": [
+        {
+            "episode_index": 0,
+            "title": "INT. CASTLE - NIGHT",
+            "content": "INT. CASTLE - NIGHT\n\nThe KNIGHT draws a sword.",
+        },
+        {
+            "episode_index": 1,
+            "title": "EXT. FOREST - DAY",
+            "content": "EXT. FOREST - DAY\n\nThe KNIGHT rides on.",
+        },
+    ]
+}
+
+
+class TestScreenplayWriteSave:
+    """Phase 54 — direct screenplay writing: upsert save + ScreenplayContent sync.
+
+    Covers WRITE-01/03/04 and the D-54-05 generic-non-sync design constraint.
+    """
+
+    def test_screenplay_save_upserts_when_absent(
+        self, client, db_session, mock_auth_headers
+    ):
+        """PATCH to a never-saved screenplay_editor subsection returns 200 (not 404)
+        and persists content.screenplays (D-54-01, WRITE-01/WRITE-03)."""
+        from app.models.database import PhaseData
+
+        project_id = _make_project(db_session)
+
+        # Sanity: no PhaseData exists yet.
+        assert (
+            db_session.query(PhaseData)
+            .filter(
+                PhaseData.project_id == project_id,
+                PhaseData.phase == "write",
+                PhaseData.subsection_key == "screenplay_editor",
+            )
+            .first()
+            is None
+        )
+
+        response = client.patch(
+            f"/api/phase-data/{project_id}/write/screenplay_editor",
+            json={"content": TWO_SCENES},
+            headers=mock_auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert len(body["content"]["screenplays"]) == 2
+
+        # The PhaseData row now exists with both scenes.
+        pd = (
+            db_session.query(PhaseData)
+            .filter(
+                PhaseData.project_id == project_id,
+                PhaseData.phase == "write",
+                PhaseData.subsection_key == "screenplay_editor",
+            )
+            .first()
+        )
+        assert pd is not None
+        assert len(pd.content["screenplays"]) == 2
+
+    def test_screenplay_save_creates_screenplaycontent_rows(
+        self, client, db_session, mock_auth_headers
+    ):
+        """After save, ScreenplayContent rows == #scenes and each row's
+        formatted_content carries the matching episode_index/title (WRITE-04)."""
+        from app.models.database import ScreenplayContent
+
+        project_id = _make_project(db_session)
+
+        response = client.patch(
+            f"/api/phase-data/{project_id}/write/screenplay_editor",
+            json={"content": TWO_SCENES},
+            headers=mock_auth_headers,
+        )
+        assert response.status_code == 200, response.text
+
+        rows = (
+            db_session.query(ScreenplayContent)
+            .filter(ScreenplayContent.project_id == project_id)
+            .all()
+        )
+        assert len(rows) == 2
+        by_index = {
+            (r.formatted_content or {}).get("episode_index"): r for r in rows
+        }
+        assert set(by_index.keys()) == {0, 1}
+        assert by_index[0].formatted_content["title"] == "INT. CASTLE - NIGHT"
+        assert by_index[1].formatted_content["title"] == "EXT. FOREST - DAY"
+        assert by_index[0].content == TWO_SCENES["screenplays"][0]["content"]
+
+    def test_screenplay_save_is_idempotent(
+        self, client, db_session, mock_auth_headers
+    ):
+        """Saving the SAME payload twice leaves exactly N rows, not 2N (WRITE-04)."""
+        from app.models.database import ScreenplayContent
+
+        project_id = _make_project(db_session)
+        url = f"/api/phase-data/{project_id}/write/screenplay_editor"
+
+        r1 = client.patch(url, json={"content": TWO_SCENES}, headers=mock_auth_headers)
+        assert r1.status_code == 200, r1.text
+        r2 = client.patch(url, json={"content": TWO_SCENES}, headers=mock_auth_headers)
+        assert r2.status_code == 200, r2.text
+
+        rows = (
+            db_session.query(ScreenplayContent)
+            .filter(ScreenplayContent.project_id == project_id)
+            .all()
+        )
+        assert len(rows) == 2  # not 4
+
+    def test_screenplay_save_marks_breakdown_stale(
+        self, client, db_session, mock_auth_headers
+    ):
+        """With a BreakdownElement present, breakdown_stale flips True (WRITE-04)."""
+        import uuid as _uuid
+        from app.models.database import BreakdownElement, Project
+
+        project_id = _make_project(db_session)
+
+        # Insert a non-deleted breakdown element so _mark_breakdown_stale flips it.
+        db_session.add(
+            BreakdownElement(
+                id=str(_uuid.uuid4()),
+                project_id=project_id,
+                category="prop",
+                name="Sword",
+                is_deleted=False,
+            )
+        )
+        db_session.commit()
+
+        response = client.patch(
+            f"/api/phase-data/{project_id}/write/screenplay_editor",
+            json={"content": TWO_SCENES},
+            headers=mock_auth_headers,
+        )
+        assert response.status_code == 200, response.text
+
+        db_session.expire_all()
+        project = (
+            db_session.query(Project).filter(Project.id == project_id).first()
+        )
+        assert project.breakdown_stale is True
+
+    def test_saved_screenplay_feeds_breakdown_alignment(
+        self, client, db_session, mock_auth_headers
+    ):
+        """W3: after a 2-scene manual save, _build_extraction_context returns
+        scene-aligned text covering BOTH scenes' content (WRITE-04)."""
+        from app.services.breakdown_service import breakdown_service
+
+        project_id = _make_project(db_session)
+
+        response = client.patch(
+            f"/api/phase-data/{project_id}/write/screenplay_editor",
+            json={"content": TWO_SCENES},
+            headers=mock_auth_headers,
+        )
+        assert response.status_code == 200, response.text
+
+        ctx = breakdown_service._build_extraction_context(db_session, project_id)
+        joined = "\n".join(ctx.screenplay_texts)
+        assert "The KNIGHT draws a sword." in joined
+        assert "The KNIGHT rides on." in joined
+        # Both scenes are recoverable as separate texts.
+        assert len(ctx.screenplay_texts) == 2
+
+    def test_generic_subsection_save_creates_no_screenplaycontent(
+        self, client, db_session, mock_auth_headers
+    ):
+        """PATCH to a NON-screenplay subsection creates zero ScreenplayContent
+        rows (design constraint, D-54-05)."""
+        from app.models.database import ScreenplayContent
+
+        project_id = _make_project(db_session)
+
+        # A generic subsection whose payload even carries a 'screenplays' key must
+        # NOT trigger ScreenplayContent creation (only write/screenplay_editor does).
+        response = client.patch(
+            f"/api/phase-data/{project_id}/story/some_key",
+            json={"content": {"screenplays": TWO_SCENES["screenplays"]}},
+            headers=mock_auth_headers,
+        )
+        assert response.status_code == 200, response.text
+
+        rows = (
+            db_session.query(ScreenplayContent)
+            .filter(ScreenplayContent.project_id == project_id)
+            .count()
+        )
+        assert rows == 0
