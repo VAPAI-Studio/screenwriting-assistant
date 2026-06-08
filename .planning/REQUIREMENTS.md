@@ -10,10 +10,10 @@
 
 ### Direct Writing (WRITE)
 
-- [ ] **WRITE-01**: From an empty project, the user can write a screenplay directly in the Screenplay Editor (no Script Writer Wizard prerequisite) and save it
-- [ ] **WRITE-02**: A hand-written screenplay is split into scenes by scene headings (INT./EXT. sluglines); a document with no recognizable heading saves as a single "Untitled" scene (text never lost)
-- [ ] **WRITE-03**: Saving from an empty project creates the screenplay_editor data (no 404); save→reload→edit→save round-trips without scene duplication or loss
-- [ ] **WRITE-04**: A hand-written screenplay feeds the breakdown the same as a generated one — saving (re)creates ScreenplayContent rows (idempotently, no duplicate accumulation) and marks breakdown/shotlist stale
+- [x] **WRITE-01**: From an empty project, the user can write a screenplay directly in the Screenplay Editor (no Script Writer Wizard prerequisite) and save it
+- [x] **WRITE-02**: A hand-written screenplay is split into scenes by scene headings (INT./EXT. sluglines); a document with no recognizable heading saves as a single "Untitled" scene (text never lost)
+- [x] **WRITE-03**: Saving from an empty project creates the screenplay_editor data (no 404); save→reload→edit→save round-trips without scene duplication or loss
+- [x] **WRITE-04**: A hand-written screenplay feeds the breakdown the same as a generated one — saving (re)creates ScreenplayContent rows (idempotently, no duplicate accumulation) and marks breakdown/shotlist stale
 
 ## v7.0 Requirements — Breakdown Fidelity
 

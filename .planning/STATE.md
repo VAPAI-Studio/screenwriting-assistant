@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v7.0
 milestone_name: Breakdown Fidelity
 status: completed
-stopped_at: Completed 53-01-PLAN.md
-last_updated: "2026-06-07T05:31:04.212Z"
-last_activity: 2026-06-07 — Completed 53-01-PLAN.md
+stopped_at: Completed 54-01-PLAN.md
+last_updated: "2026-06-08T02:47:29.425Z"
+last_activity: 2026-06-08 — Completed 54-01-PLAN.md
 progress:
-  total_phases: 11
-  completed_phases: 11
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 12
+  completed_phases: 12
+  total_plans: 15
+  completed_plans: 15
   percent: 100
 ---
 
@@ -25,22 +25,22 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 53-re-extraction-on-change
+Phase: 54-direct-screenplay-writing
 Plan: 01 (complete)
-Status: Phase 53 Plan 01 complete — extract loop skips _reconcile_scene_links for user_modified elements so user-owned scene links survive re-extract (REEX-02, D-53-01); full REEX-01 stale→re-extract→preserve→clear chain proven by tests (D-53-02); 71/71 breakdown+staleness tests green
-Last activity: 2026-06-07 — Completed 53-01-PLAN.md
+Status: Phase 54 Plan 01 complete — PATCH /phase-data now upserts (no 404 from empty project, D-54-01); write/screenplay_editor save idempotently reconciles ScreenplayContent rows (delete-then-recreate) with episode_index so breakdown sees hand-written scenes (D-54-05); ScreenplayEditorView empty state is writable via "Start writing" (D-54-02) + pure splitByHeadings zero-originals splitter (D-54-03); WRITE-01..04 delivered; 50/50 across the four named backend suites + frontend build green
+Last activity: 2026-06-08 — Completed 54-01-PLAN.md
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 58 (lifetime)
+- Total plans completed: 59 (lifetime)
 - Average duration: ~3min (recent)
-- Total execution time: ~2.85 hours (lifetime)
+- Total execution time: ~2.92 hours (lifetime)
 
 **Recent Trend:**
 
-- Last 5 plans: 49-02 (3min), 51-01, 52-01 (~12min), 53-01 (~3min)
+- Last 5 plans: 51-01, 52-01 (~12min), 53-01 (~3min), 54-01 (~4min)
 - Trend: Stable
 
 ## Accumulated Context
@@ -91,6 +91,8 @@ Relevant to v4.2:
 - [Phase 52]: breakdown taxonomy expanded 5→10 (set_dressing, animal, sfx, makeup_hair, extras) additively across 6 lockstep sites (enum, schema regex gate, prompt CATEGORIES + ExtractedElement desc, FE union, FE constants); category stays String(50) so NO migration and existing rows valid (CATG-02)
 - [Phase 52]: CRITICAL RULES + DEDUPLICATION prompt blocks preserved verbatim; new categories are on-screen-only with a precedence note (ridden horse → animal; set_dressing vs prop = handled/featured → prop else set_dressing); tsc exhaustiveness on Record<BreakdownCategory,...> maps is the FE build gate
 - [Phase 53]: extract loop skips _reconcile_scene_links when db_element.user_modified is True (loop guard, D-53-01) — user-owned elements' scene links are left untouched on re-extract; element_map membership preserved; non-user_modified elements STILL reconcile (Test B proves the guard is scoped to user_modified only); additive guard only, no schema change/migration/FE change (D-53-03); REEX-01 full chain (stale→re-extract→preserve→clear) proven by an integration test (D-53-02)
+- [Phase 54]: PATCH /phase-data is now a generic upsert (fetch-or-create, mirrors wizards.py) so the first save from an empty project no longer 404s (D-54-01); ScreenplayContent sync lives in a guarded branch `if phase=="write" and subsection_key=="screenplay_editor"` inside the generic PATCH (no new endpoint, no FE client change, D-54-05 option b) — delete-then-recreate scoped to project_id keeps repeated saves idempotent; formatted_content=sp preserves episode_index for v7.0 scene alignment; manual save REPLACES (wizard apply still APPENDS, unchanged); generic non-screenplay subsections never create ScreenplayContent (test-enforced)
+- [Phase 54]: splitByHeadings is the pure zero-originals splitter (INT./EXT. slugline → one scene each; no heading → one "Untitled"; empty → []); title=slugline, content=body-after-slugline with the slugline STRIPPED because buildDocument re-prepends title.toUpperCase() (would double-render otherwise, D-54-03); after first save the existing title-anchor splitToScreenplays handles round-trips stably; empty editor is writable via a "Start writing" affordance (D-54-02)
 
 ### Pending Todos
 
@@ -103,6 +105,6 @@ None.
 
 ## Session Continuity
 
-Last session: 2026-06-07T05:31:04.204Z
-Stopped at: Completed 53-01-PLAN.md
+Last session: 2026-06-08T02:47:29.418Z
+Stopped at: Completed 54-01-PLAN.md
 Resume file: None
