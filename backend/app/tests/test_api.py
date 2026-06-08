@@ -341,6 +341,56 @@ class TestScreenplayWriteSave:
         )
         assert len(rows) == 2  # not 4
 
+    def test_screenplay_save_delete_scoped_to_one_project(
+        self, client, db_session, mock_auth_headers
+    ):
+        """WR-03: the delete-then-recreate reconcile is scoped to THIS project —
+        saving project B must NOT delete project A's ScreenplayContent rows."""
+        from app.models.database import ScreenplayContent
+
+        project_a = _make_project(db_session)
+        project_b = _make_project(db_session)
+
+        client.patch(
+            f"/api/phase-data/{project_a}/write/screenplay_editor",
+            json={"content": TWO_SCENES}, headers=mock_auth_headers,
+        )
+        client.patch(
+            f"/api/phase-data/{project_b}/write/screenplay_editor",
+            json={"content": TWO_SCENES}, headers=mock_auth_headers,
+        )
+
+        a_rows = db_session.query(ScreenplayContent).filter(
+            ScreenplayContent.project_id == project_a
+        ).all()
+        b_rows = db_session.query(ScreenplayContent).filter(
+            ScreenplayContent.project_id == project_b
+        ).all()
+        assert len(a_rows) == 2  # project A survived project B's save
+        assert len(b_rows) == 2
+
+    def test_screenplay_save_empty_clears_stale_rows(
+        self, client, db_session, mock_auth_headers
+    ):
+        """WR-02: saving an explicit empty screenplays list clears the existing
+        ScreenplayContent rows (no stale drift between PhaseData and rows)."""
+        from app.models.database import ScreenplayContent
+
+        project_id = _make_project(db_session)
+        url = f"/api/phase-data/{project_id}/write/screenplay_editor"
+
+        client.patch(url, json={"content": TWO_SCENES}, headers=mock_auth_headers)
+        assert db_session.query(ScreenplayContent).filter(
+            ScreenplayContent.project_id == project_id
+        ).count() == 2
+
+        # Now save an empty screenplays list — rows must be cleared, not left stale.
+        r = client.patch(url, json={"content": {"screenplays": []}}, headers=mock_auth_headers)
+        assert r.status_code == 200, r.text
+        assert db_session.query(ScreenplayContent).filter(
+            ScreenplayContent.project_id == project_id
+        ).count() == 0
+
     def test_screenplay_save_marks_breakdown_stale(
         self, client, db_session, mock_auth_headers
     ):

@@ -60,6 +60,7 @@ function splitByHeadings(text: string): Screenplay[] {
   const scenes: Screenplay[] = [];
   let currentTitle: string | null = null;
   let currentBody: string[] = [];
+  const preamble: string[] = []; // text before the first slugline (e.g. FADE IN:, title page)
 
   const flush = () => {
     if (currentTitle === null) return;
@@ -81,15 +82,24 @@ function splitByHeadings(text: string): Screenplay[] {
       currentTitle = line.trim();
     } else if (currentTitle !== null) {
       currentBody.push(line);
+    } else {
+      // Before the first heading: keep it (WR-01 — never drop preamble like FADE IN:).
+      preamble.push(line);
     }
-    // Lines before the first heading (preamble) are intentionally dropped from
-    // scene bodies; if NO heading is ever found we fall back to "Untitled" below.
   }
   flush();
 
   if (scenes.length === 0) {
     // Non-empty text without any recognizable heading → single Untitled scene.
     return [{ episode_index: 0, title: 'Untitled', content: text.trim() }];
+  }
+
+  // Preserve any preamble before the first slugline as a leading "Untitled" scene
+  // (WR-01: otherwise FADE IN: / a title page typed before scene 1 is lost on save).
+  const preambleText = preamble.join('\n').trim();
+  if (preambleText) {
+    scenes.unshift({ episode_index: 0, title: 'Untitled', content: preambleText });
+    scenes.forEach((s, i) => (s.episode_index = i)); // re-index after unshift
   }
   return scenes;
 }

@@ -235,10 +235,14 @@ async def update_subsection_data(
     # handled by the generic phase-in-*_SENSITIVE_PHASES calls below (phase=="write"
     # is in both sets), so it is NOT duplicated here.
     if phase == "write" and subsection_key == "screenplay_editor":
-        screenplays = (update.content or {}).get("screenplays")
-        if screenplays is None:
-            screenplays = data.content.get("screenplays") or []
-        if screenplays:
+        # Reconcile ScreenplayContent ONLY when this request actually carried the
+        # screenplays key (the caller is authoritative for screenplays). If the key
+        # is present we delete-then-recreate unconditionally — including the empty
+        # case, so emptying a screenplay also clears its stale rows (WR-02). If the
+        # key is absent, leave existing rows untouched (the PATCH touched something
+        # else in screenplay_editor content).
+        if "screenplays" in (update.content or {}):
+            screenplays = update.content.get("screenplays") or []
             db.query(database.ScreenplayContent).filter(
                 database.ScreenplayContent.project_id == str(project_id)
             ).delete(synchronize_session=False)
