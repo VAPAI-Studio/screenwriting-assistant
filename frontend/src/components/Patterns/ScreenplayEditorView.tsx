@@ -34,9 +34,69 @@ function buildDocument(screenplays: Screenplay[]): string {
     .join('');
 }
 
+/**
+ * Pure heading-based splitter for the FROM-SCRATCH (zero-originals) case.
+ *
+ * Splits hand-written text into one scene per screenplay slugline (INT./EXT. …).
+ * The heading line becomes the scene `title`; `content` is the body AFTER the
+ * heading line — the slugline is STRIPPED from content because `buildDocument`
+ * re-prepends `title.toUpperCase()` on render, so keeping the slugline in content
+ * too would double-render it. Mirrors generated scenes (title rendered once,
+ * content is the body). Sequential `episode_index` 0,1,2…
+ *
+ * - No recognizable heading in non-empty text → one `{title:"Untitled", content:<all>, episode_index:0}`.
+ * - Empty/whitespace text → `[]`.
+ * - NEVER returns `[]` for non-empty text.
+ *
+ * Pure (no React/DOM deps) so it is unit-testable in isolation later.
+ */
+function splitByHeadings(text: string): Screenplay[] {
+  if (!text.trim()) return [];
+
+  // Slugline at line start (optional leading spaces): INT./EXT./INT./EXT./I/E/E/I etc.
+  const headingRe = /^\s*(INT\.?\/?EXT\.?|EXT\.?\/?INT\.?|INT\.?|EXT\.?|I\/E|E\/I)[\s.]/i;
+
+  const lines = text.split('\n');
+  const scenes: Screenplay[] = [];
+  let currentTitle: string | null = null;
+  let currentBody: string[] = [];
+
+  const flush = () => {
+    if (currentTitle === null) return;
+    // Strip a single immediately-following blank line from the body start.
+    if (currentBody.length > 0 && currentBody[0].trim() === '') {
+      currentBody = currentBody.slice(1);
+    }
+    scenes.push({
+      episode_index: scenes.length,
+      title: currentTitle.trim(),
+      content: currentBody.join('\n').replace(/\n+$/, ''),
+    });
+    currentBody = [];
+  };
+
+  for (const line of lines) {
+    if (headingRe.test(line)) {
+      flush();
+      currentTitle = line.trim();
+    } else if (currentTitle !== null) {
+      currentBody.push(line);
+    }
+    // Lines before the first heading (preamble) are intentionally dropped from
+    // scene bodies; if NO heading is ever found we fall back to "Untitled" below.
+  }
+  flush();
+
+  if (scenes.length === 0) {
+    // Non-empty text without any recognizable heading → single Untitled scene.
+    return [{ episode_index: 0, title: 'Untitled', content: text.trim() }];
+  }
+  return scenes;
+}
+
 /** Re-split edited document back into individual screenplays using original titles as anchors. */
 function splitToScreenplays(text: string, originals: Screenplay[]): Screenplay[] {
-  if (originals.length === 0) return [];
+  if (originals.length === 0) return splitByHeadings(text);
   if (originals.length === 1) {
     const o = originals[0];
     let cleaned = text;
@@ -176,13 +236,19 @@ export function ScreenplayEditorView({
   };
 
   const startEditing = () => {
-    setEditText(fullDocument);
+    // From an existing screenplay, seed the buffer with the full document; from
+    // an empty project (no scenes yet) start with a blank buffer so the writer
+    // begins from scratch (D-54-02).
+    setEditText(screenplays.length === 0 ? '' : fullDocument);
     setIsEditing(true);
     setHasChanges(false);
   };
 
-  // =========== EMPTY STATE ===========
-  if (screenplays.length === 0) {
+  // =========== WRITABLE EMPTY STATE (D-54-02) ===========
+  // When there are no scenes yet AND we are not editing, offer a "Start writing"
+  // affordance that enters edit mode with a blank buffer + slugline placeholder.
+  // Once editing begins, fall through to the main editor's edit path below.
+  if (screenplays.length === 0 && !isEditing) {
     return (
       <div className="p-8 max-w-3xl mx-auto animate-fade-in">
         <div className="mb-8">
@@ -197,9 +263,17 @@ export function ScreenplayEditorView({
         </div>
         <div className="border border-dashed border-border rounded-xl p-16 text-center">
           <FileText className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">
-            No screenplay content yet. Generate screenplays using the Script Writer Wizard first.
+          <p className="text-sm text-muted-foreground mb-5">
+            No screenplay content yet. Start writing your screenplay below — scenes
+            split automatically on INT./EXT. headings — or generate one with the
+            Script Writer Wizard.
           </p>
+          <button
+            onClick={startEditing}
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-amber-500 text-amber-950 rounded-lg hover:bg-amber-400 transition-colors"
+          >
+            <Pencil className="h-4 w-4" /> Start writing
+          </button>
         </div>
       </div>
     );
@@ -265,6 +339,7 @@ export function ScreenplayEditorView({
                   setHasChanges(true);
                 }}
                 onScroll={handleEditScroll}
+                placeholder={'INT. LOCATION - DAY\n\nAction…'}
                 spellCheck={false}
                 className="w-full bg-[hsl(240,5%,8.5%)] border border-border/30 rounded-sm shadow-2xl font-screenplay text-[13px] text-foreground/90 focus:outline-none focus:ring-1 focus:ring-amber-500/15 focus:border-amber-500/20 resize-none"
                 style={{
