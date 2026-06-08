@@ -382,6 +382,9 @@ Plans:
   3. save → reload → edit → save round-trips with no scene duplication or loss
   4. A hand-written screenplay (re)creates ScreenplayContent rows idempotently and marks breakdown/shotlist stale, so breakdown extraction works on it
 **UI hint**: yes
+**Plans:** 1 plan
+Plans:
+- [ ] 54-01-PLAN.md — Upsert PATCH + screenplay-scoped ScreenplayContent reconcile (backend), writable empty state + heading splitter (frontend), and no-404/sync/idempotence/staleness tests
 
 ## Progress
 
