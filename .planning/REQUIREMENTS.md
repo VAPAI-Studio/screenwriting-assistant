@@ -1,8 +1,19 @@
 # Requirements: Screenwriting Assistant
 
-**Defined:** 2026-03-24 (v4.2) · updated 2026-06-06 (v7.0 planned)
-**Active Milestone:** v6.0 — Script Quality (v7.0 requirements defined below, not yet active — v6.0 closes after EVAL-01 UAT)
+**Defined:** 2026-03-24 (v4.2) · updated 2026-06-07 (Phase 54 — direct screenplay writing)
+**Active Milestone:** v7.0 — Breakdown Fidelity (complete; v6.0 still open pending EVAL-01 UAT). Phase 54 is a standalone post-v7.0 enhancement.
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
+
+## Phase 54 Requirements — Direct Screenplay Writing (standalone enhancement)
+
+**Defined:** 2026-06-07 · User-requested: write a screenplay directly in the editor without first running the Script Writer Wizard. Internal tool.
+
+### Direct Writing (WRITE)
+
+- [ ] **WRITE-01**: From an empty project, the user can write a screenplay directly in the Screenplay Editor (no Script Writer Wizard prerequisite) and save it
+- [ ] **WRITE-02**: A hand-written screenplay is split into scenes by scene headings (INT./EXT. sluglines); a document with no recognizable heading saves as a single "Untitled" scene (text never lost)
+- [ ] **WRITE-03**: Saving from an empty project creates the screenplay_editor data (no 404); save→reload→edit→save round-trips without scene duplication or loss
+- [ ] **WRITE-04**: A hand-written screenplay feeds the breakdown the same as a generated one — saving (re)creates ScreenplayContent rows (idempotently, no duplicate accumulation) and marks breakdown/shotlist stale
 
 ## v7.0 Requirements — Breakdown Fidelity
 
@@ -123,17 +134,21 @@
 | CRAFT-02 | Phase 48 | Complete |
 | CRAFT-03 | Phase 48 | Complete |
 | EVAL-01 | Phase 49 | Pending |
-| BFID-01 | Phase 50 | Planned |
-| BFID-02 | Phase 50 | Planned |
-| BFID-03 | Phase 50 | Planned |
-| APPR-01 | Phase 51 | Planned |
-| APPR-02 | Phase 51 | Planned |
-| APPR-03 | Phase 51 | Planned |
+| BFID-01 | Phase 50 | Complete |
+| BFID-02 | Phase 50 | Complete |
+| BFID-03 | Phase 50 | Complete |
+| APPR-01 | Phase 51 | Complete |
+| APPR-02 | Phase 51 | Complete |
+| APPR-03 | Phase 51 | Complete |
 | CATG-01 | Phase 52 | Complete |
 | CATG-02 | Phase 52 | Complete |
 | CATG-03 | Phase 52 | Complete |
-| REEX-01 | Phase 53 | Planned |
-| REEX-02 | Phase 53 | Planned |
+| REEX-01 | Phase 53 | Complete |
+| REEX-02 | Phase 53 | Complete |
+| WRITE-01 | Phase 54 | Planned |
+| WRITE-02 | Phase 54 | Planned |
+| WRITE-03 | Phase 54 | Planned |
+| WRITE-04 | Phase 54 | Planned |
 | SHOW-01 | Phase 36 | Complete |
 | SHOW-02 | Phase 38 | Complete |
 | SHOW-03 | Phase 38 | Complete |

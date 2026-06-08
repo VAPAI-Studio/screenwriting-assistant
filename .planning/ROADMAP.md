@@ -370,6 +370,19 @@ Plans:
 Plans:
 - [x] 53-01-PLAN.md — Guard the extract loop so user_modified elements' scene links are never churned on re-extract (D-53-01), plus REEX-02 link-preservation/scoping tests and the REEX-01 full stale->re-extract->preserve->clear chain test (D-53-02); backend-only, no schema/migration (REEX-01/02)
 
+<!-- Phase 54 — standalone post-v7.0 enhancement (user-requested 2026-06-07) -->
+
+### Phase 54: Direct Screenplay Writing
+**Goal**: The user can write a screenplay directly in the Screenplay Editor from an empty project (no Script Writer Wizard prerequisite), split into scenes by INT./EXT. headings, persisted and fed into the breakdown like a generated one
+**Depends on**: existing Screenplay Editor (ScreenplayEditorView), the phase-data PATCH endpoint, and the wizard's ScreenplayContent-creation pattern
+**Requirements**: WRITE-01, WRITE-02, WRITE-03, WRITE-04
+**Success Criteria** (what must be TRUE):
+  1. From an empty project, the editor lets the user write and SAVE a screenplay (no wizard-only block, no 404 on first save)
+  2. Saved text splits into scenes by scene headings (INT./EXT.); no-heading text saves as one "Untitled" scene (text never lost)
+  3. save → reload → edit → save round-trips with no scene duplication or loss
+  4. A hand-written screenplay (re)creates ScreenplayContent rows idempotently and marks breakdown/shotlist stale, so breakdown extraction works on it
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
