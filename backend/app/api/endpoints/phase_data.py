@@ -205,14 +205,49 @@ async def update_subsection_data(
         database.PhaseData.subsection_key == subsection_key
     ).first()
 
+    # Upsert (D-54-01): fetch-or-create so the first save from an empty project
+    # does not 404. Mirrors the proven wizard pattern (wizards.py:261-269). This
+    # is generic and safe for ANY subsection -- only the merge below runs for an
+    # absent row; the screenplay-scoped reconcile further down is still gated.
     if not data:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Phase data not found")
+        data = database.PhaseData(
+            project_id=str(project_id),
+            phase=phase,
+            subsection_key=subsection_key,
+            content={},
+        )
+        db.add(data)
+        db.flush()
 
     # Merge new content into existing content
     existing = dict(data.content or {})
     existing.update(update.content)
     data.content = existing
     flag_modified(data, "content")
+
+    # Screenplay-scoped reconcile (D-54-05): only for the manual screenplay-save
+    # path. Idempotently REPLACE this project's ScreenplayContent rows from the
+    # saved screenplays (delete-then-recreate) so repeated saves never accumulate
+    # duplicates and so the breakdown extraction (which reads ScreenplayContent)
+    # sees the hand-written scenes. This is NOT applied to any other subsection --
+    # the generic PATCH must never create ScreenplayContent rows for arbitrary
+    # subsections (design constraint, covered by a test). Staleness is already
+    # handled by the generic phase-in-*_SENSITIVE_PHASES calls below (phase=="write"
+    # is in both sets), so it is NOT duplicated here.
+    if phase == "write" and subsection_key == "screenplay_editor":
+        screenplays = (update.content or {}).get("screenplays")
+        if screenplays is None:
+            screenplays = data.content.get("screenplays") or []
+        if screenplays:
+            db.query(database.ScreenplayContent).filter(
+                database.ScreenplayContent.project_id == str(project_id)
+            ).delete(synchronize_session=False)
+            for sp in screenplays:
+                db.add(database.ScreenplayContent(
+                    project_id=str(project_id),
+                    content=sp.get("content", ""),
+                    formatted_content=sp,
+                ))
 
     if phase in BREAKDOWN_SENSITIVE_PHASES:
         _mark_breakdown_stale(db, project_id)
