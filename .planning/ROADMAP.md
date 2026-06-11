@@ -11,7 +11,7 @@
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
 - ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
-- ✅ **v6.0 Script Quality** — Phases 45-49 — deepen AI script-writing output (continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval) — COMPLETE (code 2026-06-06; backend verified + side-by-side compare UAT confirmed by user 2026-06-11)
+- ✅ **v6.0 Script Quality** — Phases 45-49 (shipped 2026-06-11) — continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval. See [.planning/milestones/v6.0-ROADMAP.md](milestones/v6.0-ROADMAP.md)
 - 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
 - 📝 **v8.0 MCP Server** — expose write + breakdown capabilities as MCP tools for external agents; auth via existing API-key gateway — planned (after v6.0/v7.0)
 
@@ -111,13 +111,15 @@
 - [x] **Phase 43: API Key Management** - Users can create named API keys with optional scopes and expiry dates (completed 2026-03-27)
 - [x] **Phase 44: API Gateway, Docs & Usage Tracking** - API documentation, unified auth middleware, and per-key usage tracking (completed 2026-04-01)
 
-### v6.0 Script Quality (Planned)
+### ✅ v6.0 Script Quality (Phases 45-49) — SHIPPED 2026-06-11
 
-- [x] **Phase 45: Continuity-Aware Generation** - Scene script calls receive prior scene text + a maintained running synopsis so tone/setup/payoff hold across scenes
-- [x] **Phase 46: Format Fidelity (Native vs JSON Mode)** - Evaluate native screenplay output vs json_mode `{title, content}` wrapping; adopt the approach with better industry-standard formatting
-- [x] **Phase 47: Character Voice Injection** - Per-character voice/diction profiles injected into the script-writing prompt so dialogue is distinct and consistent per character
-- [x] **Phase 48: Screenwriting Craft Guidance** - Craft directives (subtext, action-line economy, show-don't-tell, page pacing/white space) added to the generation prompt
-- [x] **Phase 49: Side-by-Side Quality Compare** - User can regenerate a scene with the improved path and compare it against prior output to judge the improvement
+All five phases complete. Full detail archived in [.planning/milestones/v6.0-ROADMAP.md](milestones/v6.0-ROADMAP.md).
+
+- [x] Phase 45: Continuity-Aware Generation — prior scene text + running synopsis
+- [x] Phase 46: Format Fidelity — native output adopted over json_mode wrapping
+- [x] Phase 47: Character Voice Injection — voice profiles into the script prompt
+- [x] Phase 48: Screenwriting Craft Guidance — subtext/economy/show-don't-tell block
+- [x] Phase 49: Side-by-Side Quality Compare — regenerate + compare + keep (UAT confirmed)
 
 ## Phase Details
 
@@ -255,6 +257,9 @@ Plans:
 
 <!-- v6.0 Script Quality -->
 
+<details>
+<summary>✅ v6.0 Script Quality (Phases 45-49) — SHIPPED 2026-06-11 — full detail in milestones/v6.0-ROADMAP.md</summary>
+
 ### Phase 45: Continuity-Aware Generation
 **Goal**: Each scene's screenplay is generated with awareness of what was actually written before, so tone, voice, and setup/payoff stay consistent across the scene sequence
 **Depends on**: Phase 44 (current generation path baseline)
@@ -316,6 +321,8 @@ Plans:
 - [x] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
 - [x] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger — code complete (build clean); backend verified end-to-end 2026-06-11 (regenerate-scene preview confirmed working on a previously-failed scene: title+12.5K formatted content returned, no persist, no stale flip); runtime visual UAT confirmed by user 2026-06-11
 **UI hint**: yes
+
+</details>
 
 <!-- v7.0 Breakdown Fidelity (planned 2026-06-06 — execution gated on v6.0 close) -->
 

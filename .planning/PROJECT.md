@@ -119,7 +119,16 @@ Last updated: 2026-03-24
 
 ---
 
-## Current Milestone: v6.0 — Script Quality
+## Current State
+
+**Shipped:** v6.0 Script Quality (2026-06-11) and v7.0 Breakdown Fidelity (2026-06-08), plus the standalone Phase 54 (direct screenplay writing). The AI script-writing path now carries continuity (prior-scene text + running synopsis), native screenplay formatting, per-character voice profiles, and explicit craft guidance — with a side-by-side regenerate-and-compare flow for judging quality. The breakdown extraction reads full per-scene screenplay text, records per-appearance context, covers 10 element categories, and re-extracts on change while preserving user edits. Users can also write a screenplay by hand from an empty project and feed it into the breakdown.
+
+**Next:** v8.0 MCP Server — expose write + breakdown capabilities as MCP tools for external agents, authed via the existing v5.0 API-key gateway. Optionally preceded by a real-usage validation pass (run a production screenplay through write → breakdown → shotlist) and a qualitative quality check of the v6.0 improvements via the side-by-side compare.
+
+**Scope note:** Internal tool. Out of scope — industry export (.fdx/PDF), collaboration/multiplayer, AI-previz integration (separate platform, kept disconnected), public API platform, scheduling. Roadmap order: ~~v6.0 Script Quality~~ → ~~v7.0 Breakdown Fidelity~~ → **v8.0 MCP Server**.
+
+<details>
+<summary>Previous: Current Milestone v6.0 — Script Quality (now shipped)</summary>
 
 **Goal:** Make the AI genuinely good at writing screenplays — improve the craft quality of generated scenes and scripts. This is an internal tool; the only thing that matters is output quality, not new feature surface.
 
@@ -129,7 +138,7 @@ Last updated: 2026-03-24
 - Screenwriting craft guidance in prompts: subtext in dialogue, action-line economy, show-don't-tell, page pacing / white space
 - Format fidelity: evaluate native screenplay output vs. the current json_mode-wrapped `{title, content}` to ensure JSON wrapping isn't degrading formatting
 
-**Scope note:** Internal tool. Out of scope — industry export (.fdx/PDF), collaboration/multiplayer, AI-previz integration (separate platform, kept disconnected), public API platform, scheduling. Roadmap order: v6.0 Script Quality → v7.0 Breakdown Fidelity → v8.0 MCP Server.
+</details>
 
 ---
 

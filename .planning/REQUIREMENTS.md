@@ -73,7 +73,7 @@
 
 ### Quality Evaluation (EVAL)
 
-- [ ] **EVAL-01**: User can regenerate a scene's screenplay with the new (improved) generation path and compare it side-by-side against the prior output, to judge the quality improvement
+- [x] **EVAL-01**: User can regenerate a scene's screenplay with the new (improved) generation path and compare it side-by-side against the prior output, to judge the quality improvement (UAT confirmed by user 2026-06-11)
 
 ## v4.2 Requirements
 
@@ -133,7 +133,7 @@
 | CRAFT-01 | Phase 48 | Complete |
 | CRAFT-02 | Phase 48 | Complete |
 | CRAFT-03 | Phase 48 | Complete |
-| EVAL-01 | Phase 49 | Pending |
+| EVAL-01 | Phase 49 | Complete |
 | BFID-01 | Phase 50 | Complete |
 | BFID-02 | Phase 50 | Complete |
 | BFID-03 | Phase 50 | Complete |
@@ -145,10 +145,10 @@
 | CATG-03 | Phase 52 | Complete |
 | REEX-01 | Phase 53 | Complete |
 | REEX-02 | Phase 53 | Complete |
-| WRITE-01 | Phase 54 | Planned |
-| WRITE-02 | Phase 54 | Planned |
-| WRITE-03 | Phase 54 | Planned |
-| WRITE-04 | Phase 54 | Planned |
+| WRITE-01 | Phase 54 | Complete |
+| WRITE-02 | Phase 54 | Complete |
+| WRITE-03 | Phase 54 | Complete |
+| WRITE-04 | Phase 54 | Complete |
 | SHOW-01 | Phase 36 | Complete |
 | SHOW-02 | Phase 38 | Complete |
 | SHOW-03 | Phase 38 | Complete |

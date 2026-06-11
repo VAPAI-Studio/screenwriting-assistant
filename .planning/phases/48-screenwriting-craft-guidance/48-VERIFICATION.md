@@ -1,9 +1,10 @@
 ---
 phase: 48-screenwriting-craft-guidance
 verified: 2026-06-06T00:00:00Z
-status: human_needed
-score: 6/6 must-haves verified
+status: passed
+score: 6/6 must-haves verified (craft-obedience UAT confirmed via Phase 49 side-by-side compare, 2026-06-11)
 overrides_applied: 0
+uat_confirmed: 2026-06-11 — CRAFT-02/03 output obedience judged via the Phase 49 compare flow (per this milestone's audit disposition). User confirmed the compare; regenerated scene showed lean present-tense action and indirect dialogue.
 human_verification:
   - test: "Generated action lines are visual and economical (CRAFT-02 output obedience)"
     expected: "Real GPT-4 output for a scene shows present-tense, lean action lines with no internal/unfilmable description"

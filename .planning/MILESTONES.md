@@ -1,5 +1,29 @@
 # Milestones
 
+## v6.0 Script Quality (Shipped: 2026-06-11)
+
+**Phases completed:** 5 phases (45-49), 6 plans
+**Timeline:** 2026-06-06 (build) → 2026-06-11 (UAT + close)
+**Files changed:** 50 files, ~7,500 insertions
+
+**Key accomplishments:**
+
+1. Continuity-aware generation — each scene's prompt receives the verbatim text of the immediately-preceding scene plus a maintained running synopsis ("story so far"), re-summarized under a word cap; synopsis advances only on success so a failed scene cannot poison continuity (no migration — persisted into existing PhaseData.content JSON)
+2. Format fidelity — scene-writing switched to native output (json_mode=False) outright; JSON string-encoding was degrading screenplay formatting. Title parsed off a TITLE: line with scene-summary fallback. Works for both OpenAI and Anthropic
+3. Character voice injection — per-character voice/diction profiles routed into the script-writing prompt (not only scene planning); conditional block collapses to '' when absent → byte-identical empty-vs-absent contract; under-specified voices derived and carried via the continuity block
+4. Screenwriting craft guidance — an unconditional `## Screenwriting Craft` prompt block (subtext, action-line economy, show-don't-tell, white-space pacing) whose anchors avoid colliding with continuity/voice markers
+5. Side-by-side quality compare — `_generate_one_scene` is the single shared per-scene prompt source (batch loop + single-scene regenerate both delegate, can never diverge); regenerate-scene returns a preview (no write), keep-scene-version persists + marks breakdown/shotlist stale. Frontend SceneCompareModal: two-pane current-vs-regenerated with keep-current (no-op) / keep-new (persist). Backend verified end-to-end + runtime UAT confirmed by user 2026-06-11
+
+**Tech debt carried forward:**
+
+- ScreenplayContent accumulates duplicate rows per episode_index (batch-generate appends, never deletes — pre-dates v6.0); robust fix needs a schema change, deferred per D-49-03
+- Pre-existing test-suite isolation flakiness (test_yolo_integration / test_session_isolation — not a v6.0 regression)
+- Frontend `npm run lint` references a non-existent ESLint config; tsc/build is the binding type gate
+
+> Note: v6.0 (Script Quality) and v7.0 (Breakdown Fidelity) were developed in close sequence; v6.0 deepened the *script*, v7.0 the *breakdown* extracted from it. See ROADMAP.md and .planning/milestones/ for full detail.
+
+---
+
 ## v5.0 API Key Management & Gateway (Shipped: 2026-04-01)
 
 **Phases completed:** 2 phases (43-44), 4 plans

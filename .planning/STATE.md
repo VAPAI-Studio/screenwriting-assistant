@@ -98,6 +98,23 @@ Relevant to v4.2:
 
 None.
 
+## Deferred Items
+
+Items acknowledged and deferred at v6.0 milestone close on 2026-06-11:
+
+| Category | Item | Status |
+|----------|------|--------|
+| verification_gap | phase-27 (v3.1 — shipped) | human_needed (pre-existing, old milestone) |
+| verification_gap | phase-31 (v3.2 — shipped) | gaps_found (pre-existing, old milestone) |
+| verification_gap | phase-33 (v4.0 — shipped) | human_needed (pre-existing, old milestone) |
+| verification_gap | phase-34 (v4.0 — shipped) | human_needed (pre-existing, old milestone) |
+| verification_gap | phase-54 (post-v7.0 standalone) | human_needed (3 visual UAT items, not v6.0) |
+| tech_debt | ScreenplayContent duplicate-row accumulation per episode_index | deferred per D-49-03 (needs schema change) |
+| tech_debt | test-suite isolation flakiness (yolo/session tests) | pre-existing, not a v6.0 regression |
+| tech_debt | frontend npm run lint references non-existent ESLint config | tsc/build is the binding type gate |
+
+These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UAT. The phase-27/31/33/34 gaps belong to already-shipped milestones (v3.1–v4.0).
+
 ### Blockers/Concerns
 
 - None. Pre-existing TypeScript build errors in IndividualEditorView, RepeatableCardsView, SidebarChat were fixed in session following v4.2 completion.
