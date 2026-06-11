@@ -1,9 +1,10 @@
 ---
 phase: 49-side-by-side-quality-compare
 verified: 2026-06-06T00:00:00Z
-status: human_needed
-score: 3/3 success-criteria mechanisms verified (code complete; runtime UAT pending)
+status: passed
+score: 3/3 success criteria verified (code complete; backend verified end-to-end + runtime UAT confirmed by user 2026-06-11)
 overrides_applied: 0
+uat_confirmed: 2026-06-11 — user confirmed the two-pane compare renders and keep-new re-renders/persists. Backend verified end-to-end same day: regenerate-scene preview regenerated a previously-failed scene (title + 12.5K formatted content), did not persist, did not flip stale flags.
 human_verification:
   - test: "Regenerate a NON-first scene, observe the two-pane compare"
     expected: "Modal opens; LEFT pane shows the current stored scene immediately; RIGHT pane shows the generating state ('Regenerating scene…', amber spinner) then the regenerated scene (up to ~60s). Both panes render in the same Courier screenplay style."

@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 Phase: 54-direct-screenplay-writing
 Plan: 01 (complete)
 Status: Phase 54 Plan 01 complete — PATCH /phase-data now upserts (no 404 from empty project, D-54-01); write/screenplay_editor save idempotently reconciles ScreenplayContent rows (delete-then-recreate) with episode_index so breakdown sees hand-written scenes (D-54-05); ScreenplayEditorView empty state is writable via "Start writing" (D-54-02) + pure splitByHeadings zero-originals splitter (D-54-03); WRITE-01..04 delivered; 50/50 across the four named backend suites + frontend build green
-Last activity: 2026-06-08 — Completed 54-01-PLAN.md
+Last activity: 2026-06-11 — Closed milestone v6.0 (Script Quality). Phase 49 side-by-side compare UAT confirmed by user; backend verified end-to-end (regenerate-scene preview works on a previously-failed scene, no persist, no stale flip). ROADMAP/STATE progress drift reconciled (phases 45/47/48/49 marked complete). bcrypt<4.1 pin committed.
 
 ## Performance Metrics
 
@@ -97,6 +97,23 @@ Relevant to v4.2:
 ### Pending Todos
 
 None.
+
+## Deferred Items
+
+Items acknowledged and deferred at v6.0 milestone close on 2026-06-11:
+
+| Category | Item | Status |
+|----------|------|--------|
+| verification_gap | phase-27 (v3.1 — shipped) | human_needed (pre-existing, old milestone) |
+| verification_gap | phase-31 (v3.2 — shipped) | gaps_found (pre-existing, old milestone) |
+| verification_gap | phase-33 (v4.0 — shipped) | human_needed (pre-existing, old milestone) |
+| verification_gap | phase-34 (v4.0 — shipped) | human_needed (pre-existing, old milestone) |
+| verification_gap | phase-54 (post-v7.0 standalone) | human_needed (3 visual UAT items, not v6.0) |
+| tech_debt | ScreenplayContent duplicate-row accumulation per episode_index | deferred per D-49-03 (needs schema change) |
+| tech_debt | test-suite isolation flakiness (yolo/session tests) | pre-existing, not a v6.0 regression |
+| tech_debt | frontend npm run lint references non-existent ESLint config | tsc/build is the binding type gate |
+
+These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UAT. The phase-27/31/33/34 gaps belong to already-shipped milestones (v3.1–v4.0).
 
 ### Blockers/Concerns
 
