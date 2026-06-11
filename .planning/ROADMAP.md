@@ -11,7 +11,7 @@
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
 - ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
-- ✅ **v6.0 Script Quality** — Phases 45-49 — deepen AI script-writing output (continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval) — code complete 2026-06-06; backend verified; runtime visual UAT for the side-by-side compare (Phase 49) pending user sign-off
+- ✅ **v6.0 Script Quality** — Phases 45-49 — deepen AI script-writing output (continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval) — COMPLETE (code 2026-06-06; backend verified + side-by-side compare UAT confirmed by user 2026-06-11)
 - 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
 - 📝 **v8.0 MCP Server** — expose write + breakdown capabilities as MCP tools for external agents; auth via existing API-key gateway — planned (after v6.0/v7.0)
 
@@ -314,7 +314,7 @@ Plans:
   3. User can choose which version to keep, with the kept version persisting to `ScreenplayContent`
 **Plans**: 2 plans
 - [x] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
-- [x] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger — code complete (build clean); backend verified end-to-end 2026-06-11 (regenerate-scene preview confirmed working on a previously-failed scene: title+12.5K formatted content returned, no persist, no stale flip); runtime visual UAT (two-pane render + keep re-render) still PENDING USER
+- [x] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger — code complete (build clean); backend verified end-to-end 2026-06-11 (regenerate-scene preview confirmed working on a previously-failed scene: title+12.5K formatted content returned, no persist, no stale flip); runtime visual UAT confirmed by user 2026-06-11
 **UI hint**: yes
 
 <!-- v7.0 Breakdown Fidelity (planned 2026-06-06 — execution gated on v6.0 close) -->

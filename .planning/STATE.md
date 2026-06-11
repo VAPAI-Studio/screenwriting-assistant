@@ -28,7 +28,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 Phase: 54-direct-screenplay-writing
 Plan: 01 (complete)
 Status: Phase 54 Plan 01 complete — PATCH /phase-data now upserts (no 404 from empty project, D-54-01); write/screenplay_editor save idempotently reconciles ScreenplayContent rows (delete-then-recreate) with episode_index so breakdown sees hand-written scenes (D-54-05); ScreenplayEditorView empty state is writable via "Start writing" (D-54-02) + pure splitByHeadings zero-originals splitter (D-54-03); WRITE-01..04 delivered; 50/50 across the four named backend suites + frontend build green
-Last activity: 2026-06-08 — Completed 54-01-PLAN.md
+Last activity: 2026-06-11 — Closed milestone v6.0 (Script Quality). Phase 49 side-by-side compare UAT confirmed by user; backend verified end-to-end (regenerate-scene preview works on a previously-failed scene, no persist, no stale flip). ROADMAP/STATE progress drift reconciled (phases 45/47/48/49 marked complete). bcrypt<4.1 pin committed.
 
 ## Performance Metrics
 
