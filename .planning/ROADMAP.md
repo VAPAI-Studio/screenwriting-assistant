@@ -11,7 +11,7 @@
 - ✅ **v4.1 Real Authentication** — Phase 35 (shipped 2026-03-23)
 - ✅ **v4.2 TV Show Mode** — Phases 36-42 (shipped 2026-03-24)
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
-- 📝 **v6.0 Script Quality** — Phases 45-49 — deepen AI script-writing output (continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval) — in progress
+- ✅ **v6.0 Script Quality** — Phases 45-49 — deepen AI script-writing output (continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval) — code complete 2026-06-06; backend verified; runtime visual UAT for the side-by-side compare (Phase 49) pending user sign-off
 - 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
 - 📝 **v8.0 MCP Server** — expose write + breakdown capabilities as MCP tools for external agents; auth via existing API-key gateway — planned (after v6.0/v7.0)
 
@@ -113,11 +113,11 @@
 
 ### v6.0 Script Quality (Planned)
 
-- [ ] **Phase 45: Continuity-Aware Generation** - Scene script calls receive prior scene text + a maintained running synopsis so tone/setup/payoff hold across scenes
+- [x] **Phase 45: Continuity-Aware Generation** - Scene script calls receive prior scene text + a maintained running synopsis so tone/setup/payoff hold across scenes
 - [x] **Phase 46: Format Fidelity (Native vs JSON Mode)** - Evaluate native screenplay output vs json_mode `{title, content}` wrapping; adopt the approach with better industry-standard formatting
 - [x] **Phase 47: Character Voice Injection** - Per-character voice/diction profiles injected into the script-writing prompt so dialogue is distinct and consistent per character
 - [x] **Phase 48: Screenwriting Craft Guidance** - Craft directives (subtext, action-line economy, show-don't-tell, page pacing/white space) added to the generation prompt
-- [ ] **Phase 49: Side-by-Side Quality Compare** - User can regenerate a scene with the improved path and compare it against prior output to judge the improvement
+- [x] **Phase 49: Side-by-Side Quality Compare** - User can regenerate a scene with the improved path and compare it against prior output to judge the improvement
 
 ## Phase Details
 
@@ -314,7 +314,7 @@ Plans:
   3. User can choose which version to keep, with the kept version persisting to `ScreenplayContent`
 **Plans**: 2 plans
 - [x] 49-01-PLAN.md — Backend: _generate_one_scene helper + regenerate-scene (preview) & keep-scene-version (persist) endpoints + tests
-- [~] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger — AUTO tasks (1-3) complete, build clean; Task 4 manual UAT PENDING USER
+- [x] 49-02-PLAN.md — Frontend: regenerateScene/keepSceneVersion client + SceneCompareModal + per-scene trigger — code complete (build clean); backend verified end-to-end 2026-06-11 (regenerate-scene preview confirmed working on a previously-failed scene: title+12.5K formatted content returned, no persist, no stale flip); runtime visual UAT (two-pane render + keep re-render) still PENDING USER
 **UI hint**: yes
 
 <!-- v7.0 Breakdown Fidelity (planned 2026-06-06 — execution gated on v6.0 close) -->
@@ -434,8 +434,8 @@ Plans:
 | 42. Breadcrumb Navigation | v4.2 | 1/1 | Complete | 2026-03-24 |
 | 43. API Key Management | v5.0 | 2/2 | Complete | 2026-03-27 |
 | 44. API Gateway, Docs & Usage Tracking | v5.0 | 2/2 | Complete | 2026-04-01 |
-| 45. Continuity-Aware Generation | v6.0 | 0/1 | Planned | - |
+| 45. Continuity-Aware Generation | v6.0 | 1/1 | Complete | 2026-06-06 |
 | 46. Format Fidelity (Native vs JSON Mode) | v6.0 | 1/1 | Complete | 2026-06-06 |
-| 47. Character Voice Injection | v6.0 | 1/1 | Complete | 47-01 |
-| 48. Screenwriting Craft Guidance | v6.0 | 0/? | Not started | - |
-| 49. Side-by-Side Quality Compare | v6.0 | 1/2 | In progress | - |
+| 47. Character Voice Injection | v6.0 | 1/1 | Complete | 2026-06-06 |
+| 48. Screenwriting Craft Guidance | v6.0 | 1/1 | Complete | 2026-06-06 |
+| 49. Side-by-Side Quality Compare | v6.0 | 2/2 | Complete | 2026-06-06 |
