@@ -65,5 +65,13 @@ def whoami(ctx: Context) -> dict:
         }
 
 
+# Register tool groups. Imported here (after `mcp` exists) to avoid import cycles.
+from .tools import core as _core_tools  # noqa: E402
+from .tools import screenwriting as _screenwriting_tools  # noqa: E402
+
+_core_tools.register(mcp)            # generic job_status (Phase 56)
+_screenwriting_tools.register(mcp)   # screenplay_generate_scene (Phase 56); read/write added in Phase 58
+
+
 # ASGI app for main.py to mount at /mcp.
 mcp_app = mcp.streamable_http_app()
