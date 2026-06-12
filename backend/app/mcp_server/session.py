@@ -8,14 +8,27 @@ late and close it early inside each tool — never hold it across a long AI awai
 """
 
 import contextlib
+from typing import Callable, Optional
 
 from ..db import SessionLocal
+
+# Tests can install a session factory here (mirroring the get_db dependency
+# override) so MCP tools hit the test DB instead of the production SessionLocal.
+# Production never sets it.
+_session_factory_override: Optional[Callable] = None
+
+
+def set_session_factory_override(factory: Optional[Callable]) -> None:
+    """Point mcp_session() at a custom session factory (tests only)."""
+    global _session_factory_override
+    _session_factory_override = factory
 
 
 @contextlib.contextmanager
 def mcp_session():
     """Yield a SQLAlchemy session for the duration of one MCP tool call."""
-    session = SessionLocal()
+    factory = _session_factory_override or SessionLocal
+    session = factory()
     try:
         yield session
     finally:
