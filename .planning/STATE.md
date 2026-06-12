@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v7.0
-milestone_name: Breakdown Fidelity
-status: completed
-stopped_at: Completed 54-01-PLAN.md
-last_updated: "2026-06-08T02:47:29.425Z"
-last_activity: 2026-06-08 — Completed 54-01-PLAN.md
+milestone: v8.0
+milestone_name: MCP Server
+status: planning
+last_updated: "2026-06-12T02:33:29.737Z"
+last_activity: 2026-06-12
 progress:
-  total_phases: 12
-  completed_phases: 12
-  total_plans: 15
-  completed_plans: 15
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -25,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 54-direct-screenplay-writing
-Plan: 01 (complete)
-Status: Phase 54 Plan 01 complete — PATCH /phase-data now upserts (no 404 from empty project, D-54-01); write/screenplay_editor save idempotently reconciles ScreenplayContent rows (delete-then-recreate) with episode_index so breakdown sees hand-written scenes (D-54-05); ScreenplayEditorView empty state is writable via "Start writing" (D-54-02) + pure splitByHeadings zero-originals splitter (D-54-03); WRITE-01..04 delivered; 50/50 across the four named backend suites + frontend build green
-Last activity: 2026-06-11 — Closed milestone v6.0 (Script Quality). Phase 49 side-by-side compare UAT confirmed by user; backend verified end-to-end (regenerate-scene preview works on a previously-failed scene, no persist, no stale flip). ROADMAP/STATE progress drift reconciled (phases 45/47/48/49 marked complete). bcrypt<4.1 pin committed.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-12 — Milestone v8.0 started
 
 ## Performance Metrics
 

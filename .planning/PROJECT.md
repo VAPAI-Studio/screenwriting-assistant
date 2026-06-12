@@ -123,9 +123,30 @@ Last updated: 2026-03-24
 
 **Shipped:** v6.0 Script Quality (2026-06-11) and v7.0 Breakdown Fidelity (2026-06-08), plus the standalone Phase 54 (direct screenplay writing). The AI script-writing path now carries continuity (prior-scene text + running synopsis), native screenplay formatting, per-character voice profiles, and explicit craft guidance — with a side-by-side regenerate-and-compare flow for judging quality. The breakdown extraction reads full per-scene screenplay text, records per-appearance context, covers 10 element categories, and re-extracts on change while preserving user edits. Users can also write a screenplay by hand from an empty project and feed it into the breakdown.
 
-**Next:** v8.0 MCP Server — expose write + breakdown capabilities as MCP tools for external agents, authed via the existing v5.0 API-key gateway. Optionally preceded by a real-usage validation pass (run a production screenplay through write → breakdown → shotlist) and a qualitative quality check of the v6.0 improvements via the side-by-side compare.
+## Current Milestone: v8.0 — MCP Server
 
-**Scope note:** Internal tool. Out of scope — industry export (.fdx/PDF), collaboration/multiplayer, AI-previz integration (separate platform, kept disconnected), public API platform, scheduling. Roadmap order: ~~v6.0 Script Quality~~ → ~~v7.0 Breakdown Fidelity~~ → **v8.0 MCP Server**.
+**Goal:** Expose the app's core capabilities (screenwriting, breakdown, shotlist, project/show management) as MCP tools so external MCP clients can drive the whole blank-page → production-breakdown flow conversationally, authenticated via the existing v5.0 API-key gateway.
+
+**Consumers:** Claude Desktop / Claude Code (primary) and Hermes (secondary). Both are remote MCP clients → the server is HTTP-based, not local stdio.
+
+**Transport decision:** Remote **Streamable HTTP** MCP server, authenticated with v5.0 API keys (Bearer `sa_<key>`). Chosen over stdio because (a) it reuses the v5.0 API-key auth + per-key rate limiting already built, (b) Claude Desktop/Code support remote MCP servers, and (c) multiple network clients (Claude clients + Hermes) need concurrent access, which stdio's single-local-client model can't serve.
+
+**Target features:**
+- MCP server scaffold over Streamable HTTP, mounted alongside the FastAPI app, authed via the v5.0 API-key gateway (per-key identity + rate limiting carried through)
+- Screenwriting tools: read a project's screenplay, generate/regenerate scenes via the improved v6.0 path, write a screenplay directly (Phase 54 path)
+- Breakdown tools: trigger extraction, read elements by category, read per-scene appearances + context (the v7.0 fidelity output)
+- Shotlist tools: read/create/edit shots, AI-generate a shotlist
+- Project/show management tools: create/list projects, create shows/episodes, read the series bible
+- Tool discovery + schemas that a generic MCP client (Claude Desktop/Code, Hermes) can introspect and call without app-specific glue
+
+**Scope note:** Internal tool. The MCP server is an internal integration surface, not a public API platform. Out of scope — industry export (.fdx/PDF), collaboration/multiplayer, public/marketplace MCP distribution, scheduling. The previz platform connection (vapai-studio) remains out of scope for this milestone; Hermes is the named secondary consumer. Roadmap order: ~~v6.0 Script Quality~~ → ~~v7.0 Breakdown Fidelity~~ → **v8.0 MCP Server**.
+
+<details>
+<summary>Current State (as of v8.0 start — v6.0 + v7.0 + Phase 54 shipped)</summary>
+
+**Shipped:** v6.0 Script Quality (2026-06-11) and v7.0 Breakdown Fidelity (2026-06-08), plus the standalone Phase 54 (direct screenplay writing). The AI script-writing path now carries continuity (prior-scene text + running synopsis), native screenplay formatting, per-character voice profiles, and explicit craft guidance — with a side-by-side regenerate-and-compare flow for judging quality. The breakdown extraction reads full per-scene screenplay text, records per-appearance context, covers 10 element categories, and re-extracts on change while preserving user edits. Users can also write a screenplay by hand from an empty project and feed it into the breakdown.
+
+</details>
 
 <details>
 <summary>Previous: Current Milestone v6.0 — Script Quality (now shipped)</summary>
