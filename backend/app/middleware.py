@@ -15,6 +15,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
     """Log all requests and responses"""
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # v8.0: /mcp is a mounted Streamable HTTP sub-app — BaseHTTPMiddleware
+        # buffers responses with no backpressure and breaks streaming. Skip it.
+        if request.url.path.startswith("/mcp"):
+            return await call_next(request)
         # Generate request ID for tracking
         request_id = str(uuid.uuid4())
         
@@ -51,8 +55,11 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     """Add security headers to responses"""
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # v8.0: skip /mcp (mounted Streamable HTTP sub-app — no response buffering)
+        if request.url.path.startswith("/mcp"):
+            return await call_next(request)
         response = await call_next(request)
-        
+
         # Add security headers
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -77,6 +84,9 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
         self.max_size = max_size
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # v8.0: skip /mcp (mounted Streamable HTTP sub-app)
+        if request.url.path.startswith("/mcp"):
+            return await call_next(request)
         if request.headers.get("content-length"):
             content_length = int(request.headers["content-length"])
             if content_length > self.max_size:
@@ -98,6 +108,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self._lock = asyncio.Lock()
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # v8.0: skip /mcp (the MCP TokenVerifier is the single rate-limit authority there)
+        if request.url.path.startswith("/mcp"):
+            return await call_next(request)
         client_ip = request.client.host if request.client else "unknown"
         current_time = time.time()
 
@@ -148,6 +161,10 @@ class ApiKeyRateLimitMiddleware(BaseHTTPMiddleware):
         self._lock = asyncio.Lock()
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # v8.0: skip /mcp — MCP calls are rate-limited inside the MCP auth path
+        # (single authority), not double-counted by this IP/key middleware.
+        if request.url.path.startswith("/mcp"):
+            return await call_next(request)
         # Skip non-API-key requests and OPTIONS (CORS preflight)
         if request.method == "OPTIONS":
             return await call_next(request)

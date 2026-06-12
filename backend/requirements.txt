@@ -1,7 +1,10 @@
 # backend/requirements.txt
 
 fastapi==0.110.0
-uvicorn==0.27.1
+uvicorn>=0.31.1  # v8.0 MCP: floor required by mcp>=1.27.2 (was 0.27.1)
+mcp>=1.27.2,<2.0  # v8.0 MCP server SDK (official modelcontextprotocol/python-sdk)
+starlette>=0.36.3,<0.37  # v8.0 MCP: pin to FastAPI 0.110's range; blocks sse-starlette pulling starlette 1.x
+sse-starlette<2.2  # v8.0 MCP: keep within the starlette <0.37 line (no FastAPI bump needed)
 pydantic[email]>=2.10
 pydantic-settings>=2.6
 sqlalchemy==2.0.27

@@ -1,6 +1,15 @@
 import json
+import os
 import sqlite3
 import uuid
+
+# REST tests create one TestClient(app) per test; each enters the app lifespan,
+# and the MCP StreamableHTTPSessionManager.run() is single-use per instance.
+# Skip starting the MCP manager for these tests (they never touch /mcp). Must be
+# set BEFORE `from app.main import app` so main.py reads it at import time. The
+# dedicated MCP integration test (test_mcp_foundation.py) does not use these
+# fixtures and runs the real lifespan itself.
+os.environ.setdefault("SKIP_MCP_LIFESPAN", "1")
 
 import pytest
 from fastapi.testclient import TestClient
