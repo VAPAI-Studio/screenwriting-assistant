@@ -70,11 +70,13 @@ from .tools import core as _core_tools  # noqa: E402
 from .tools import screenwriting as _screenwriting_tools  # noqa: E402
 from .tools import management as _management_tools  # noqa: E402
 from .tools import breakdown as _breakdown_tools  # noqa: E402
+from .tools import shotlist as _shotlist_tools  # noqa: E402
 
 _core_tools.register(mcp)            # generic job_status (Phase 56)
 _screenwriting_tools.register(mcp)   # screenplay_generate_scene/read/write (Phase 56/58)
 _management_tools.register(mcp)      # project/show/episode tools (Phase 57)
 _breakdown_tools.register(mcp)       # breakdown_extract/read (Phase 59)
+_shotlist_tools.register(mcp)        # shotlist_read/shot_create/shotlist_generate (Phase 60)
 
 
 # ASGI app for main.py to mount at /mcp.
