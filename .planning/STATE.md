@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v8.0
 milestone_name: MCP Server
-status: planning
-last_updated: "2026-06-12T02:33:29.737Z"
+status: roadmap_complete
+last_updated: "2026-06-12T03:10:00.000Z"
 last_activity: 2026-06-12
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v6.0 Script Quality — improve craft quality of AI-generated screenplays (continuity, format fidelity, character voice, craft guidance, side-by-side eval)
+**Current focus:** v8.0 MCP Server — expose screenwriting/breakdown/shotlist/management as remote Streamable HTTP MCP tools (Claude Code/Desktop primary, Hermes secondary), authed via the v5.0 `sa_<key>` gateway. 7 phases (55-61), 21 requirements mapped 21/21.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 55 — MCP Foundation (Mount, Auth, Lifespan & Client Spike) — not started
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-12 — Milestone v8.0 started
+Status: Roadmap complete — ready to plan Phase 55
+Last activity: 2026-06-12 — v8.0 roadmap created (7 phases 55-61, 21 reqs mapped 21/21)
 
 ## Performance Metrics
 
@@ -95,7 +95,9 @@ Relevant to v4.2:
 
 ### Pending Todos
 
-None.
+- **[Phase 55 — research spike, GO/NO-GO gate]** Pin the exact MCP library + import paths (official `mcp` SDK per STACK.md vs. standalone `fastmcp` per ARCHITECTURE.md) against concrete needs: inbound `Authorization`-header access inside tools, sub-path mounting, lifespan composition, custom token verification, single resolved Starlette version. Run the static-bearer client spike across Claude Code, Claude Desktop, and Hermes BEFORE any tool work — discovering an auth/transport blocker after building 12 tools is the worst outcome. If Hermes lacks static-header support, ship v8.0 for the Claude clients and defer Hermes to v8.1 (not a blocker).
+- **[Phase 56]** Decide job-registry durability (in-memory + TTL vs. small table) and validate the `to_thread` + late-open/early-close DB-session pattern + pool sizing under 3+ concurrent generations.
+- **[All v8.0 tool phases]** Hard constraints: no delete/destructive tools; every tool owner-scoped (MCPF-04); long-running tools return job-ids (MCPJ-01); mount in-process + exempt `/mcp` from `BaseHTTPMiddleware`; wrap existing services, never reimplement.
 
 ## Deferred Items
 

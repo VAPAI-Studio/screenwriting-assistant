@@ -54,11 +54,6 @@
 
 **Defined:** 2026-06-07 · User-requested: write a screenplay directly in the editor without first running the Script Writer Wizard. Internal tool.
 
-
-## Phase 54 Requirements — Direct Screenplay Writing (standalone enhancement)
-
-**Defined:** 2026-06-07 · User-requested: write a screenplay directly in the editor without first running the Script Writer Wizard. Internal tool.
-
 ### Direct Writing (WRITE)
 
 - [x] **WRITE-01**: From an empty project, the user can write a screenplay directly in the Screenplay Editor (no Script Writer Wizard prerequisite) and save it
@@ -173,6 +168,27 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| MCPF-01 | Phase 55 | Pending |
+| MCPF-02 | Phase 55 | Pending |
+| MCPF-03 | Phase 55 | Pending |
+| MCPF-04 | Phase 55 | Pending |
+| MCPF-05 | Phase 55 | Pending |
+| MCPJ-01 | Phase 56 | Pending |
+| MCPJ-02 | Phase 56 | Pending |
+| MCPJ-03 | Phase 56 | Pending |
+| MCPP-01 | Phase 57 | Pending |
+| MCPP-02 | Phase 57 | Pending |
+| MCPP-03 | Phase 57 | Pending |
+| MCPW-01 | Phase 58 | Pending |
+| MCPW-02 | Phase 58 | Pending |
+| MCPW-03 | Phase 58 | Pending |
+| MCPB-01 | Phase 59 | Pending |
+| MCPB-02 | Phase 59 | Pending |
+| MCPS-01 | Phase 60 | Pending |
+| MCPS-02 | Phase 60 | Pending |
+| MCPS-03 | Phase 60 | Pending |
+| MCPD-01 | Phase 61 | Pending |
+| MCPD-02 | Phase 61 | Pending |
 | CONT-01 | Phase 45 | Complete |
 | CONT-02 | Phase 45 | Complete |
 | CONT-03 | Phase 45 | Complete |
@@ -215,6 +231,7 @@
 | EPIS-05 | Phase 42 | Complete |
 
 **Coverage:**
+- v8.0 requirements: 21 total (MCPF 5 / MCPJ 3 / MCPW 3 / MCPB 2 / MCPS 3 / MCPP 3 / MCPD 2) — Mapped to phases 55-61: 21/21 — Pending (roadmap defined 2026-06-12)
 - v7.0 requirements: 12 total (BFID/APPR/CATG/REEX) — Mapped to phases 50-53: 12/12 — Planned (execution gated on v6.0 close)
 - v6.0 requirements: 12 total
 - Mapped to phases: 12/12
@@ -223,4 +240,4 @@
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-06-05 after v6.0 roadmap creation*
+*Last updated: 2026-06-12 after v8.0 roadmap creation*

@@ -13,7 +13,7 @@
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
 - ✅ **v6.0 Script Quality** — Phases 45-49 (shipped 2026-06-11) — continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval. See [.planning/milestones/v6.0-ROADMAP.md](milestones/v6.0-ROADMAP.md)
 - 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
-- 📝 **v8.0 MCP Server** — expose write + breakdown capabilities as MCP tools for external agents; auth via existing API-key gateway — planned (after v6.0/v7.0)
+- 📝 **v8.0 MCP Server** — Phases 55-61 — expose screenwriting/breakdown/shotlist/management capabilities as remote Streamable HTTP MCP tools for external agents (Claude Code/Desktop primary, Hermes secondary); auth via the existing v5.0 `sa_<key>` gateway — planned (roadmap defined 2026-06-11; after v6.0/v7.0)
 
 > **Direction note (2026-06-05):** This is an **internal tool**. Roadmap focus is the quality of script-writing and breakdown only. Market features (industry export, collaboration, AI-previz, public API platform) are out of scope. The separate AI previz platform stays disconnected for now.
 
@@ -120,6 +120,18 @@ All five phases complete. Full detail archived in [.planning/milestones/v6.0-ROA
 - [x] Phase 47: Character Voice Injection — voice profiles into the script prompt
 - [x] Phase 48: Screenwriting Craft Guidance — subtext/economy/show-don't-tell block
 - [x] Phase 49: Side-by-Side Quality Compare — regenerate + compare + keep (UAT confirmed)
+
+### 📝 v8.0 MCP Server (Phases 55-61) — Planned
+
+Expose the app's core capabilities as remote Streamable HTTP MCP tools, mounted in-process on the FastAPI app, authed via the v5.0 `sa_<key>` gateway. ~12 curated tools; no destructive (delete) tools; every tool owner-scoped. Foundation (55) carries nearly all the integration risk; tool groups (57-60) are parallelizable thin adapters over existing services.
+
+- [ ] **Phase 55: MCP Foundation — Mount, Auth, Lifespan & Client Spike** — `/mcp` mounted in-process, composed lifespan, `/mcp` exempt from `BaseHTTPMiddleware`, `authenticate_token` refactored out of `get_current_user` (with `request_count` increment moved in), a `whoami`/`ping` tool, and the static-bearer client-compatibility spike (Claude Code/Desktop/Hermes) as a GO/NO-GO gate — HIGHEST STAKES; needs a scaffold-time spike to pin the exact library
+- [ ] **Phase 56: Job Registry, `job_status` & First AI-Backed Tool** — job registry + generic `job_status` poll tool + the first long-running generator wired start-fast-return-job-id, establishing the `to_thread` + late-open/early-close DB-session pattern and pool tuning
+- [ ] **Phase 57: Management Tools (project / show / episode / bible)** — the agent's session entry point: list/create/read projects (+ show/episode/bible reads), with target-id normalization (`project_id` ≡ `episode_id`)
+- [ ] **Phase 58: Screenwriting Tools** — read a screenplay, write one directly (Phase 54 path), generate a scene via the v6.0 path (job-id)
+- [ ] **Phase 59: Breakdown Tools** — trigger v7.0 extraction (job-id) and read category-scoped elements with their per-scene appearances
+- [ ] **Phase 60: Shotlist Tools** — read the shotlist, create a shot, AI-generate a shotlist (job-id)
+- [ ] **Phase 61: Discovery Polish, Error Mapping & Client-Matrix UAT** — finalize tool names/descriptions/schemas + annotations, map app errors to clean MCP tool errors, and run the full client-matrix UAT (Claude Code, Desktop, Hermes)
 
 ## Phase Details
 
@@ -393,6 +405,91 @@ Plans:
 Plans:
 - [x] 54-01-PLAN.md — Upsert PATCH + screenplay-scoped ScreenplayContent reconcile (backend), writable empty state + heading splitter (frontend), and no-404/sync/idempotence/staleness tests
 
+<!-- v8.0 MCP Server (planned 2026-06-11 — execution gated on v7.0 close) -->
+
+### Phase 55: MCP Foundation — Mount, Auth, Lifespan & Client Spike
+**Goal**: A remote Streamable HTTP MCP server is mounted in-process on the existing FastAPI app at `/mcp`, authenticated by the v5.0 `sa_<key>` gateway (per-key identity, usage accounting, and rate limiting carried through), and verified to round-trip from the real MCP clients — establishing the auth + transport foundation every tool depends on
+**Depends on**: v5.0 API-key gateway (Phases 43-44), existing `get_current_user` / middleware stack / `main.py` lifespan
+**Requirements**: MCPF-01, MCPF-02, MCPF-03, MCPF-04, MCPF-05
+**Research/spike note**: HIGHEST STAKES — this phase carries Pitfalls 1-4. **Needs a scaffold-time research spike** to (a) pin the exact MCP library and import paths — STACK.md recommends the official `mcp` SDK, ARCHITECTURE.md recommends standalone `fastmcp` — decided against concrete needs (inbound `Authorization`-header access inside tools, sub-path mounting, lifespan composition, custom token verification, a single resolved Starlette version); and (b) verify Hermes static-header support (unverified). The static-bearer client-compatibility check is a **GO/NO-GO gate for the whole milestone** — run it before any tool work.
+**Constraints to honor**: mount **in-process** (`app.mount("/mcp", ...)`), not a separate service; **exempt `/mcp` from `BaseHTTPMiddleware`** (rate-limiter/logger break streaming); compose the MCP session-manager lifespan into the app lifespan (else "Task group is not initialized"); every tool **owner-scoped** to the key's user (MCPF-04); read the inbound header fresh per call (no cached request context).
+**Success Criteria** (what must be TRUE):
+  1. A remote MCP client reaches `/mcp` over Streamable HTTP on the existing FastAPI app (no separate service/process) and completes `initialize` + tool-list
+  2. A request with a valid `Authorization: Bearer sa_<key>` is authenticated via the shared gateway (prefix + SHA-256 lookup, scopes, expiry); an invalid/expired/missing key is rejected through the MCP endpoint
+  3. An authenticated MCP call increments `request_count` / updates `last_used_at` and is subject to the per-key rate limit, exactly as REST calls are (verified via the MCP path, not just REST)
+  4. The `whoami`/`ping` tool returns the resolved authenticated user, and a tool can only see resources owned by that user (no cross-user access)
+  5. A static-header connection from Claude Code and Claude Desktop round-trips tool-list + one tool call; Hermes static-header support is verified in the same spike (if Hermes lacks static headers, v8.0 still ships for the Claude clients and Hermes is deferred to v8.1 — not a blocker)
+**Plans**: TBD
+
+### Phase 56: Job Registry, `job_status` & First AI-Backed Tool
+**Goal**: Long-running (AI) tools return a job id immediately instead of blocking past the client timeout, a single generic `job_status` tool lets the agent poll and retrieve the result, and the first AI-backed generator proves the canonical `to_thread` + late-open/early-close DB-session pattern and pool tuning under concurrency
+**Depends on**: Phase 55 (mounted, authed transport)
+**Research note**: Decide job-registry durability (in-memory + TTL vs. a small table — survive restart?) and validate the `to_thread` + pool-sizing pattern under 3+ concurrent generations (Pitfalls 5-6).
+**Constraints to honor**: long-running tools return **job-ids** (MCPJ-01); exactly **one** generic `job_status` tool (no per-generator status tools); never hold a sync DB session across the 60s+ AI `await` (load → run AI sessionless → persist); emit first byte fast; sanitize outbound script/breakdown text (first content-returning tool).
+**Success Criteria** (what must be TRUE):
+  1. A long-running tool (AI generation/extraction) returns a job identifier immediately rather than blocking the call past the client timeout
+  2. A single generic `job_status(job_id)` tool returns a job's status and, when finished, its result
+  3. Fast (non-AI) tools return their result synchronously in the same call (no job indirection)
+  4. 3+ concurrent generation calls do not exhaust the DB pool or stall each other (event loop stays responsive; the web app stays up)
+**Plans**: TBD
+
+### Phase 57: Management Tools (project / show / episode / bible)
+**Goal**: An agent can orient itself and create a target to write into — list/create/read the authenticated user's projects (plus read shows/episodes/bible) — the entry point for any MCP session
+**Depends on**: Phase 55 (auth/session), Phase 56 (envelope conventions). Parallelizable with Phases 58-60.
+**Requirements**: MCPP-01, MCPP-02, MCPP-03
+**Constraints to honor**: thin adapter over existing services (wrap, never reimplement); all tools **owner-scoped** (MCPF-04 — never trust a `project_id` arg without an ownership check); **no delete tools**; target-id normalization so `project_id` ≡ `episode_id` for downstream tools.
+**Success Criteria** (what must be TRUE):
+  1. An agent can list the authenticated user's projects via a tool (id, title, framework), scoped to that user only
+  2. An agent can create a project via a tool (title, framework) and receives the new project
+  3. An agent can read a single project's metadata via a tool (the target to write into / extract from)
+  4. No management tool can read or mutate another user's project/show
+**Plans**: TBD
+
+### Phase 58: Screenwriting Tools
+**Goal**: An agent can read a project's screenplay, write one directly (the Phase 54 hand-written path), and generate a scene via the improved v6.0 generation path — completing the write side of the blank-page flow
+**Depends on**: Phase 55 (auth/session), Phase 56 (job pattern for generation). Parallelizable with Phases 57, 59, 60.
+**Requirements**: MCPW-01, MCPW-02, MCPW-03
+**Constraints to honor**: wrap existing services (v6.0 generation path + Phase 54 write/split), never reimplement; the AI generate tool returns a **job-id** (MCPJ-01); keep hand-write and AI-generate as **distinct tools** (not a `mode:` param); owner-scoped; outbound script text sanitized.
+**Success Criteria** (what must be TRUE):
+  1. An agent can read a project's screenplay via a tool, scoped by project/episode and optionally by scene, returning the scene text
+  2. An agent can write a screenplay directly via a tool (text split into scenes, persisted, breakdown/shotlist marked stale) — the Phase 54 path
+  3. An agent can generate a screenplay scene via a tool using the v6.0 path (continuity, character voice, craft), returning a job id that `job_status` can resolve
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 59: Breakdown Tools
+**Goal**: An agent can trigger breakdown extraction (the v7.0 fidelity path) and read the resulting elements, category-scoped, with their per-scene appearances and context
+**Depends on**: Phase 55 (auth/session), Phase 56 (job pattern for extraction). Parallelizable with Phases 57, 58, 60.
+**Requirements**: MCPB-01, MCPB-02
+**Constraints to honor**: wrap the existing v7.0 `breakdown_service` (idempotent re-extract, preserve user edits), never reimplement; extraction returns a **job-id** (MCPJ-01); reads are **category-scoped/filterable** to keep results small; owner-scoped; outbound element/context text sanitized.
+**Success Criteria** (what must be TRUE):
+  1. An agent can trigger breakdown extraction for a project via a tool using the v7.0 path, returning a job id that `job_status` can resolve
+  2. An agent can read a project's breakdown elements via a tool, scoped/filterable by category, returning the elements and their per-scene appearances + context
+  3. Reading the breakdown of a project the key does not own is rejected
+**Plans**: TBD
+
+### Phase 60: Shotlist Tools
+**Goal**: An agent can read a project's shotlist, create a shot, and AI-generate a shotlist — completing the production-breakdown arc
+**Depends on**: Phase 55 (auth/session), Phase 56 (job pattern for AI generation). Parallelizable with Phases 57, 58, 59.
+**Requirements**: MCPS-01, MCPS-02, MCPS-03
+**Constraints to honor**: wrap the existing shotlist services (CRUD + AI shotlist path), never reimplement; the AI-generate tool returns a **job-id** (MCPJ-01); fast reads/creates return synchronously (MCPJ-03); **no delete tools**; owner-scoped.
+**Success Criteria** (what must be TRUE):
+  1. An agent can read a project's shotlist via a tool, with shots grouped by scene
+  2. An agent can create a shot via a tool (returned synchronously)
+  3. An agent can generate a shotlist via a tool using the AI shotlist path, returning a job id that `job_status` can resolve
+**Plans**: TBD
+
+### Phase 61: Discovery Polish, Error Mapping & Client-Matrix UAT
+**Goal**: The tool surface is introspectable by a generic MCP client without app-specific glue (clear names/descriptions/schemas, long-running tools flagged), app errors map to clean MCP tool errors instead of raw stack traces, and the complete surface is verified end-to-end across the client matrix
+**Depends on**: Phases 57, 58, 59, 60 (the full tool surface must exist to finalize discovery and run UAT)
+**Requirements**: MCPD-01, MCPD-02
+**Constraints to honor**: descriptions ARE the API for generic clients — state preconditions and which tools are long-running (job-returning); `readOnlyHint` / `idempotentHint` annotations on reads; map not-found/unauthorized/validation/generation-failure to clear MCP errors (`mcp/errors.py`); re-verify ownership-scoping and concurrent long-call behavior end-to-end.
+**Success Criteria** (what must be TRUE):
+  1. Each tool advertises a clear name, description, and input schema so Claude Code / Desktop / Hermes can introspect and call it without app-specific glue, including stating which tools are long-running (job-returning)
+  2. App errors (not found, unauthorized, validation, generation failure) are returned as clear MCP tool errors rather than raw stack traces or opaque 500s
+  3. A full client-matrix UAT (Claude Code, Desktop, Hermes) drives the blank-page → screenplay → breakdown → shotlist flow end-to-end, including a 60s+ generation that completes without client timeout and a cross-key ownership-denial check
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -446,3 +543,15 @@ Plans:
 | 47. Character Voice Injection | v6.0 | 1/1 | Complete | 2026-06-06 |
 | 48. Screenwriting Craft Guidance | v6.0 | 1/1 | Complete | 2026-06-06 |
 | 49. Side-by-Side Quality Compare | v6.0 | 2/2 | Complete | 2026-06-06 |
+| 50. Scene-Text Extraction | v7.0 | 1/1 | Complete | 2026-06-08 |
+| 51. Per-Appearance Context | v7.0 | 1/1 | Complete | 2026-06-08 |
+| 52. Expanded Categories | v7.0 | 1/1 | Complete | 2026-06-08 |
+| 53. Re-Extraction on Change | v7.0 | 1/1 | Complete | 2026-06-08 |
+| 54. Direct Screenplay Writing | (standalone) | 1/1 | Complete | 2026-06-11 |
+| 55. MCP Foundation — Mount, Auth, Lifespan & Client Spike | v8.0 | 0/? | Not started | - |
+| 56. Job Registry, job_status & First AI-Backed Tool | v8.0 | 0/? | Not started | - |
+| 57. Management Tools | v8.0 | 0/? | Not started | - |
+| 58. Screenwriting Tools | v8.0 | 0/? | Not started | - |
+| 59. Breakdown Tools | v8.0 | 0/? | Not started | - |
+| 60. Shotlist Tools | v8.0 | 0/? | Not started | - |
+| 61. Discovery Polish, Error Mapping & Client-Matrix UAT | v8.0 | 0/? | Not started | - |
