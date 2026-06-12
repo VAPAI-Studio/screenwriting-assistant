@@ -125,13 +125,13 @@ All five phases complete. Full detail archived in [.planning/milestones/v6.0-ROA
 
 Expose the app's core capabilities as remote Streamable HTTP MCP tools, mounted in-process on the FastAPI app, authed via the v5.0 `sa_<key>` gateway. ~12 curated tools; no destructive (delete) tools; every tool owner-scoped. Foundation (55) carries nearly all the integration risk; tool groups (57-60) are parallelizable thin adapters over existing services.
 
-- [ ] **Phase 55: MCP Foundation — Mount, Auth, Lifespan & Client Spike** — `/mcp` mounted in-process, composed lifespan, `/mcp` exempt from `BaseHTTPMiddleware`, `authenticate_token` refactored out of `get_current_user` (with `request_count` increment moved in), a `whoami`/`ping` tool, and the static-bearer client-compatibility spike (Claude Code/Desktop/Hermes) as a GO/NO-GO gate — HIGHEST STAKES; needs a scaffold-time spike to pin the exact library
-- [ ] **Phase 56: Job Registry, `job_status` & First AI-Backed Tool** — job registry + generic `job_status` poll tool + the first long-running generator wired start-fast-return-job-id, establishing the `to_thread` + late-open/early-close DB-session pattern and pool tuning
-- [ ] **Phase 57: Management Tools (project / show / episode / bible)** — the agent's session entry point: list/create/read projects (+ show/episode/bible reads), with target-id normalization (`project_id` ≡ `episode_id`)
-- [ ] **Phase 58: Screenwriting Tools** — read a screenplay, write one directly (Phase 54 path), generate a scene via the v6.0 path (job-id)
-- [ ] **Phase 59: Breakdown Tools** — trigger v7.0 extraction (job-id) and read category-scoped elements with their per-scene appearances
-- [ ] **Phase 60: Shotlist Tools** — read the shotlist, create a shot, AI-generate a shotlist (job-id)
-- [ ] **Phase 61: Discovery Polish, Error Mapping & Client-Matrix UAT** — finalize tool names/descriptions/schemas + annotations, map app errors to clean MCP tool errors, and run the full client-matrix UAT (Claude Code, Desktop, Hermes)
+- [x] **Phase 55: MCP Foundation — Mount, Auth, Lifespan & Client Spike** — `/mcp` mounted in-process, composed lifespan, `/mcp` exempt from `BaseHTTPMiddleware`, `authenticate_token` refactored out of `get_current_user` (with `request_count` increment moved in), a `whoami`/`ping` tool, and the static-bearer client-compatibility spike (Claude Code/Desktop/Hermes) as a GO/NO-GO gate — HIGHEST STAKES; needs a scaffold-time spike to pin the exact library
+- [x] **Phase 56: Job Registry, `job_status` & First AI-Backed Tool** — job registry + generic `job_status` poll tool + the first long-running generator wired start-fast-return-job-id, establishing the `to_thread` + late-open/early-close DB-session pattern and pool tuning
+- [x] **Phase 57: Management Tools (project / show / episode / bible)** — the agent's session entry point: list/create/read projects (+ show/episode/bible reads), with target-id normalization (`project_id` ≡ `episode_id`)
+- [x] **Phase 58: Screenwriting Tools** — read a screenplay, write one directly (Phase 54 path), generate a scene via the v6.0 path (job-id)
+- [x] **Phase 59: Breakdown Tools** — trigger v7.0 extraction (job-id) and read category-scoped elements with their per-scene appearances
+- [x] **Phase 60: Shotlist Tools** — read the shotlist, create a shot, AI-generate a shotlist (job-id)
+- [x] **Phase 61: Discovery Polish, Error Mapping & Client-Matrix UAT** — finalize tool names/descriptions/schemas + annotations, map app errors to clean MCP tool errors, and run the full client-matrix UAT (Claude Code, Desktop, Hermes)
 
 ## Phase Details
 
