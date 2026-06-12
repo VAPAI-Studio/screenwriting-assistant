@@ -43,3 +43,15 @@ The following require a human at the keyboard and are **deferred to the user** (
 
 - **DNS-rebinding protection** is OFF by default (internal, key-gated server). To enable host-allowlisting, set `MCP_DNS_REBINDING_PROTECTION=true` and configure allowed hosts.
 - In Docker, the backend host port is `8001` (mapped to container `8000`); inside the container network the app is on `8000`.
+
+## Full tool surface (v8.0, 17 tools)
+
+Once connected, these tools are available (all owner-scoped to your API key):
+
+- **Session/health:** `ping`, `whoami`, `job_status(job_id)`
+- **Projects/shows:** `project_list`, `project_get`, `project_create`, `show_list`, `show_read_bible`, `episode_list`
+- **Screenwriting:** `screenplay_read`, `screenplay_write` (direct), `screenplay_generate_scene` (AI, long-running → job_id)
+- **Breakdown:** `breakdown_read` (category-filterable), `breakdown_extract` (AI, long-running → job_id)
+- **Shotlist:** `shotlist_read`, `shot_create`, `shotlist_generate` (AI, long-running → job_id)
+
+**Long-running tools** (`*_generate_*`, `breakdown_extract`) return `{job_id}` immediately. Poll `job_status(job_id)` until `status` is `"done"`, then read `result`. There are no delete tools (deletion stays a human web-UI action).
