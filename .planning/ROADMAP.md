@@ -13,7 +13,7 @@
 - ✅ **v5.0 API Key Management & Gateway** — Phases 43-44 (shipped 2026-04-01)
 - ✅ **v6.0 Script Quality** — Phases 45-49 (shipped 2026-06-11) — continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval. See [.planning/milestones/v6.0-ROADMAP.md](milestones/v6.0-ROADMAP.md)
 - 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
-- 📝 **v8.0 MCP Server** — Phases 55-61 — expose screenwriting/breakdown/shotlist/management capabilities as remote Streamable HTTP MCP tools for external agents (Claude Code/Desktop primary, Hermes secondary); auth via the existing v5.0 `sa_<key>` gateway — planned (roadmap defined 2026-06-11; after v6.0/v7.0)
+- ✅ **v8.0 MCP Server** — Phases 55-61 (shipped 2026-06-12) — 17 MCP tools over remote Streamable HTTP, authed by the v5.0 `sa_<key>` gateway; live UAT passed (Claude Code). See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md)
 
 > **Direction note (2026-06-05):** This is an **internal tool**. Roadmap focus is the quality of script-writing and breakdown only. Market features (industry export, collaboration, AI-previz, public API platform) are out of scope. The separate AI previz platform stays disconnected for now.
 

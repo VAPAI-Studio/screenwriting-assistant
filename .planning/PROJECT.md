@@ -121,15 +121,20 @@ Last updated: 2026-03-24
 
 ## Current State
 
-**Shipped:** v6.0 Script Quality (2026-06-11) and v7.0 Breakdown Fidelity (2026-06-08), plus the standalone Phase 54 (direct screenplay writing). The AI script-writing path now carries continuity (prior-scene text + running synopsis), native screenplay formatting, per-character voice profiles, and explicit craft guidance — with a side-by-side regenerate-and-compare flow for judging quality. The breakdown extraction reads full per-scene screenplay text, records per-appearance context, covers 10 element categories, and re-extracts on change while preserving user edits. Users can also write a screenplay by hand from an empty project and feed it into the breakdown.
+**Shipped:** v6.0 Script Quality (2026-06-11), v7.0 Breakdown Fidelity (2026-06-08), the standalone Phase 54 (direct screenplay writing), and **v8.0 MCP Server (2026-06-12)**. The AI script-writing path carries continuity, native formatting, per-character voice, and craft guidance with a side-by-side compare; breakdown extraction reads full per-scene text with per-appearance context across 10 categories. All of it is now exposed as **17 MCP tools** over a remote Streamable HTTP server mounted in-process at `/mcp`, authenticated by the v5.0 `sa_<key>` gateway — verified end-to-end live from Claude Code.
 
-## Current Milestone: v8.0 — MCP Server
+**Next:** open. Candidate directions: a real-usage pass through the MCP flow (drive a production project from an agent), Hermes integration (verify static-header support; OAuth shim if needed), per-tool scope enforcement (v8.1), or a cleanup of the legacy `framework` enum bug. Start the next cycle with `/gsd:new-milestone`.
+
+<details>
+<summary>Previous: Current Milestone v8.0 — MCP Server (now shipped)</summary>
 
 **Goal:** Expose the app's core capabilities (screenwriting, breakdown, shotlist, project/show management) as MCP tools so external MCP clients can drive the whole blank-page → production-breakdown flow conversationally, authenticated via the existing v5.0 API-key gateway.
 
-**Consumers:** Claude Desktop / Claude Code (primary) and Hermes (secondary). Both are remote MCP clients → the server is HTTP-based, not local stdio.
+**Consumers:** Claude Desktop / Claude Code (primary) and Hermes (secondary). Remote MCP clients → HTTP-based, not local stdio.
 
-**Transport decision:** Remote **Streamable HTTP** MCP server, authenticated with v5.0 API keys (Bearer `sa_<key>`). Chosen over stdio because (a) it reuses the v5.0 API-key auth + per-key rate limiting already built, (b) Claude Desktop/Code support remote MCP servers, and (c) multiple network clients (Claude clients + Hermes) need concurrent access, which stdio's single-local-client model can't serve.
+**Transport:** Remote Streamable HTTP MCP server, authed with v5.0 API keys (Bearer `sa_<key>`) — reuses the v5.0 auth + per-key rate limiting, supports multiple network clients.
+
+</details>
 
 **Target features:**
 - MCP server scaffold over Streamable HTTP, mounted alongside the FastAPI app, authed via the v5.0 API-key gateway (per-key identity + rate limiting carried through)

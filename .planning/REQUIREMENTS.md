@@ -10,45 +10,45 @@
 
 ### Server Foundation (MCPF)
 
-- [ ] **MCPF-01**: A remote MCP server over Streamable HTTP is mounted in-process on the existing FastAPI app (e.g. at `/mcp`), reachable by remote MCP clients without a separate service or process
-- [ ] **MCPF-02**: The MCP server authenticates each request with the existing v5.0 API-key gateway — a `sa_<key>` static bearer in the `Authorization` header is verified (prefix + SHA-256 lookup, scopes, expiry), and an invalid/expired/missing key is rejected
-- [ ] **MCPF-03**: MCP tool calls reuse the existing per-key usage accounting and rate limiting — each authenticated call increments `request_count` / updates `last_used_at` and is subject to the per-key rate limit, exactly as REST calls are
-- [ ] **MCPF-04**: Every MCP tool is scoped to the authenticated key's user — a tool can only read or write projects/shows owned by that user (no cross-user access)
-- [ ] **MCPF-05**: Connection from Claude Code and Claude Desktop using a static `Authorization: Bearer sa_<key>` header is verified working (tool list + at least one tool call round-trips). Hermes static-header support is verified in the same spike; if Hermes does not support a static header, v8.0 still ships for the Claude clients and Hermes support is deferred to v8.1 (not a milestone blocker)
+- [x] **MCPF-01**: A remote MCP server over Streamable HTTP is mounted in-process on the existing FastAPI app (e.g. at `/mcp`), reachable by remote MCP clients without a separate service or process
+- [x] **MCPF-02**: The MCP server authenticates each request with the existing v5.0 API-key gateway — a `sa_<key>` static bearer in the `Authorization` header is verified (prefix + SHA-256 lookup, scopes, expiry), and an invalid/expired/missing key is rejected
+- [x] **MCPF-03**: MCP tool calls reuse the existing per-key usage accounting and rate limiting — each authenticated call increments `request_count` / updates `last_used_at` and is subject to the per-key rate limit, exactly as REST calls are
+- [x] **MCPF-04**: Every MCP tool is scoped to the authenticated key's user — a tool can only read or write projects/shows owned by that user (no cross-user access)
+- [x] **MCPF-05**: Connection from Claude Code and Claude Desktop using a static `Authorization: Bearer sa_<key>` header is verified working (tool list + at least one tool call round-trips). Hermes static-header support is verified in the same spike; if Hermes does not support a static header, v8.0 still ships for the Claude clients and Hermes support is deferred to v8.1 (not a milestone blocker)
 
 ### Long-Running Calls (MCPJ)
 
-- [ ] **MCPJ-01**: Long-running tools (AI scene generation, breakdown extraction, AI shotlist generation — each ~60s+) return a job identifier immediately instead of blocking the call past the client timeout
-- [ ] **MCPJ-02**: A single generic `job_status` tool lets the agent poll a job by id and retrieve its status and, when finished, its result
-- [ ] **MCPJ-03**: Fast (non-AI) tools (reads, direct writes, CRUD) return their result synchronously in the same call (no job indirection)
+- [x] **MCPJ-01**: Long-running tools (AI scene generation, breakdown extraction, AI shotlist generation — each ~60s+) return a job identifier immediately instead of blocking the call past the client timeout
+- [x] **MCPJ-02**: A single generic `job_status` tool lets the agent poll a job by id and retrieve its status and, when finished, its result
+- [x] **MCPJ-03**: Fast (non-AI) tools (reads, direct writes, CRUD) return their result synchronously in the same call (no job indirection)
 
 ### Screenwriting Tools (MCPW)
 
-- [ ] **MCPW-01**: An agent can read a project's screenplay via a tool (scoped by project/episode, optionally by scene), returning the scene text
-- [ ] **MCPW-02**: An agent can write a screenplay directly via a tool (the Phase 54 hand-written path — text split into scenes, persisted, breakdown/shotlist marked stale)
-- [ ] **MCPW-03**: An agent can generate a screenplay scene via a tool using the improved v6.0 generation path (continuity, character voice, craft), returning a job id (per MCPJ-01)
+- [x] **MCPW-01**: An agent can read a project's screenplay via a tool (scoped by project/episode, optionally by scene), returning the scene text
+- [x] **MCPW-02**: An agent can write a screenplay directly via a tool (the Phase 54 hand-written path — text split into scenes, persisted, breakdown/shotlist marked stale)
+- [x] **MCPW-03**: An agent can generate a screenplay scene via a tool using the improved v6.0 generation path (continuity, character voice, craft), returning a job id (per MCPJ-01)
 
 ### Breakdown Tools (MCPB)
 
-- [ ] **MCPB-01**: An agent can trigger breakdown extraction for a project via a tool using the v7.0 extraction path, returning a job id (per MCPJ-01)
-- [ ] **MCPB-02**: An agent can read a project's breakdown elements via a tool, scoped/filterable by category, returning the elements and their scene appearances
+- [x] **MCPB-01**: An agent can trigger breakdown extraction for a project via a tool using the v7.0 extraction path, returning a job id (per MCPJ-01)
+- [x] **MCPB-02**: An agent can read a project's breakdown elements via a tool, scoped/filterable by category, returning the elements and their scene appearances
 
 ### Shotlist Tools (MCPS)
 
-- [ ] **MCPS-01**: An agent can read a project's shotlist via a tool (shots grouped by scene)
-- [ ] **MCPS-02**: An agent can create a shot via a tool
-- [ ] **MCPS-03**: An agent can generate a shotlist via a tool using the AI shotlist path, returning a job id (per MCPJ-01)
+- [x] **MCPS-01**: An agent can read a project's shotlist via a tool (shots grouped by scene)
+- [x] **MCPS-02**: An agent can create a shot via a tool
+- [x] **MCPS-03**: An agent can generate a shotlist via a tool using the AI shotlist path, returning a job id (per MCPJ-01)
 
 ### Project Management Tools (MCPP)
 
-- [ ] **MCPP-01**: An agent can list the authenticated user's projects via a tool (id, title, framework)
-- [ ] **MCPP-02**: An agent can create a project via a tool (title, framework), returning the new project
-- [ ] **MCPP-03**: An agent can read a single project's metadata via a tool (the target to write into / extract from)
+- [x] **MCPP-01**: An agent can list the authenticated user's projects via a tool (id, title, framework)
+- [x] **MCPP-02**: An agent can create a project via a tool (title, framework), returning the new project
+- [x] **MCPP-03**: An agent can read a single project's metadata via a tool (the target to write into / extract from)
 
 ### Tool Discovery & Errors (MCPD)
 
-- [ ] **MCPD-01**: Each tool advertises a clear name, description, and input schema so a generic MCP client (Claude Code / Desktop / Hermes) can introspect and call it without app-specific glue, including stating which tools are long-running (job-returning)
-- [ ] **MCPD-02**: App errors (not found, unauthorized, validation, generation failure) are mapped to clear MCP tool errors rather than raw stack traces or opaque 500s
+- [x] **MCPD-01**: Each tool advertises a clear name, description, and input schema so a generic MCP client (Claude Code / Desktop / Hermes) can introspect and call it without app-specific glue, including stating which tools are long-running (job-returning)
+- [x] **MCPD-02**: App errors (not found, unauthorized, validation, generation failure) are mapped to clear MCP tool errors rather than raw stack traces or opaque 500s
 
 ## Phase 54 Requirements — Direct Screenplay Writing (standalone enhancement)
 
@@ -168,27 +168,27 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| MCPF-01 | Phase 55 | Pending |
-| MCPF-02 | Phase 55 | Pending |
-| MCPF-03 | Phase 55 | Pending |
-| MCPF-04 | Phase 55 | Pending |
-| MCPF-05 | Phase 55 | Pending |
-| MCPJ-01 | Phase 56 | Pending |
-| MCPJ-02 | Phase 56 | Pending |
-| MCPJ-03 | Phase 56 | Pending |
-| MCPP-01 | Phase 57 | Pending |
-| MCPP-02 | Phase 57 | Pending |
-| MCPP-03 | Phase 57 | Pending |
-| MCPW-01 | Phase 58 | Pending |
-| MCPW-02 | Phase 58 | Pending |
-| MCPW-03 | Phase 58 | Pending |
-| MCPB-01 | Phase 59 | Pending |
-| MCPB-02 | Phase 59 | Pending |
-| MCPS-01 | Phase 60 | Pending |
-| MCPS-02 | Phase 60 | Pending |
-| MCPS-03 | Phase 60 | Pending |
-| MCPD-01 | Phase 61 | Pending |
-| MCPD-02 | Phase 61 | Pending |
+| MCPF-01 | Phase 55 | Complete |
+| MCPF-02 | Phase 55 | Complete |
+| MCPF-03 | Phase 55 | Complete |
+| MCPF-04 | Phase 55 | Complete |
+| MCPF-05 | Phase 55 | Complete |
+| MCPJ-01 | Phase 56 | Complete |
+| MCPJ-02 | Phase 56 | Complete |
+| MCPJ-03 | Phase 56 | Complete |
+| MCPP-01 | Phase 57 | Complete |
+| MCPP-02 | Phase 57 | Complete |
+| MCPP-03 | Phase 57 | Complete |
+| MCPW-01 | Phase 58 | Complete |
+| MCPW-02 | Phase 58 | Complete |
+| MCPW-03 | Phase 58 | Complete |
+| MCPB-01 | Phase 59 | Complete |
+| MCPB-02 | Phase 59 | Complete |
+| MCPS-01 | Phase 60 | Complete |
+| MCPS-02 | Phase 60 | Complete |
+| MCPS-03 | Phase 60 | Complete |
+| MCPD-01 | Phase 61 | Complete |
+| MCPD-02 | Phase 61 | Complete |
 | CONT-01 | Phase 45 | Complete |
 | CONT-02 | Phase 45 | Complete |
 | CONT-03 | Phase 45 | Complete |
