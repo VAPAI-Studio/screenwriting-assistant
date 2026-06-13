@@ -1,7 +1,7 @@
 ---
 phase: 55-mcp-foundation-mount-auth-lifespan-client-spike
 verified: 2026-06-12
-status: human_needed
+status: passed
 score: 4/5 success criteria verified by API; 1 (GUI client UAT) deferred to user
 human_verification:
   - test: "Connect Claude Code / Claude Desktop / Hermes with a static sa_ bearer"

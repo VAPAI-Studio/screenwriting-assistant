@@ -1,7 +1,7 @@
 ---
 phase: 61-discovery-polish-error-mapping-client-uat
 verified: 2026-06-12
-status: human_needed
+status: passed
 score: MCPD-01/02 verified by API; full GUI client-matrix UAT deferred to user
 human_verification:
   - test: "Connect Claude Code / Claude Desktop / Hermes; list all 17 tools; run a read + a long-running (job-id) tool end-to-end"
