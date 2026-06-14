@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v8.0
-milestone_name: MCP Server
-status: shipped
-last_updated: "2026-06-13T01:19:59.005Z"
-last_activity: 2026-06-13 — v8.0 MCP Server shipped + archived + tagged
+milestone: v9.0
+milestone_name: Deploy
+status: planning
+last_updated: "2026-06-14T22:10:42.314Z"
+last_activity: 2026-06-14
 progress:
-  total_phases: 7
-  completed_phases: 7
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,10 +24,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: v8.0 complete (Phases 55-61 shipped)
+Phase: Not started (defining requirements)
 Plan: —
-Status: v8.0 MCP Server SHIPPED 2026-06-12, archived + tagged v8.0. Verified end-to-end live from Claude Code (whoami). 17 MCP tools over remote Streamable HTTP, authed by the v5.0 sa_<key> gateway. Next milestone not yet started — run /gsd:new-milestone when ready.
-Last activity: 2026-06-13 — v8.0 shipped + archived + tagged
+Status: Defining requirements
+Last activity: 2026-06-14 — Milestone v9.0 started
 
 ## Performance Metrics
 

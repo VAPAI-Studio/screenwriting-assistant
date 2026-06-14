@@ -119,11 +119,28 @@ Last updated: 2026-03-24
 
 ---
 
-## Current State
+## Current Milestone: v9.0 Deploy (Railway + Vercel + CI/CD)
+
+**Goal:** Get the app running in production — backend + Postgres on Railway, frontend on Vercel, with GitHub Actions running tests on push and deploying to prod on merge to `main`.
+
+**Target features:**
+- Production backend on Railway: FastAPI service (Dockerfile or Procfile+nixpacks), Railway Postgres with pgvector enabled, persistent volume mounted at `/media`, secrets loaded via Railway env (never in repo)
+- Frontend on Vercel: `npm run build`, `VITE_API_URL` pointed at the Railway backend domain
+- Parametrize localhost hardcodes → env vars: `ALLOWED_ORIGINS` (config.py + docker-compose), `VITE_API_URL`, and the MCP server base URL (`http://localhost:8001` in mcp_server/server.py — AuthSettings issuer/resource_server_url)
+- Database migrations applied in prod: idempotent `backend/migrations/delta/*.sql` (or `init_db` on boot)
+- GitHub Actions CI/CD: run tests on every push; deploy backend (Railway) + frontend (Vercel) on merge to `main`
+- CORS/MCP hardening for public deploy: `ALLOWED_ORIGINS` set to the Vercel domain; review MCP DNS-rebinding protection now that `/mcp` is publicly reachable
+
+**Key context:** User has Railway + Vercel (VAPAI-Studio) accounts and performs login/authorization steps when prompted. Secrets (OPENAI_API_KEY, ANTHROPIC_API_KEY, generated SECRET_KEY) loaded by the user directly into Railway. DB is a SINGLE Railway Postgres holding all data (projects, scripts, users, api_keys + pgvector RAG embeddings) — not a separate agent DB. `Procfile` and `runtime.txt` already exist; no `.github/workflows/` yet. ~399 tests pass (4 pre-existing flakes) — usable as CI gate. config.py already validates SECRET_KEY ≠ default in prod. Full decisions captured in `.planning/DEPLOY-MILESTONE-NOTES.md`. This is an internal tool — scope is "get it deployed reliably," not a public API platform.
+
+**Out of scope (carried as known debt, does not block deploy):** legacy `framework` enum bug (pre-existing, broken in Postgres app-wide); confirming dependency pins with a clean `docker compose build`; Hermes static-header verification.
+
+<details>
+<summary>Previous: Current State (v8.0 shipped) — MCP Server</summary>
 
 **Shipped:** v6.0 Script Quality (2026-06-11), v7.0 Breakdown Fidelity (2026-06-08), the standalone Phase 54 (direct screenplay writing), and **v8.0 MCP Server (2026-06-12)**. The AI script-writing path carries continuity, native formatting, per-character voice, and craft guidance with a side-by-side compare; breakdown extraction reads full per-scene text with per-appearance context across 10 categories. All of it is now exposed as **17 MCP tools** over a remote Streamable HTTP server mounted in-process at `/mcp`, authenticated by the v5.0 `sa_<key>` gateway — verified end-to-end live from Claude Code.
 
-**Next:** open. Candidate directions: a real-usage pass through the MCP flow (drive a production project from an agent), Hermes integration (verify static-header support; OAuth shim if needed), per-tool scope enforcement (v8.1), or a cleanup of the legacy `framework` enum bug. Start the next cycle with `/gsd:new-milestone`.
+</details>
 
 <details>
 <summary>Previous: Current Milestone v8.0 — MCP Server (now shipped)</summary>
