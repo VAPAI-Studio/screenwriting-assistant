@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: Deploy
-status: planning
-last_updated: "2026-06-14T22:10:42.314Z"
+status: not_started
+last_updated: "2026-06-14T22:40:00.000Z"
 last_activity: 2026-06-14
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +20,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v8.0 MCP Server — expose screenwriting/breakdown/shotlist/management as remote Streamable HTTP MCP tools (Claude Code/Desktop primary, Hermes secondary), authed via the v5.0 `sa_<key>` gateway. 7 phases (55-61), 21 requirements mapped 21/21.
+**Current focus:** v9.0 Deploy (Railway + Vercel + CI/CD) — get the app running in production: backend + Postgres (pgvector) + `/media` volume on Railway, frontend on Vercel, migrations on boot, GitHub Actions tests-on-push gate + deploy-on-merge-to-`main`, public-deploy CORS/MCP hardening + post-deploy smoke test. 5 phases (62-66), 13 requirements mapped 13/13. Internal tool — scope is "deployed reliably."
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 62 — Config Parametrization & Migrations-on-Boot (next up)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-14 — Milestone v9.0 started
+Status: Roadmap defined, not started
+Last activity: 2026-06-14 — v9.0 roadmap created (phases 62-66, 13/13 requirements mapped)
+
+**v9.0 phase order (hard dependencies):**
+1. Phase 62 — Config Parametrization & Migrations-on-Boot (prerequisite; in-repo, no account)
+2. Phase 63 — Backend + Postgres + Volume on Railway (human-in-the-loop: Railway login + secrets)
+3. Phase 64 — Frontend on Vercel (needs Railway backend domain; human-in-the-loop: Vercel login + domain)
+4. Phase 65 — CI/CD with GitHub Actions (needs both targets configured; human-in-the-loop: deploy tokens → GitHub secrets)
+5. Phase 66 — Public-Deploy Hardening & Post-Deploy Smoke Test (needs Vercel domain + pipeline)
 
 ## Performance Metrics
 
@@ -95,9 +102,12 @@ Relevant to v4.2:
 
 ### Pending Todos
 
-- **[Phase 55 — research spike, GO/NO-GO gate]** Pin the exact MCP library + import paths (official `mcp` SDK per STACK.md vs. standalone `fastmcp` per ARCHITECTURE.md) against concrete needs: inbound `Authorization`-header access inside tools, sub-path mounting, lifespan composition, custom token verification, single resolved Starlette version. Run the static-bearer client spike across Claude Code, Claude Desktop, and Hermes BEFORE any tool work — discovering an auth/transport blocker after building 12 tools is the worst outcome. If Hermes lacks static-header support, ship v8.0 for the Claude clients and defer Hermes to v8.1 (not a blocker).
-- **[Phase 56]** Decide job-registry durability (in-memory + TTL vs. small table) and validate the `to_thread` + late-open/early-close DB-session pattern + pool sizing under 3+ concurrent generations.
-- **[All v8.0 tool phases]** Hard constraints: no delete/destructive tools; every tool owner-scoped (MCPF-04); long-running tools return job-ids (MCPJ-01); mount in-process + exempt `/mcp` from `BaseHTTPMiddleware`; wrap existing services, never reimplement.
+- **[Phase 62 — prerequisite]** Parametrize all three localhost hardcodes via env: `ALLOWED_ORIGINS` (config.py + docker-compose), `VITE_API_URL` (frontend — already reads `import.meta.env.VITE_API_URL || '/api'`), MCP base URL (`http://localhost:8001` AuthSettings issuer/resource_server_url in mcp_server/server.py). Wire `init_db`-on-boot to apply the idempotent `backend/migrations/delta/*.sql` (user chose this over a CI release step). Local `docker compose up` must still work with localhost defaults.
+- **[Phase 63 — human-in-the-loop]** User logs in to Railway (VAPAI-Studio) and enters secrets (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, generated `SECRET_KEY`) into Railway env — never the repo. Single Railway Postgres holds ALL data + pgvector RAG embeddings (not a separate agent DB); enable the `pgvector` extension; mount a PERSISTENT volume at `/media` so uploads survive redeploys. `Procfile`/`runtime.txt` already exist; serve on `$PORT`.
+- **[Phase 64 — human-in-the-loop]** User logs in to Vercel (VAPAI-Studio), confirms the deployed domain, and `VITE_API_URL` is set to the Railway backend domain. Watch the pre-existing TypeScript build concerns noted in earlier milestones.
+- **[Phase 65 — human-in-the-loop]** No `.github/workflows/` exists yet. User generates Railway/Vercel deploy tokens and enters them as GitHub repo secrets. Test gate runs ~399 tests; tolerate the 4 documented pre-existing flakes (don't let them block the pipeline). Deploy on merge to `main` = prod.
+- **[Phase 66]** Lock `ALLOWED_ORIGINS` to the Vercel domain in prod; review `/mcp` DNS-rebinding protection (was off locally) now that `/mcp` is public; smoke test (`/health` + frontend loads) gates deploy success.
+- **[Out of scope this milestone — known debt, do NOT add phases]** legacy `framework` Postgres enum bug; clean-`docker compose build` dependency-pin confirmation; Hermes static-header verification.
 
 ## Deferred Items
 

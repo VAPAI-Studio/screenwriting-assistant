@@ -208,6 +208,19 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| DCFG-01 | Phase 62 | Pending |
+| DCFG-02 | Phase 62 | Pending |
+| DMIG-01 | Phase 62 | Pending |
+| DBKD-01 | Phase 63 | Pending |
+| DBKD-02 | Phase 63 | Pending |
+| DBKD-03 | Phase 63 | Pending |
+| DBKD-04 | Phase 63 | Pending |
+| DFND-01 | Phase 64 | Pending |
+| DFND-02 | Phase 64 | Pending |
+| DCICD-01 | Phase 65 | Pending |
+| DCICD-02 | Phase 65 | Pending |
+| DSEC-01 | Phase 66 | Pending |
+| DVER-01 | Phase 66 | Pending |
 | MCPF-01 | Phase 55 | Complete |
 | MCPF-02 | Phase 55 | Complete |
 | MCPF-03 | Phase 55 | Complete |
@@ -271,6 +284,7 @@
 | EPIS-05 | Phase 42 | Complete |
 
 **Coverage:**
+- v9.0 requirements: 13 total (DBKD 4 / DFND 2 / DCFG 2 / DMIG 1 / DCICD 2 / DSEC 1 / DVER 1) — Mapped to phases 62-66: 13/13 — Pending (roadmap defined 2026-06-14)
 - v8.0 requirements: 21 total (MCPF 5 / MCPJ 3 / MCPW 3 / MCPB 2 / MCPS 3 / MCPP 3 / MCPD 2) — Mapped to phases 55-61: 21/21 — Pending (roadmap defined 2026-06-12)
 - v7.0 requirements: 12 total (BFID/APPR/CATG/REEX) — Mapped to phases 50-53: 12/12 — Planned (execution gated on v6.0 close)
 - v6.0 requirements: 12 total

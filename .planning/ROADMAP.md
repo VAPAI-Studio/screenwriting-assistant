@@ -14,6 +14,7 @@
 - ✅ **v6.0 Script Quality** — Phases 45-49 (shipped 2026-06-11) — continuity-aware generation, format fidelity, character voice, screenwriting craft, side-by-side eval. See [.planning/milestones/v6.0-ROADMAP.md](milestones/v6.0-ROADMAP.md)
 - 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
 - ✅ **v8.0 MCP Server** — Phases 55-61 (shipped 2026-06-12) — 17 MCP tools over remote Streamable HTTP, authed by the v5.0 `sa_<key>` gateway; live UAT passed (Claude Code). See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md)
+- 📝 **v9.0 Deploy (Railway + Vercel + CI/CD)** — Phases 62-66 — get the app running in production: backend + Postgres (pgvector) + `/media` volume on Railway, frontend on Vercel, migrations on boot, GitHub Actions tests-on-push + deploy-on-merge-to-`main`, public-deploy CORS/MCP hardening + post-deploy smoke test. Internal tool — scope is "deployed reliably." — planned (requirements + roadmap defined 2026-06-14)
 
 > **Direction note (2026-06-05):** This is an **internal tool**. Roadmap focus is the quality of script-writing and breakdown only. Market features (industry export, collaboration, AI-previz, public API platform) are out of scope. The separate AI previz platform stays disconnected for now.
 
@@ -132,6 +133,16 @@ Expose the app's core capabilities as remote Streamable HTTP MCP tools, mounted 
 - [x] **Phase 59: Breakdown Tools** — trigger v7.0 extraction (job-id) and read category-scoped elements with their per-scene appearances
 - [x] **Phase 60: Shotlist Tools** — read the shotlist, create a shot, AI-generate a shotlist (job-id)
 - [x] **Phase 61: Discovery Polish, Error Mapping & Client-Matrix UAT** — finalize tool names/descriptions/schemas + annotations, map app errors to clean MCP tool errors, and run the full client-matrix UAT (Claude Code, Desktop, Hermes)
+
+### 📝 v9.0 Deploy (Railway + Vercel + CI/CD) (Phases 62-66) — Planned
+
+Get the app running in production. Config-parametrization first (prerequisite for everything), then backend + Postgres (pgvector) + `/media` volume on Railway with migrations applied via `init_db` on boot, then the Vercel frontend wired to the Railway backend domain, then GitHub Actions CI/CD (tests-on-push gate + deploy-on-merge-to-`main`), then public-deploy hardening + a post-deploy smoke test. Several steps are human-in-the-loop: the user logs in to Railway/Vercel (VAPAI-Studio), enters secrets directly into Railway (never the repo), and confirms domains. Internal tool — single Railway Postgres holds ALL data (projects, scripts, users, api_keys + pgvector RAG embeddings). Out of scope (known debt, not deploy blockers): legacy `framework` enum bug, clean-`docker compose build` dependency-pin confirmation, Hermes static-header verification.
+
+- [ ] **Phase 62: Config Parametrization & Migrations-on-Boot** — env-parametrize the three localhost hardcodes (`ALLOWED_ORIGINS` in config.py + docker-compose, `VITE_API_URL`, MCP base URL in mcp_server/server.py) and make `init_db` apply the idempotent `delta/*.sql` migrations on boot — the prerequisite that unblocks every later phase; no external account needed
+- [ ] **Phase 63: Backend + Postgres + Volume on Railway** — FastAPI service built reproducibly on Railway serving `$PORT`, a Railway Postgres with `pgvector` enabled and `DATABASE_URL` auto-wired, a persistent volume mounted at `/media`, and secrets (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SECRET_KEY`) loaded by the user into Railway env — human-in-the-loop (user login + secret entry)
+- [ ] **Phase 64: Frontend on Vercel** — the Vite/React frontend builds (`npm run build`) and deploys on Vercel with `VITE_API_URL` pointed at the Railway backend domain (no hardcoded localhost) — depends on the backend domain existing; human-in-the-loop (user login + domain confirmation)
+- [ ] **Phase 65: CI/CD with GitHub Actions** — a workflow runs the backend test suite on every push as a gate (~399 tests, 4 pre-existing flakes tolerated) and, on merge to `main`, deploys the backend to Railway and the frontend to Vercel — depends on both deploy targets being configured; human-in-the-loop (deploy tokens/secrets entered into GitHub)
+- [ ] **Phase 66: Public-Deploy Hardening & Post-Deploy Smoke Test** — lock CORS to the Vercel domain via `ALLOWED_ORIGINS`, review the now-public `/mcp` DNS-rebinding protection for a public host, and run a post-deploy smoke test (backend `/health` responds at the Railway domain + the deployed frontend loads) before a deploy is considered successful
 
 ## Phase Details
 
@@ -490,6 +501,65 @@ Plans:
   3. A full client-matrix UAT (Claude Code, Desktop, Hermes) drives the blank-page → screenplay → breakdown → shotlist flow end-to-end, including a 60s+ generation that completes without client timeout and a cross-key ownership-denial check
 **Plans**: TBD
 
+### Phase 62: Config Parametrization & Migrations-on-Boot
+**Goal**: Every production-environment-specific value is supplied via env vars (no hardcoded localhost), and a fresh or upgraded Postgres reaches the current schema automatically on boot — the prerequisite groundwork that lets every later phase target a real host
+**Depends on**: Nothing (first phase of v9.0; runs entirely in-repo, no external account)
+**Requirements**: DCFG-01, DCFG-02, DMIG-01
+**Constraints to honor**: parametrize all three known localhost hardcodes — `ALLOWED_ORIGINS` (config.py + docker-compose), `VITE_API_URL` (frontend, already reads `import.meta.env.VITE_API_URL || '/api'`), and the MCP base URL (`http://localhost:8001` AuthSettings issuer/resource_server_url in mcp_server/server.py); migrations apply via `init_db` on boot (user's chosen approach over a CI release step) and MUST stay idempotent against the existing `backend/migrations/delta/*.sql`; local `docker compose up` must still work with sensible defaults.
+**Success Criteria** (what must be TRUE):
+  1. `ALLOWED_ORIGINS` is read from the environment in config.py (and docker-compose), defaulting to localhost for local dev, with no hardcoded prod origin in the repo
+  2. The MCP server's issuer / resource_server_url is read from an env var instead of the hardcoded `http://localhost:8001`
+  3. Starting the backend against an empty Postgres runs all `delta/*.sql` via `init_db` and reaches the current schema with no manual step; starting it again is a no-op (idempotent)
+  4. The frontend build consumes `VITE_API_URL` with `/api` as the local-dev fallback (no hardcoded backend host)
+**Plans**: TBD
+
+### Phase 63: Backend + Postgres + Volume on Railway
+**Goal**: The FastAPI backend runs live on Railway against a Railway Postgres with pgvector and a persistent `/media` volume, with all secrets supplied through Railway env
+**Depends on**: Phase 62 (env parametrization + migrations-on-boot must exist so the service boots cleanly against a fresh Railway Postgres)
+**Requirements**: DBKD-01, DBKD-02, DBKD-03, DBKD-04
+**Constraints to honor**: single Railway Postgres holds ALL data (projects, scripts, users, api_keys + pgvector RAG embeddings) — not a separate agent DB; `pgvector` extension must be enabled (tables concepts/book_chunks/agent_books need it); the `/media` volume must be persistent so uploads survive redeploys (StaticFiles mount is at `/media`); build reproducibly via the existing `Procfile` (+ nixpacks) or a production Dockerfile, serving on Railway's injected `$PORT`; secrets (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SECRET_KEY`) are entered by the user into Railway env and never committed — config.py already rejects the default `SECRET_KEY` in prod. **Human-in-the-loop**: user performs Railway login/authorization and enters the secrets.
+**Success Criteria** (what must be TRUE):
+  1. The backend `/health` endpoint responds successfully at the Railway-assigned domain
+  2. The app connects to the Railway Postgres via the auto-injected `DATABASE_URL`, with the `pgvector` extension enabled (vector-backed tables function)
+  3. A file uploaded via the media endpoint survives a backend redeploy (the `/media` volume is persistent, not ephemeral)
+  4. The backend runs with secrets sourced from Railway env (no secret in the repo) and boots without the default-`SECRET_KEY` prod guard firing
+**Plans**: TBD
+
+### Phase 64: Frontend on Vercel
+**Goal**: The frontend is live on Vercel and talks to the production Railway backend
+**Depends on**: Phase 63 (the Railway backend domain must exist to point `VITE_API_URL` at it)
+**Requirements**: DFND-01, DFND-02
+**Constraints to honor**: build with `npm run build` (`tsc && vite build`) — there are pre-existing TypeScript build concerns noted in earlier milestones; `VITE_API_URL` is set in Vercel to the Railway backend domain (no hardcoded localhost), consuming the Phase 62 parametrization; CORS on the backend will be locked to this Vercel domain in Phase 66. **Human-in-the-loop**: user performs Vercel (VAPAI-Studio) login/authorization and confirms the deployed domain.
+**Success Criteria** (what must be TRUE):
+  1. The frontend builds on Vercel via `npm run build` and serves at a Vercel domain
+  2. The deployed frontend issues API calls to the Railway backend domain (via `VITE_API_URL`), not to localhost
+  3. A user can load the app in the browser and complete an end-to-end action (e.g. list/open a project) against the production backend
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 65: CI/CD with GitHub Actions
+**Goal**: Pushes are gated by the test suite and merges to `main` deploy both targets automatically
+**Depends on**: Phase 63 and Phase 64 (both deploy targets must be configured before the deploy workflow can target them)
+**Requirements**: DCICD-01, DCICD-02
+**Constraints to honor**: no `.github/workflows/` exists yet — this phase creates them; the test job runs the backend suite (~399 tests) as a gate, tolerating the 4 documented pre-existing flakes (do not let known flakes block the pipeline); deploy fires on merge to `main` = prod (backend → Railway, frontend → Vercel); deploy credentials (Railway/Vercel tokens) are stored as GitHub secrets, never in the repo. **Human-in-the-loop**: user generates and enters the Railway/Vercel deploy tokens into GitHub repo secrets.
+**Success Criteria** (what must be TRUE):
+  1. A push to any branch triggers a GitHub Actions run of the backend test suite, and a failing test (beyond the tolerated flakes) fails the run
+  2. A merge to `main` triggers an automatic deploy of the backend to Railway
+  3. A merge to `main` triggers an automatic deploy of the frontend to Vercel
+  4. Deploy credentials live in GitHub secrets, with none committed to the repo
+**Plans**: TBD
+
+### Phase 66: Public-Deploy Hardening & Post-Deploy Smoke Test
+**Goal**: The public deploy is locked down for a public host and a smoke test proves prod is actually live before a deploy counts as successful
+**Depends on**: Phase 64 (the Vercel domain must exist to lock CORS to it) and Phase 65 (the deploy pipeline the smoke test gates)
+**Requirements**: DSEC-01, DVER-01
+**Constraints to honor**: `ALLOWED_ORIGINS` set to the Vercel frontend domain in prod (consuming Phase 62 parametrization); `/mcp` is now publicly reachable — review and set DNS-rebinding protection appropriately for a public host (it was off for local) and confirm CORS posture for the public MCP surface; the post-deploy smoke test (backend `/health` + frontend loads) must run as the success gate of a deploy, not a manual afterthought.
+**Success Criteria** (what must be TRUE):
+  1. In production, cross-origin requests from the Vercel domain are allowed and requests from other origins are rejected (CORS locked via `ALLOWED_ORIGINS`)
+  2. The now-public `/mcp` endpoint's DNS-rebinding protection has been reviewed and set appropriately for a public host
+  3. A post-deploy smoke test confirms the backend `/health` responds at the Railway domain AND the deployed frontend loads, and this check gates deploy success
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -555,3 +625,8 @@ Plans:
 | 59. Breakdown Tools | v8.0 | 0/? | Not started | - |
 | 60. Shotlist Tools | v8.0 | 0/? | Not started | - |
 | 61. Discovery Polish, Error Mapping & Client-Matrix UAT | v8.0 | 0/? | Not started | - |
+| 62. Config Parametrization & Migrations-on-Boot | v9.0 | 0/? | Not started | - |
+| 63. Backend + Postgres + Volume on Railway | v9.0 | 0/? | Not started | - |
+| 64. Frontend on Vercel | v9.0 | 0/? | Not started | - |
+| 65. CI/CD with GitHub Actions | v9.0 | 0/? | Not started | - |
+| 66. Public-Deploy Hardening & Post-Deploy Smoke Test | v9.0 | 0/? | Not started | - |
