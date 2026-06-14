@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: Deploy
-status: phase_complete
-stopped_at: Phase 62 complete (verification passed)
-last_updated: "2026-06-14T23:30:00.000Z"
-last_activity: 2026-06-14 -- Phase 62 complete (verification passed 4/4)
+status: awaiting_manual_deploy_steps
+stopped_at: Phases 62 complete; 63-66 repo-side done, manual deploy steps pending
+last_updated: "2026-06-15T00:15:00.000Z"
+last_activity: 2026-06-14 -- Phases 63-66 repo-work done autonomously; manual checklist written
 progress:
   total_phases: 31
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 3
+  total_plans: 6
+  completed_plans: 6
+  percent: 5
 ---
 
 # Project State
@@ -21,14 +21,22 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 62 — config-parametrization-migrations-on-boot
+**Current focus:** v9.0 Deploy — repo-work complete for all 5 phases; awaiting manual deploy steps
 
 ## Current Position
 
-Phase: 62 (config-parametrization-migrations-on-boot) — COMPLETE (verification passed 4/4)
-Plan: 2 of 2 complete
-Status: Phase 62 done; next up Phase 63 (Backend + Postgres + Volume on Railway)
-Last activity: 2026-06-14 -- Phase 62 complete (verification passed)
+Phase: 62 COMPLETE (verified 4/4). Phases 63-66 REPO-SIDE COMPLETE (committed); each
+has a manual human-in-the-loop remainder (Railway/Vercel logins, secrets, prod env).
+Plan: all repo-work committed (62-01/02, 63-01, 64-01, 65-01, 66-01)
+Status: ⏸ Awaiting manual deploy steps → see .planning/DEPLOY-MANUAL-CHECKLIST.md
+Last activity: 2026-06-14 -- Phases 63-66 repo-work done autonomously (yolo)
+
+**What's left is NOT code** — it's account actions only:
+- Railway login + Postgres(pgvector) + volume + secrets (Phase 63)
+- Vercel login + VITE_API_URL + domain (Phase 64)
+- GitHub deploy-token secrets (Phase 65)
+- Prod ALLOWED_ORIGINS + smoke-URL secrets (Phase 66)
+Full ordered checklist: .planning/DEPLOY-MANUAL-CHECKLIST.md
 
 **v9.0 phase order (hard dependencies):**
 
