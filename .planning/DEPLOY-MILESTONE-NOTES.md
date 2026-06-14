@@ -8,7 +8,7 @@ Capturado al final de una sesión larga (contexto ~73%); arrancar fresco con /cl
 - **Secrets:** tiene OPENAI_API_KEY, ANTHROPIC_API_KEY a mano; genera SECRET_KEY. Los carga él en Railway (nunca en el repo).
 - **Media/uploads:** VOLUMEN PERSISTENTE de Railway montado en /media (no efímero).
 - **CI/CD trigger:** push a `main` = deploy a prod (backend Railway + frontend Vercel). Simple/directo.
-- **DB:** PENDIENTE DE CONFIRMAR — aclarado que es UNA sola Postgres con TODA la data (proyectos, guiones, usuarios, api_keys + embeddings de agentes/RAG con pgvector), no una base separada de agentes. Recomendación: Railway Postgres (un proveedor, latencia mínima, DATABASE_URL automática). Alternativa: Supabase (mejor panel, ya lo usa en otros proyectos, pero latencia backend↔db y un proveedor más). → CONFIRMAR ESTO PRIMERO en la próxima sesión.
+- **DB:** ✅ CONFIRMADO **Railway Postgres** (un proveedor, latencia mínima, DATABASE_URL automática; habilitar extensión pgvector). Es UNA sola Postgres con TODA la data (proyectos, guiones, usuarios, api_keys + embeddings RAG con pgvector), no una base separada de agentes. [resto del análisis original abajo]
 
 ## Hechos técnicos del repo (ya verificados)
 - Backend: FastAPI, `Procfile` ya existe (`web: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`), `runtime.txt` presente.
