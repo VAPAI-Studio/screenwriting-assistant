@@ -28,8 +28,9 @@ USER appuser
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Expose port
+# Expose port (documentation only — Railway injects $PORT at runtime)
 EXPOSE 8000
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application. Shell-form CMD so ${PORT} expands at runtime:
+# Railway injects $PORT; locally it falls back to 8000.
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
