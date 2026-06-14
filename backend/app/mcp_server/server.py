@@ -14,9 +14,9 @@ from .auth import ApiKeyTokenVerifier, require_user
 from .session import mcp_session
 
 # Base URL is metadata only — static-bearer verification lives entirely in the
-# TokenVerifier; no OAuth server is created. Localhost default is fine for an
-# internal tool reached at http://localhost:8001/mcp.
-_BASE_URL = "http://localhost:8001"
+# TokenVerifier; no OAuth server is created. Sourced from settings.MCP_BASE_URL
+# (localhost default) so prod can point it at the public host without weakening
+# auth.
 
 # DNS-rebinding protection validates the inbound Host header. This is an
 # internal, API-key-gated server reached over a trusted network, so the host
@@ -32,8 +32,8 @@ mcp = FastMCP(
     "screenwriting-assistant",
     token_verifier=ApiKeyTokenVerifier(),
     auth=AuthSettings(
-        issuer_url=_BASE_URL,
-        resource_server_url=_BASE_URL,
+        issuer_url=settings.MCP_BASE_URL,
+        resource_server_url=settings.MCP_BASE_URL,
     ),
     # The app mounts this at /mcp, so the server's own path must be "/" to avoid
     # an effective /mcp/mcp.

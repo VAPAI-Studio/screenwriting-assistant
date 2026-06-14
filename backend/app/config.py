@@ -71,6 +71,12 @@ class Settings(BaseSettings):
     # Server
     PORT: int = 8000
 
+    # MCP server base URL — metadata only (issuer/resource_server_url in
+    # AuthSettings). Static-bearer auth lives in the TokenVerifier and is
+    # unaffected by this value. Localhost default keeps local docker compose
+    # behavior unchanged; set MCP_BASE_URL to the public host in prod.
+    MCP_BASE_URL: str = "http://localhost:8001"
+
     # Google Cloud (Imagen AI image generation)
     GOOGLE_CLOUD_PROJECT: str = ""
     IMAGEN_MODEL: str = "imagen-3.0-generate-001"
