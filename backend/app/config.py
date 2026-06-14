@@ -77,6 +77,13 @@ class Settings(BaseSettings):
     # behavior unchanged; set MCP_BASE_URL to the public host in prod.
     MCP_BASE_URL: str = "http://localhost:8001"
 
+    # MCP DNS-rebinding protection. Validates the inbound Host header for the
+    # /mcp endpoint. Disabled by default because the server is API-key-gated and
+    # enabling it requires enumerating every allowed client Host. On a public
+    # host you may set MCP_DNS_REBINDING_PROTECTION=true to harden the now-public
+    # surface — auth (TokenVerifier) is the primary defense either way.
+    MCP_DNS_REBINDING_PROTECTION: bool = False
+
     # Google Cloud (Imagen AI image generation)
     GOOGLE_CLOUD_PROJECT: str = ""
     IMAGEN_MODEL: str = "imagen-3.0-generate-001"

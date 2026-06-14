@@ -66,3 +66,17 @@ jobs:
           vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           vercel build --prod --token="$VERCEL_TOKEN"
           vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+
+  smoke-test:
+    name: Post-deploy smoke test
+    # Runs only after BOTH deploys succeed — this is the deploy success gate
+    # (DVER-01): a deploy is not "successful" until prod is proven live.
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Smoke test (backend /health + frontend loads)
+        env:
+          BACKEND_URL: ${{ secrets.PROD_BACKEND_URL }}
+          FRONTEND_URL: ${{ secrets.PROD_FRONTEND_URL }}
+        run: bash scripts/smoke_test.sh

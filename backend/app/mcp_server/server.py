@@ -19,11 +19,11 @@ from .session import mcp_session
 # auth.
 
 # DNS-rebinding protection validates the inbound Host header. This is an
-# internal, API-key-gated server reached over a trusted network, so the host
-# allowlist is disabled by default (otherwise every client host — localhost,
-# Hermes, test harnesses — would need enumerating). Auth is still enforced by
-# the TokenVerifier. Set MCP_DNS_REBINDING_PROTECTION=true to re-enable.
-_dns_protect = str(getattr(settings, "MCP_DNS_REBINDING_PROTECTION", "false")).lower() == "true"
+# API-key-gated server, so the host allowlist is disabled by default (otherwise
+# every client host — localhost, Hermes, test harnesses — would need
+# enumerating). Auth is still enforced by the TokenVerifier. On a public host
+# set MCP_DNS_REBINDING_PROTECTION=true to harden the now-public surface.
+_dns_protect = settings.MCP_DNS_REBINDING_PROTECTION
 _transport_security = TransportSecuritySettings(
     enable_dns_rebinding_protection=_dns_protect,
 )
