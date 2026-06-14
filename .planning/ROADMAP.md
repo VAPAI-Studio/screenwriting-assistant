@@ -512,8 +512,8 @@ Plans:
   3. Starting the backend against an empty Postgres runs all `delta/*.sql` via `init_db` and reaches the current schema with no manual step; starting it again is a no-op (idempotent)
   4. The frontend build consumes `VITE_API_URL` with `/api` as the local-dev fallback (no hardcoded backend host)
 **Plans**: 2 plans
-- [ ] 62-01-PLAN.md — Parametrize MCP base URL via Settings (DCFG-02); verify+document ALLOWED_ORIGINS & VITE_API_URL env-readability (DCFG-01)
-- [ ] 62-02-PLAN.md — Migrations-on-boot: fresh-DB init_db.sql step 0 + advisory lock + fail-hard delta loop + tests (DMIG-01)
+- [x] 62-01-PLAN.md — Parametrize MCP base URL via Settings (DCFG-02); verify+document ALLOWED_ORIGINS & VITE_API_URL env-readability (DCFG-01)
+- [x] 62-02-PLAN.md — Migrations-on-boot: fresh-DB init_db.sql step 0 + advisory lock + fail-hard delta loop + tests (DMIG-01)
 
 ### Phase 63: Backend + Postgres + Volume on Railway
 **Goal**: The FastAPI backend runs live on Railway against a Railway Postgres with pgvector and a persistent `/media` volume, with all secrets supplied through Railway env
@@ -627,7 +627,7 @@ Plans:
 | 59. Breakdown Tools | v8.0 | 0/? | Not started | - |
 | 60. Shotlist Tools | v8.0 | 0/? | Not started | - |
 | 61. Discovery Polish, Error Mapping & Client-Matrix UAT | v8.0 | 0/? | Not started | - |
-| 62. Config Parametrization & Migrations-on-Boot | v9.0 | 0/? | Not started | - |
+| 62. Config Parametrization & Migrations-on-Boot | v9.0 | 2/2 | Complete   | 2026-06-14 |
 | 63. Backend + Postgres + Volume on Railway | v9.0 | 0/? | Not started | - |
 | 64. Frontend on Vercel | v9.0 | 0/? | Not started | - |
 | 65. CI/CD with GitHub Actions | v9.0 | 0/? | Not started | - |
