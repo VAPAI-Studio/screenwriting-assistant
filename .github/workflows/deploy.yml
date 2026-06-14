@@ -1,0 +1,68 @@
+name: Deploy
+
+# Deploy to production on merge to main. Backend → Railway, frontend → Vercel.
+# Both deploy jobs require the test gate to pass first. All credentials come
+# from GitHub repo secrets — none are committed.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # Re-run the test gate as a hard prerequisite for deploying.
+  test:
+    name: Test gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Run tests
+        env:
+          ENVIRONMENT: development
+          SECRET_KEY: ci-test-secret-not-used-in-prod
+        run: pytest -q --reruns 2 --reruns-delay 1
+
+  deploy-backend:
+    name: Deploy backend to Railway
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        # RAILWAY_TOKEN is a project token (Settings → Tokens) stored as a repo
+        # secret. --service targets the backend service by name.
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service "${{ secrets.RAILWAY_SERVICE_NAME }}" --ci
+
+  deploy-frontend:
+    name: Deploy frontend to Vercel
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+      - name: Pull Vercel env, build, and deploy (prod)
+        # VERCEL_TOKEN / ORG_ID / PROJECT_ID are repo secrets. Root Directory
+        # for the Vercel project is set to `frontend` in the Vercel dashboard.
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          vercel build --prod --token="$VERCEL_TOKEN"
+          vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
