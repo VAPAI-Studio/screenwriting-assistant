@@ -1,8 +1,48 @@
 # Requirements: Screenwriting Assistant
 
-**Defined:** 2026-03-24 (v4.2) · updated 2026-06-11 (v8.0 — MCP Server)
-**Active Milestone:** v8.0 — MCP Server (v6.0 and v7.0 shipped; Phase 54 shipped).
+**Defined:** 2026-03-24 (v4.2) · updated 2026-06-14 (v9.0 — Deploy)
+**Active Milestone:** v9.0 — Deploy (Railway + Vercel + CI/CD). v8.0 MCP Server shipped.
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
+
+## v9.0 Requirements — Deploy (Railway + Vercel + CI/CD)
+
+**Defined:** 2026-06-14 · Get the app running in production: backend + Postgres on Railway, frontend on Vercel, with GitHub Actions running tests on push and deploying to prod on merge to `main`. Internal tool — scope is "deployed reliably," not a public API platform. Full decisions in `.planning/DEPLOY-MILESTONE-NOTES.md`.
+
+### Backend on Railway (DBKD)
+
+- [ ] **DBKD-01**: The FastAPI backend runs as a Railway service built reproducibly (production Dockerfile or Procfile + nixpacks), serving on Railway's injected `$PORT`
+- [ ] **DBKD-02**: A Railway Postgres instance with the `pgvector` extension enabled backs the app, with `DATABASE_URL` wired automatically into the backend service
+- [ ] **DBKD-03**: A Railway persistent volume is mounted at `/media` so uploaded images/audio survive restarts and redeploys (not ephemeral)
+- [ ] **DBKD-04**: Application secrets (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SECRET_KEY`) are supplied via Railway environment variables and never committed to the repo
+
+### Frontend on Vercel (DFND)
+
+- [ ] **DFND-01**: The Vite/React frontend builds (`npm run build`) and deploys on Vercel
+- [ ] **DFND-02**: The deployed frontend reaches the backend via `VITE_API_URL` pointed at the Railway backend domain (no hardcoded localhost)
+
+### Configuration parametrization (DCFG)
+
+- [ ] **DCFG-01**: `ALLOWED_ORIGINS` is configurable via environment (config.py + docker-compose) instead of hardcoded localhost, and is set to the Vercel frontend domain in prod
+- [ ] **DCFG-02**: The MCP server base URL (AuthSettings issuer / resource_server_url, currently `http://localhost:8001` in mcp_server/server.py) is parametrized via environment for the public deploy
+
+### Production migrations (DMIG)
+
+- [ ] **DMIG-01**: The idempotent `backend/migrations/delta/*.sql` migrations are applied automatically in production via `init_db` on boot, so a fresh or upgraded Railway Postgres reaches the current schema without manual steps
+
+### CI/CD with GitHub Actions (DCICD)
+
+- [ ] **DCICD-01**: A GitHub Actions workflow runs the backend test suite on every push, acting as a gate (the ~399 passing tests; 4 pre-existing flakes tolerated)
+- [ ] **DCICD-02**: On merge to `main`, GitHub Actions deploys the backend to Railway and the frontend to Vercel automatically
+
+### Public-deploy hardening (DSEC)
+
+- [ ] **DSEC-01**: CORS is locked to the Vercel frontend domain in production via `ALLOWED_ORIGINS`, and the now-public `/mcp` endpoint's DNS-rebinding protection is reviewed and set appropriately for a public host
+
+### Post-deploy verification (DVER)
+
+- [ ] **DVER-01**: A post-deploy smoke test confirms production is live — the backend `/health` endpoint responds and the deployed frontend loads — before a deploy is considered successful
+
+---
 
 ## v8.0 Requirements — MCP Server
 
