@@ -1,5 +1,30 @@
 # Milestones
 
+## v8.0 MCP Server (Shipped: 2026-06-12)
+
+**Phases completed:** 7 phases (55-61), 14 commits
+**Timeline:** 2026-06-11 → 2026-06-12
+
+**Key accomplishments:**
+
+1. Remote Streamable HTTP MCP server mounted in-process at `/mcp` on the existing FastAPI app — no separate service; authenticated by the existing v5.0 `sa_<key>` API-key gateway (static bearer, no OAuth) via a shared `authenticate_token` core that carries the per-key usage accounting; `/mcp` exempted from the BaseHTTPMiddleware stack; MCP session-manager lifespan composed into the app lifespan
+2. 17 owner-scoped MCP tools across screenwriting, breakdown, shotlist, and project/show management — wrapping existing v6.0/v7.0/Phase-54 services without reimplementing them; no delete tools
+3. In-memory job registry + generic `job_status` poll tool for long-running AI tools (scene generation, breakdown extraction, shotlist generation) — return a job-id immediately, run sessionless, poll to completion; 5 concurrent jobs run in parallel
+4. Direct screenplay write tool (`screenplay_write`) with a server-side port of the Phase 54 INT./EXT. heading splitter; idempotent ScreenplayContent reconcile so breakdown extraction sees hand-written scenes
+5. Clean tool discovery (all 17 tools introspect with descriptions + schemas) and error mapping (app errors → MCP tool errors, not opaque 500s)
+6. **Verified end-to-end live from Claude Code** — connected over real HTTP with a static `sa_<key>` bearer, listed 17 tools, `whoami` returned the key owner
+
+**Tech debt / flagged for review:**
+- Legacy `framework` Postgres enum broken app-wide (uppercase ORM names vs lowercase PG labels) — worked around in MCP; worth a schema fix
+- Dependency pinning (starlette/sse-starlette) to avoid a FastAPI bump — confirm with a clean `docker compose build`
+- In-memory job registry is per-worker (single uvicorn worker assumed)
+- `/mcp` needs a backend restart to activate if the process started before the v8.0 code
+- Hermes static-header support unverified (defers to v8.1 if unsupported)
+
+> Full detail in `.planning/milestones/v8.0-ROADMAP.md`; decision log in `.planning/v8.0-AUTONOMOUS-DECISIONS.md`.
+
+---
+
 ## v6.0 Script Quality (Shipped: 2026-06-11)
 
 **Phases completed:** 5 phases (45-49), 6 plans

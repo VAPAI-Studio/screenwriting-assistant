@@ -27,6 +27,8 @@ from .middleware import (
 )
 from .api_docs import custom_openapi
 from .db import init_db
+from .mcp_server.server import mcp as mcp_server, mcp_app
+import contextlib
 import logging
 
 # Configure logging
@@ -35,12 +37,46 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 
+
+# Test harnesses create one TestClient(app) per test, each entering the app
+# lifespan. The MCP StreamableHTTPSessionManager.run() can only be entered once
+# per instance, so plain REST tests (which never touch /mcp) set this flag to
+# skip starting the MCP manager. Production never sets it. The dedicated MCP
+# integration test enters the real lifespan once itself.
+SKIP_MCP_LIFESPAN = os.environ.get("SKIP_MCP_LIFESPAN") == "1"
+
+
+@contextlib.asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Composed app lifespan.
+
+    The MCP Streamable HTTP session manager MUST run for the whole app lifetime
+    or tool calls fail with 'Task group is not initialized'. We compose the
+    mounted MCP sub-app's OWN lifespan (which calls session_manager.run()) rather
+    than calling run() ourselves — this keeps the running manager bound to the
+    exact ASGI app we mounted. init_db() (formerly an @app.on_event startup
+    handler) runs inside the same context so startup order is preserved.
+    """
+    if SKIP_MCP_LIFESPAN:
+        logging.info("Starting Screenwriter Assistant API (MCP manager skipped)...")
+        init_db()
+        yield
+        return
+    async with mcp_app.router.lifespan_context(mcp_app):
+        logging.info("Starting Screenwriter Assistant API...")
+        init_db()
+        logging.info("Database initialized successfully")
+        yield
+        logging.info("Shutting down Screenwriter Assistant API...")
+
+
 app = FastAPI(
     title="Screenwriter Assistant API",
     description="MVP API for screenwriting tool",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Custom OpenAPI schema
@@ -119,17 +155,9 @@ app.mount("/media", StaticFiles(directory=settings.MEDIA_DIR), name="media")
 async def health_check():
     return {"status": "healthy"}
 
-@app.on_event("startup")
-async def startup_event():
-    """Run on application startup"""
-    logging.info("Starting Screenwriter Assistant API...")
-    # Initialize database
-    init_db()
-    logging.info("Database initialized successfully")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Run on application shutdown"""
-    logging.info("Shutting down Screenwriter Assistant API...")
-    # Add any cleanup tasks here
+# Mount the MCP server in-process over Streamable HTTP (v8.0). Auth is handled
+# by the MCP TokenVerifier (reusing the v5.0 sa_<key> gateway); /mcp is exempt
+# from the BaseHTTPMiddleware stack (see middleware.py) because those middlewares
+# buffer responses and break streaming.
+app.mount("/mcp", mcp_app)
 

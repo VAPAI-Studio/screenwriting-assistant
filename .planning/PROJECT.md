@@ -121,11 +121,37 @@ Last updated: 2026-03-24
 
 ## Current State
 
+**Shipped:** v6.0 Script Quality (2026-06-11), v7.0 Breakdown Fidelity (2026-06-08), the standalone Phase 54 (direct screenplay writing), and **v8.0 MCP Server (2026-06-12)**. The AI script-writing path carries continuity, native formatting, per-character voice, and craft guidance with a side-by-side compare; breakdown extraction reads full per-scene text with per-appearance context across 10 categories. All of it is now exposed as **17 MCP tools** over a remote Streamable HTTP server mounted in-process at `/mcp`, authenticated by the v5.0 `sa_<key>` gateway — verified end-to-end live from Claude Code.
+
+**Next:** open. Candidate directions: a real-usage pass through the MCP flow (drive a production project from an agent), Hermes integration (verify static-header support; OAuth shim if needed), per-tool scope enforcement (v8.1), or a cleanup of the legacy `framework` enum bug. Start the next cycle with `/gsd:new-milestone`.
+
+<details>
+<summary>Previous: Current Milestone v8.0 — MCP Server (now shipped)</summary>
+
+**Goal:** Expose the app's core capabilities (screenwriting, breakdown, shotlist, project/show management) as MCP tools so external MCP clients can drive the whole blank-page → production-breakdown flow conversationally, authenticated via the existing v5.0 API-key gateway.
+
+**Consumers:** Claude Desktop / Claude Code (primary) and Hermes (secondary). Remote MCP clients → HTTP-based, not local stdio.
+
+**Transport:** Remote Streamable HTTP MCP server, authed with v5.0 API keys (Bearer `sa_<key>`) — reuses the v5.0 auth + per-key rate limiting, supports multiple network clients.
+
+</details>
+
+**Target features:**
+- MCP server scaffold over Streamable HTTP, mounted alongside the FastAPI app, authed via the v5.0 API-key gateway (per-key identity + rate limiting carried through)
+- Screenwriting tools: read a project's screenplay, generate/regenerate scenes via the improved v6.0 path, write a screenplay directly (Phase 54 path)
+- Breakdown tools: trigger extraction, read elements by category, read per-scene appearances + context (the v7.0 fidelity output)
+- Shotlist tools: read/create/edit shots, AI-generate a shotlist
+- Project/show management tools: create/list projects, create shows/episodes, read the series bible
+- Tool discovery + schemas that a generic MCP client (Claude Desktop/Code, Hermes) can introspect and call without app-specific glue
+
+**Scope note:** Internal tool. The MCP server is an internal integration surface, not a public API platform. Out of scope — industry export (.fdx/PDF), collaboration/multiplayer, public/marketplace MCP distribution, scheduling. The previz platform connection (vapai-studio) remains out of scope for this milestone; Hermes is the named secondary consumer. Roadmap order: ~~v6.0 Script Quality~~ → ~~v7.0 Breakdown Fidelity~~ → **v8.0 MCP Server**.
+
+<details>
+<summary>Current State (as of v8.0 start — v6.0 + v7.0 + Phase 54 shipped)</summary>
+
 **Shipped:** v6.0 Script Quality (2026-06-11) and v7.0 Breakdown Fidelity (2026-06-08), plus the standalone Phase 54 (direct screenplay writing). The AI script-writing path now carries continuity (prior-scene text + running synopsis), native screenplay formatting, per-character voice profiles, and explicit craft guidance — with a side-by-side regenerate-and-compare flow for judging quality. The breakdown extraction reads full per-scene screenplay text, records per-appearance context, covers 10 element categories, and re-extracts on change while preserving user edits. Users can also write a screenplay by hand from an empty project and feed it into the breakdown.
 
-**Next:** v8.0 MCP Server — expose write + breakdown capabilities as MCP tools for external agents, authed via the existing v5.0 API-key gateway. Optionally preceded by a real-usage validation pass (run a production screenplay through write → breakdown → shotlist) and a qualitative quality check of the v6.0 improvements via the side-by-side compare.
-
-**Scope note:** Internal tool. Out of scope — industry export (.fdx/PDF), collaboration/multiplayer, AI-previz integration (separate platform, kept disconnected), public API platform, scheduling. Roadmap order: ~~v6.0 Script Quality~~ → ~~v7.0 Breakdown Fidelity~~ → **v8.0 MCP Server**.
+</details>
 
 <details>
 <summary>Previous: Current Milestone v6.0 — Script Quality (now shipped)</summary>

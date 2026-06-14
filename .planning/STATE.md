@@ -1,16 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v7.0
-milestone_name: Breakdown Fidelity
-status: completed
-stopped_at: Completed 54-01-PLAN.md
-last_updated: "2026-06-08T02:47:29.425Z"
-last_activity: 2026-06-08 — Completed 54-01-PLAN.md
+milestone: v8.0
+milestone_name: MCP Server
+status: shipped
+last_updated: "2026-06-13T01:19:59.005Z"
+last_activity: 2026-06-13 — v8.0 MCP Server shipped + archived + tagged
 progress:
-  total_phases: 12
-  completed_phases: 12
-  total_plans: 15
-  completed_plans: 15
+  total_phases: 7
+  completed_phases: 7
+  total_plans: 7
+  completed_plans: 7
   percent: 100
 ---
 
@@ -21,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v6.0 Script Quality — improve craft quality of AI-generated screenplays (continuity, format fidelity, character voice, craft guidance, side-by-side eval)
+**Current focus:** v8.0 MCP Server — expose screenwriting/breakdown/shotlist/management as remote Streamable HTTP MCP tools (Claude Code/Desktop primary, Hermes secondary), authed via the v5.0 `sa_<key>` gateway. 7 phases (55-61), 21 requirements mapped 21/21.
 
 ## Current Position
 
-Phase: 54-direct-screenplay-writing
-Plan: 01 (complete)
-Status: Phase 54 Plan 01 complete — PATCH /phase-data now upserts (no 404 from empty project, D-54-01); write/screenplay_editor save idempotently reconciles ScreenplayContent rows (delete-then-recreate) with episode_index so breakdown sees hand-written scenes (D-54-05); ScreenplayEditorView empty state is writable via "Start writing" (D-54-02) + pure splitByHeadings zero-originals splitter (D-54-03); WRITE-01..04 delivered; 50/50 across the four named backend suites + frontend build green
-Last activity: 2026-06-11 — Closed milestone v6.0 (Script Quality). Phase 49 side-by-side compare UAT confirmed by user; backend verified end-to-end (regenerate-scene preview works on a previously-failed scene, no persist, no stale flip). ROADMAP/STATE progress drift reconciled (phases 45/47/48/49 marked complete). bcrypt<4.1 pin committed.
+Phase: v8.0 complete (Phases 55-61 shipped)
+Plan: —
+Status: v8.0 MCP Server SHIPPED 2026-06-12, archived + tagged v8.0. Verified end-to-end live from Claude Code (whoami). 17 MCP tools over remote Streamable HTTP, authed by the v5.0 sa_<key> gateway. Next milestone not yet started — run /gsd:new-milestone when ready.
+Last activity: 2026-06-13 — v8.0 shipped + archived + tagged
 
 ## Performance Metrics
 
@@ -96,7 +95,9 @@ Relevant to v4.2:
 
 ### Pending Todos
 
-None.
+- **[Phase 55 — research spike, GO/NO-GO gate]** Pin the exact MCP library + import paths (official `mcp` SDK per STACK.md vs. standalone `fastmcp` per ARCHITECTURE.md) against concrete needs: inbound `Authorization`-header access inside tools, sub-path mounting, lifespan composition, custom token verification, single resolved Starlette version. Run the static-bearer client spike across Claude Code, Claude Desktop, and Hermes BEFORE any tool work — discovering an auth/transport blocker after building 12 tools is the worst outcome. If Hermes lacks static-header support, ship v8.0 for the Claude clients and defer Hermes to v8.1 (not a blocker).
+- **[Phase 56]** Decide job-registry durability (in-memory + TTL vs. small table) and validate the `to_thread` + late-open/early-close DB-session pattern + pool sizing under 3+ concurrent generations.
+- **[All v8.0 tool phases]** Hard constraints: no delete/destructive tools; every tool owner-scoped (MCPF-04); long-running tools return job-ids (MCPJ-01); mount in-process + exempt `/mcp` from `BaseHTTPMiddleware`; wrap existing services, never reimplement.
 
 ## Deferred Items
 
@@ -122,6 +123,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-08T02:47:29.418Z
-Stopped at: Completed 54-01-PLAN.md
-Resume file: None
+Last session: 2026-06-12T15:55:12.638Z
+Stopped at: v8.0 Phases 55-61 built (autonomous); GUI client UAT deferred to user
+Resume file: .planning/v8.0-AUTONOMOUS-DECISIONS.md
