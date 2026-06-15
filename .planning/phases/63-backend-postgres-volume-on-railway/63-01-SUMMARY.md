@@ -7,7 +7,7 @@
 | Req | Change | File |
 |-----|--------|------|
 | DBKD-01 | Fixed Dockerfile CMD to honor Railway's injected `$PORT` (shell-form, `${PORT:-8000}` fallback). Build is reproducible via committed Dockerfile. | `backend/Dockerfile` |
-| DBKD-01 | Added `railway.json` pinning builder=DOCKERFILE, dockerfilePath=`Dockerfile` (resolved with service Root Directory=`backend`), healthcheck `/health`, restart-on-failure. | `railway.json` |
+| DBKD-01 | Added `railway.json` pinning builder=DOCKERFILE, dockerfilePath=`Dockerfile`, healthcheck `/health`, restart-on-failure. **Lives in `backend/railway.json`** because the Railway service Root Directory is `backend` — config must be inside the root dir or Railway ignores it and falls back to a broken autodetected start command (`cd` not found). | `backend/railway.json` |
 | DBKD-02 | VERIFIED: `config.py` reads `DATABASE_URL` from env (Railway auto-injects). pgvector enabled via `init_db.sql` `CREATE EXTENSION IF NOT EXISTS "vector"` + `pgvector==0.3.6` in requirements. No code change needed. | `backend/app/config.py`, `backend/migrations/init_db.sql` |
 | DBKD-03 | VERIFIED: `/media` already mounted via `StaticFiles(directory=settings.MEDIA_DIR)`. `MEDIA_DIR` is an env-overridable Settings field → set `MEDIA_DIR=/media` on Railway to point at the mounted volume. Documented in `.env.example.txt`. | `backend/app/main.py`, `backend/.env.example.txt` |
 | DBKD-04 | VERIFIED: no secret committed; prod `SECRET_KEY` guard already raises on default. Documented `ANTHROPIC_API_KEY`/`AI_PROVIDER`/`MEDIA_DIR` in `.env.example.txt`. | `backend/.env.example.txt`, `backend/app/config.py` |
