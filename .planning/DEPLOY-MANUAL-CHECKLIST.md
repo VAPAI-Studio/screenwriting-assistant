@@ -93,3 +93,26 @@ both targets.
 
 *Generated 2026-06-14. In-repo work for phases 63–66 committed; these are the
 remaining human-in-the-loop actions.*
+
+---
+
+## ✅ LIVE STATUS (2026-06-15)
+
+**The app is live end-to-end and verified working in the browser.**
+
+- **Backend (Railway):** `https://web-production-73857.up.railway.app` — `/health` 200, Postgres+pgvector, migrations applied on boot, `/media` volume, secrets in env.
+- **Frontend (Vercel):** `https://screenwriting-assistant-lake.vercel.app` — Vite app, SPA rewrite working, `VITE_API_URL` → Railway `/api`. Vercel Deployment Protection disabled.
+- **CORS:** `ALLOWED_ORIGINS=["https://screenwriting-assistant-lake.vercel.app"]` on Railway — Vercel origin allowed, others rejected (verified via preflight).
+
+**Phases 62, 63, 64, and CORS(66) are DONE.**
+
+### Only remaining: Phase 65 auto-deploy (optional — app already runs without it)
+Auto-deploy on merge to `main` requires these GitHub repo secrets (Settings → Secrets and variables → Actions):
+- `RAILWAY_TOKEN`, `RAILWAY_SERVICE_NAME=web`
+- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+- (smoke gate) `PROD_BACKEND_URL=https://web-production-73857.up.railway.app`, `PROD_FRONTEND_URL=https://screenwriting-assistant-lake.vercel.app`
+
+Until then: deploy is push-driven on each side (Railway auto-deploys from GitHub on push; Vercel auto-deploys from GitHub on push). The GitHub Actions deploy workflow only fires once the secrets exist.
+
+### Optional hardening
+- Set `MCP_DNS_REBINDING_PROTECTION=true` on Railway to harden the public `/mcp` surface.

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: Deploy
-status: awaiting_manual_deploy_steps
-stopped_at: Phases 62 complete; 63-66 repo-side done, manual deploy steps pending
-last_updated: "2026-06-15T00:15:00.000Z"
-last_activity: 2026-06-14 -- Phases 63-66 repo-work done autonomously; manual checklist written
+status: live
+stopped_at: App LIVE end-to-end (Railway backend + Vercel frontend + CORS); only Phase 65 auto-deploy secrets remain
+last_updated: "2026-06-16T03:00:00.000Z"
+last_activity: 2026-06-15 -- Phases 63, 64 + CORS(66) DONE & verified end-to-end in browser
 progress:
   total_phases: 31
-  completed_phases: 1
+  completed_phases: 3
   total_plans: 6
   completed_plans: 6
-  percent: 5
+  percent: 10
 ---
 
 # Project State
@@ -21,7 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v9.0 Deploy — repo-work complete for all 5 phases; awaiting manual deploy steps
+**Current focus:** v9.0 Deploy — APP IS LIVE end-to-end.
+- Backend (Railway): https://web-production-73857.up.railway.app (/health 200)
+- Frontend (Vercel): https://screenwriting-assistant-lake.vercel.app (verified working in browser)
+- CORS locked to the Vercel domain. Postgres+pgvector live, migrations applied on boot.
+- ONLY REMAINING: Phase 65 auto-deploy = generate Railway/Vercel deploy tokens → GitHub secrets (+ optional PROD_*_URL smoke secrets). Everything else done.
+
+(old focus) v9.0 Deploy — repo-work complete for all 5 phases; awaiting manual deploy steps
 
 ## Current Position
 
