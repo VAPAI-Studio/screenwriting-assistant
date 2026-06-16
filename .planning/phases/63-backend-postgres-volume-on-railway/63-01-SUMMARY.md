@@ -1,6 +1,23 @@
-# Phase 63 — Repo-Work Summary (autonomous)
+# Phase 63 — Summary
 
-**Status:** Repo-side COMPLETE. Manual Railway steps deferred to the final checklist (human-in-the-loop).
+**Status:** ✅ DONE & LIVE (2026-06-15). Backend Online at https://web-production-73857.up.railway.app — `/health` → HTTP 200.
+
+## Live verification
+- Service `● Online`; `GET /health` → 200 `{"status":"healthy"}`.
+- Railway Postgres: pgvector 0.8.2 installed, 30 tables, migrations 000_baseline→010 applied on boot (Phase 62 migrations-on-boot validated in prod).
+- `/media` volume mounted (`MEDIA_DIR=/media`); secrets from Railway env (no default-SECRET_KEY crash).
+
+## Deploy gotchas resolved (see memory: railway-deploy-gotchas)
+1. Custom Start Command (`cd backend && ...`) saved in dashboard overrode Dockerfile → cleared it.
+2. `railway.json` moved to `backend/` (service Root Directory = backend).
+3. Removed root `Procfile` (residual `cd`).
+4. `targetPort` was null → set `PORT=8000` + domain target port 8000 (fixed Healthcheck failure).
+5. App crashed at import because `embedding_service.py` instantiates `AsyncOpenAI` at module scope and `OPENAI_API_KEY` was empty → set real key. (Pending: lazy-init the OpenAI client.)
+
+---
+_Original repo-work notes below._
+
+**Repo-side work (autonomous):**
 
 ## What was done (in-repo, committed)
 
