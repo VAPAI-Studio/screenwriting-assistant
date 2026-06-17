@@ -512,3 +512,135 @@ class TestRegenerateStalePriorsHelper:
         # The loop continued and regenerated the second prior.
         assert refreshed_ok.episode_summary_stale is False
         assert refreshed_ok.episode_summary == "Fresh ep 2 summary."
+
+
+# ---------------------------------------------------------------------------
+# Plan 69-02 Task 2 — pre-pass + build_bible_context end-to-end (ESUM-03)
+# ---------------------------------------------------------------------------
+#
+# These exercise the pre-pass -> build_bible_context COMPOSITION directly (the
+# exact ordering run_wizard performs: regenerate_stale_priors BEFORE the sync
+# build_bible_context read). Driving the full run_wizard endpoint would require
+# standing up the async BackgroundTasks generation plumbing + WizardRun lifecycle,
+# which is heavy and orthogonal to the ESUM-03 behavior under test; the wiring
+# itself (call site + connected gate) is asserted structurally in
+# TestRunWizardPrePassWiring below. (Documented choice per the plan's Task 2 note.)
+
+
+class TestLazyRegenEndToEnd:
+    """After the pre-pass runs in connected mode, build_bible_context for the later
+    episode shows FRESH prior text with NO stale marker (lazy_regen); on regen
+    failure the stale text is injected WITH the marker and generation proceeds."""
+
+    def test_lazy_regen_fresh_text_no_marker_after_prepass(self, db_session):
+        """lazy_regen: a stale-with-summary prior is regenerated before the connected
+        read; build_bible_context shows the fresh text WITHOUT the
+        '(summary may be out of date)' marker and the flag is cleared."""
+        import asyncio
+        from app.utils.episode_summary import regenerate_stale_priors
+        from app.utils.bible_context import build_bible_context, STALE_SUMMARY_MARKER
+
+        show = _create_show(db_session, continuity_mode="connected")
+        current = _create_project(db_session, show=show, episode_number=2, title="Ep 2")
+        prior = _create_project(
+            db_session, show=show, episode_number=1, title="Ep 1",
+            episode_summary="STALE original ep1 text.", episode_summary_stale=True,
+        )
+        _insert_screenplay_content(db_session, prior.id, 0, "INT. EP1 - DAY\nThe pilot.")
+        db_session.commit()
+
+        with _patch_chat_completion(return_value="FRESH regenerated ep1 summary.") as mock:
+            asyncio.run(regenerate_stale_priors(db_session, show, current))
+        assert mock.await_count == 1
+
+        # The sync reader now sees the fresh rows (run_wizard order).
+        context = build_bible_context(db_session, current)
+        assert "FRESH regenerated ep1 summary." in context
+        assert "STALE original ep1 text." not in context
+        assert STALE_SUMMARY_MARKER not in context
+
+        refreshed = _get_project(db_session, prior.id)
+        assert refreshed.episode_summary_stale is False
+
+    def test_regen_failure_injects_stale_with_marker_generation_proceeds(self, db_session):
+        """regen_failure (end-to-end): when the provider raises during the pre-pass,
+        the pre-pass leaves the flag True and does NOT raise; build_bible_context then
+        injects the stale text WITH the marker (Phase 68 fallback path)."""
+        import asyncio
+        from app.utils.episode_summary import regenerate_stale_priors
+        from app.utils.bible_context import build_bible_context, STALE_SUMMARY_MARKER
+
+        show = _create_show(db_session, continuity_mode="connected")
+        current = _create_project(db_session, show=show, episode_number=2, title="Ep 2")
+        prior = _create_project(
+            db_session, show=show, episode_number=1, title="Ep 1",
+            episode_summary="STALE ep1 text kept on failure.", episode_summary_stale=True,
+        )
+        _insert_screenplay_content(db_session, prior.id, 0, "INT. EP1 - DAY")
+        db_session.commit()
+
+        with _patch_chat_completion() as mock:
+            mock.side_effect = RuntimeError("provider down")
+            # Pre-pass must NOT raise (generation proceeds).
+            asyncio.run(regenerate_stale_priors(db_session, show, current))
+
+        refreshed = _get_project(db_session, prior.id)
+        assert refreshed.episode_summary_stale is True
+        assert refreshed.episode_summary == "STALE ep1 text kept on failure."
+
+        # Phase 68 fallback: stale text injected WITH the marker.
+        context = build_bible_context(db_session, current)
+        assert "STALE ep1 text kept on failure." in context
+        assert STALE_SUMMARY_MARKER in context
+
+
+class TestRunWizardPrePassWiring:
+    """The pre-pass is wired into run_wizard BEFORE build_bible_context and gated on
+    connected mode (anthology/standalone/show_id-NULL skip it)."""
+
+    def test_lazy_regen_call_precedes_build_bible_context_in_run_wizard(self):
+        """Structural: regenerate_stale_priors is called in run_wizard ABOVE the
+        build_bible_context(db, project) line, and build_bible_context stays sync."""
+        import inspect
+        import app.api.endpoints.wizards as wiz
+        import app.utils.bible_context as bc
+
+        src = inspect.getsource(wiz.run_wizard)
+        assert "regenerate_stale_priors" in src, "pre-pass not wired into run_wizard"
+        regen_pos = src.index("regenerate_stale_priors")
+        build_pos = src.index("build_bible_context(db, project)")
+        assert regen_pos < build_pos, "regen pre-pass must precede build_bible_context"
+        # The gate compares to the VARCHAR string .value, not the enum object.
+        assert "ContinuityMode.CONNECTED.value" in src
+        # build_bible_context remains a pure sync reader (no await added).
+        assert not inspect.iscoroutinefunction(bc.build_bible_context)
+
+    def test_existence_gate_anthology_skips_prepass(self, db_session, monkeypatch):
+        """An anthology show must NOT invoke summarize_episode during the pre-pass.
+
+        Drives the connected-mode gate logic exactly as run_wizard does: only call the
+        pre-pass when show.continuity_mode == ContinuityMode.CONNECTED.value.
+        """
+        import asyncio
+        from app.models.schemas import ContinuityMode
+        from app.utils.episode_summary import regenerate_stale_priors
+
+        show = _create_show(db_session, continuity_mode="anthology")
+        current = _create_project(db_session, show=show, episode_number=2, title="Ep 2")
+        prior = _create_project(
+            db_session, show=show, episode_number=1, title="Ep 1",
+            episode_summary="Stale ep1 in an anthology show.", episode_summary_stale=True,
+        )
+        _insert_screenplay_content(db_session, prior.id, 0, "INT. EP1 - DAY")
+        db_session.commit()
+
+        async def _gated_prepass():
+            # Mirror run_wizard's gate.
+            if show and show.continuity_mode == ContinuityMode.CONNECTED.value:
+                await regenerate_stale_priors(db_session, show, current)
+
+        with _patch_chat_completion(return_value="SHOULD NOT RUN") as mock:
+            asyncio.run(_gated_prepass())
+
+        assert mock.await_count == 0
+        assert _get_project(db_session, prior.id).episode_summary_stale is True
