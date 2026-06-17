@@ -345,3 +345,170 @@ class TestEpisodeSummaryEndpoint:
 
         assert "episode_summary_stale" in schemas.Project.model_fields
         assert "episode_summary" not in schemas.Project.model_fields
+
+
+# ---------------------------------------------------------------------------
+# Plan 69-02 Task 1 — regenerate_stale_priors helper (ESUM-03 core + SC-3)
+# ---------------------------------------------------------------------------
+
+class TestRegenerateStalePriorsHelper:
+    """regenerate_stale_priors regenerates ONLY stale-with-summary strictly-prior
+    episodes of the same show, clears the flag on success, and degrades gracefully
+    on AI failure (leaves the flag True, never raises)."""
+
+    def test_existence_gate_skips_summary_less_and_regens_stale_with_summary(
+        self, db_session
+    ):
+        """existence_gate: a stale prior WITH a non-empty summary is regenerated and
+        its flag cleared; a stale prior with an empty/whitespace summary is NOT passed
+        to summarize_episode (existence-gate)."""
+        import asyncio
+        from app.utils.episode_summary import regenerate_stale_priors
+
+        show = _create_show(db_session, continuity_mode="connected")
+        # Later episode (the one being generated).
+        current = _create_project(db_session, show=show, episode_number=3, title="Ep 3")
+        # Stale prior WITH a summary -> should regenerate.
+        prior_has = _create_project(
+            db_session, show=show, episode_number=1, title="Ep 1",
+            episode_summary="Old stale summary for ep 1.", episode_summary_stale=True,
+        )
+        # Source text so summarize_episode has something to read.
+        _insert_screenplay_content(db_session, prior_has.id, 0, "INT. EP1 - DAY\nStuff happens.")
+        # Stale prior with WHITESPACE summary -> existence-gate skips it.
+        prior_empty = _create_project(
+            db_session, show=show, episode_number=2, title="Ep 2",
+            episode_summary="   ", episode_summary_stale=True,
+        )
+        db_session.commit()
+
+        with _patch_chat_completion(return_value="Fresh regenerated summary.") as mock:
+            asyncio.run(regenerate_stale_priors(db_session, show, current))
+
+        # Only the with-summary prior triggered a provider call.
+        assert mock.await_count == 1
+
+        refreshed_has = _get_project(db_session, prior_has.id)
+        assert refreshed_has.episode_summary == "Fresh regenerated summary."
+        assert refreshed_has.episode_summary_stale is False
+
+        refreshed_empty = _get_project(db_session, prior_empty.id)
+        # Whitespace summary untouched, flag stays True (never regenerated).
+        assert refreshed_empty.episode_summary == "   "
+        assert refreshed_empty.episode_summary_stale is True
+
+    def test_preserves_fresh_does_not_touch_up_to_date_prior(self, db_session):
+        """preserves_fresh (SC-3): an up-to-date prior (stale=False) is byte-identical
+        after the call and triggers no provider call."""
+        import asyncio
+        from app.utils.episode_summary import regenerate_stale_priors
+
+        show = _create_show(db_session, continuity_mode="connected")
+        current = _create_project(db_session, show=show, episode_number=2, title="Ep 2")
+        fresh_prior = _create_project(
+            db_session, show=show, episode_number=1, title="Ep 1",
+            episode_summary="A perfectly up-to-date summary.", episode_summary_stale=False,
+        )
+        _insert_screenplay_content(db_session, fresh_prior.id, 0, "INT. EP1 - DAY")
+        db_session.commit()
+
+        with _patch_chat_completion(return_value="SHOULD NOT BE USED") as mock:
+            asyncio.run(regenerate_stale_priors(db_session, show, current))
+
+        assert mock.await_count == 0
+        refreshed = _get_project(db_session, fresh_prior.id)
+        assert refreshed.episode_summary == "A perfectly up-to-date summary."
+        assert refreshed.episode_summary_stale is False
+
+    def test_preserves_fresh_ignores_current_and_later_episodes(self, db_session):
+        """preserves_fresh: only strictly-prior episodes (episode_number < current) of
+        THIS show are considered — the current and later episodes are untouched."""
+        import asyncio
+        from app.utils.episode_summary import regenerate_stale_priors
+
+        show = _create_show(db_session, continuity_mode="connected")
+        current = _create_project(
+            db_session, show=show, episode_number=2, title="Ep 2 (current)",
+            episode_summary="Current ep stale summary.", episode_summary_stale=True,
+        )
+        later = _create_project(
+            db_session, show=show, episode_number=5, title="Ep 5 (later)",
+            episode_summary="Later ep stale summary.", episode_summary_stale=True,
+        )
+        _insert_screenplay_content(db_session, current.id, 0, "INT. CURRENT - DAY")
+        _insert_screenplay_content(db_session, later.id, 0, "INT. LATER - DAY")
+        db_session.commit()
+
+        with _patch_chat_completion(return_value="SHOULD NOT BE USED") as mock:
+            asyncio.run(regenerate_stale_priors(db_session, show, current))
+
+        # Neither current nor later is a strict prior -> no provider call.
+        assert mock.await_count == 0
+        assert _get_project(db_session, current.id).episode_summary_stale is True
+        assert _get_project(db_session, later.id).episode_summary_stale is True
+
+    def test_preserves_fresh_no_op_when_current_episode_number_none(self, db_session):
+        """preserves_fresh: a current project with episode_number None is a no-op."""
+        import asyncio
+        from app.utils.episode_summary import regenerate_stale_priors
+
+        show = _create_show(db_session, continuity_mode="connected")
+        current = _create_project(db_session, show=show, title="No Number")
+        current.episode_number = None
+        prior = _create_project(
+            db_session, show=show, episode_number=1, title="Ep 1",
+            episode_summary="Stale ep 1 summary.", episode_summary_stale=True,
+        )
+        _insert_screenplay_content(db_session, prior.id, 0, "INT. EP1 - DAY")
+        db_session.commit()
+
+        with _patch_chat_completion(return_value="SHOULD NOT BE USED") as mock:
+            asyncio.run(regenerate_stale_priors(db_session, show, current))
+
+        assert mock.await_count == 0
+        assert _get_project(db_session, prior.id).episode_summary_stale is True
+
+    def test_regen_failure_helper_leaves_flag_true_no_raise(self, db_session):
+        """regen_failure (helper-level): when summarize_episode raises for a prior, that
+        prior keeps episode_summary_stale=True, the loop continues, and no exception
+        escapes regenerate_stale_priors."""
+        import asyncio
+        from app.utils.episode_summary import regenerate_stale_priors
+
+        show = _create_show(db_session, continuity_mode="connected")
+        current = _create_project(db_session, show=show, episode_number=3, title="Ep 3")
+        prior_fail = _create_project(
+            db_session, show=show, episode_number=1, title="Ep 1",
+            episode_summary="Stale ep 1 (regen will fail).", episode_summary_stale=True,
+        )
+        prior_ok = _create_project(
+            db_session, show=show, episode_number=2, title="Ep 2",
+            episode_summary="Stale ep 2 (regen will succeed).", episode_summary_stale=True,
+        )
+        _insert_screenplay_content(db_session, prior_fail.id, 0, "INT. EP1 - DAY")
+        _insert_screenplay_content(db_session, prior_ok.id, 0, "INT. EP2 - DAY")
+        db_session.commit()
+
+        call_count = {"n": 0}
+
+        async def _side_effect(*args, **kwargs):
+            call_count["n"] += 1
+            # First prior (ep 1) fails; the loop must continue to ep 2.
+            if call_count["n"] == 1:
+                raise RuntimeError("provider boom")
+            return "Fresh ep 2 summary."
+
+        with _patch_chat_completion() as mock:
+            mock.side_effect = _side_effect
+            # Must NOT raise.
+            asyncio.run(regenerate_stale_priors(db_session, show, current))
+
+        refreshed_fail = _get_project(db_session, prior_fail.id)
+        # Failure leaves the flag True and text unchanged.
+        assert refreshed_fail.episode_summary_stale is True
+        assert refreshed_fail.episode_summary == "Stale ep 1 (regen will fail)."
+
+        refreshed_ok = _get_project(db_session, prior_ok.id)
+        # The loop continued and regenerated the second prior.
+        assert refreshed_ok.episode_summary_stale is False
+        assert refreshed_ok.episode_summary == "Fresh ep 2 summary."
