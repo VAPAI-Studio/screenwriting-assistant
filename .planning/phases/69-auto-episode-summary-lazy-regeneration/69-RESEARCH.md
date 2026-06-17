@@ -282,15 +282,12 @@ These are genuinely two paths sharing one `summarize_episode` method: initial = 
 | A3 | Concurrent double-regen is acceptable best-effort for MVP | Pitfall 5 | If two later episodes are generated simultaneously a prior may be summarized twice (cost only, no corruption). Acceptable for an internal tool. |
 | A4 | Lazy regen scope = the generation read site (wizards) is mandatory; other read sites (review/ai_chat/mcp) optional | Lazy-regen hook | If review (Phase 71) must also see fresh summaries, add the pre-pass there too — but that is arguably Phase 71's concern. |
 
-## Open Questions
+## Open Questions (RESOLVED at plan-phase, 2026-06-17)
 
-1. **Exact "complete episode" trigger surface**
-   - What we know: ESUM-01 SC-1 wants completion → summary; no single "complete episode" endpoint exists today.
-   - What's unclear: whether to add a dedicated endpoint, hang it off an existing save/apply, or expose an MCP/frontend action.
-   - Recommendation: dedicated `POST /api/projects/{id}/episode-summary` (or "complete") action calling `summarize_episode`; decide final naming at planning.
-2. **Should review (Phase 71) / ai_chat / MCP read sites also trigger lazy regen?**
-   - What we know: ESUM-03 specifically scopes "used as context for later episodes" = generation.
-   - Recommendation: wire the generation path (wizards) in Phase 69; leave review for Phase 71, additionally regenerating there if needed.
+1. **Exact "complete episode" trigger surface** — **RESOLVED → dedicated owner-scoped endpoint** `POST /api/projects/{id}/episode-summary` calling `summarize_episode` (D-TRIGGER). ESUM-01 SC-1 wants completion → summary; no single endpoint existed, so we add one.
+2. **Should review (Phase 71) / ai_chat / MCP read sites also trigger lazy regen?** — **RESOLVED → NO, generation path only this phase** (D-REGEN-SCOPE). Wire the wizards generation path in Phase 69; review/ai_chat/MCP are out of scope, left for Phase 71+.
+
+Also locked: **regen failure → fall back to Phase 68's stale-with-marker injection, flag stays True, generation never fails** (D-REGEN-FAIL).
 
 ## Environment Availability
 
