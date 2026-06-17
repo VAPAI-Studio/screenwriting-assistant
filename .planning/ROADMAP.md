@@ -598,7 +598,8 @@ Plans:
   2. Generating an episode in an `anthology` show feeds the prompt only the shared bible (world/tone) — no other-episode plot context
   3. Generating an episode in a `standalone` show (or a standalone project) injects no cross-episode context
   4. A connected episode with one or more missing/empty prior summaries still generates without error (degrades gracefully)
-**Plans**: TBD
+**Plans:** 1 plan
+- [ ] 68-01-PLAN.md — Branch build_bible_context on continuity_mode: connected injects ordered (episode_number.asc), most-recent-8-capped, stale-tagged prior-episode summaries; anthology/standalone bible-only; show_id NULL unchanged + TestContinuityModeInjection (SCONT-02/03/04)
 
 ### Phase 69: Auto Episode Summary & Lazy Regeneration
 **Goal**: Each episode gets an AI-generated summary automatically, and a stale summary is refreshed before it is ever used as context for a later episode — so connected generation never reads an out-of-date summary
