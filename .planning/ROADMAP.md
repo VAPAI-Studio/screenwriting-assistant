@@ -583,7 +583,10 @@ Plans:
   2. Starting the backend against an existing database applies the new `delta/NNN_*.sql` once and is a no-op on re-run (idempotent), with existing shows/episodes still valid and standalone projects unchanged
   3. Each episode (Project) has an `episode_summary` (initially empty/null) and an `episode_summary_stale` flag defaulting to False
   4. Editing an episode sets its `episode_summary_stale` to True, exactly as a script change sets `breakdown_stale`/`shotlist_stale`
-**Plans**: TBD
+**Plans**: 3 plans
+- [ ] 67-01-PLAN.md — Schema foundation: idempotent delta 011 + Show/Project model columns
+- [ ] 67-02-PLAN.md — Show continuity_mode API (enum + ShowCreate/Update/Response + tests)
+- [ ] 67-03-PLAN.md — Episode summary stale hook + read-only flag surface + tests
 
 ### Phase 68: Mode-Aware Generation Context Injection
 **Goal**: When the AI writes an episode, the prior context it receives is determined by the show's `continuity_mode` — connected carries continuity, anthology stays bible-only, standalone is fully independent
