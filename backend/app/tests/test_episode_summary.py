@@ -259,3 +259,89 @@ class TestSummarizeEpisodeService:
         assert project.episode_summary is None  # helper did not write
         # Flag untouched (defaults False); helper did not clear/set it.
         assert project.episode_summary_stale in (False, None)
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — POST /api/projects/{id}/episode-summary eager trigger (ESUM-01)
+# ---------------------------------------------------------------------------
+
+class TestEpisodeSummaryEndpoint:
+    """ESUM-01: owner-scoped eager trigger writes + clears + commits."""
+
+    def test_initial_endpoint_generates_stores_and_clears_flag(
+        self, client, db_session, mock_auth_headers
+    ):
+        """POST returns 200 for an owned project, stores a non-empty episode_summary,
+        sets episode_summary_stale=False, and commits."""
+        project_id = _create_project_via_api(client, mock_auth_headers, "Endpoint Owned")
+        # Pre-set stale=True so we can prove the endpoint clears it.
+        project = _get_project(db_session, project_id)
+        project.episode_summary_stale = True
+        db_session.commit()
+        _insert_screenplay_content(db_session, project_id, 0, "INT. OFFICE - DAY\nThe pitch.")
+
+        with _patch_chat_completion(return_value="Generated episode summary.") as mock:
+            resp = client.post(
+                f"/api/projects/{project_id}/episode-summary",
+                headers=mock_auth_headers,
+            )
+
+        assert resp.status_code == 200, resp.text
+        assert mock.await_count == 1
+        body = resp.json()
+        assert body["episode_summary_stale"] is False
+
+        refreshed = _get_project(db_session, project_id)
+        assert refreshed.episode_summary == "Generated episode summary."
+        assert refreshed.episode_summary_stale is False
+
+    def test_initial_endpoint_cross_owner_returns_404(
+        self, client, db_session, mock_auth_headers
+    ):
+        """A project owned by another user returns 404 (no cross-user write)."""
+        other_project = _create_project(
+            db_session, owner_id=str(uuid.uuid4()), title="Someone Else's Episode"
+        )
+        db_session.commit()
+        _insert_screenplay_content(db_session, other_project.id, 0, "INT. SECRET - NIGHT")
+
+        with _patch_chat_completion(return_value="should not run") as mock:
+            resp = client.post(
+                f"/api/projects/{other_project.id}/episode-summary",
+                headers=mock_auth_headers,
+            )
+
+        assert resp.status_code == 404, resp.text
+        assert mock.await_count == 0
+        # No write occurred on the other user's project.
+        refreshed = _get_project(db_session, other_project.id)
+        assert refreshed.episode_summary is None
+
+    def test_initial_endpoint_empty_source_does_not_clobber_existing(
+        self, client, db_session, mock_auth_headers
+    ):
+        """When the summarizer returns "" (no source text), the endpoint returns 422
+        and does NOT overwrite an existing summary with empty (documented choice)."""
+        project_id = _create_project_via_api(client, mock_auth_headers, "Empty Source")
+        project = _get_project(db_session, project_id)
+        project.episode_summary = "An existing, valuable summary."
+        db_session.commit()
+        # No ScreenplayContent rows -> summarizer returns "".
+
+        with _patch_chat_completion(return_value="unused") as mock:
+            resp = client.post(
+                f"/api/projects/{project_id}/episode-summary",
+                headers=mock_auth_headers,
+            )
+
+        assert resp.status_code == 422, resp.text
+        refreshed = _get_project(db_session, project_id)
+        # Existing summary preserved (not clobbered with empty).
+        assert refreshed.episode_summary == "An existing, valuable summary."
+
+    def test_read_schema_does_not_expose_episode_summary_text(self):
+        """D-04 preserved: the Project read schema does not expose episode_summary."""
+        from app.models import schemas
+
+        assert "episode_summary_stale" in schemas.Project.model_fields
+        assert "episode_summary" not in schemas.Project.model_fields
