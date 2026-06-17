@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: executing
-stopped_at: Completed 67-02-PLAN.md
-last_updated: "2026-06-17T18:05:45.394Z"
+status: verifying
+stopped_at: Completed 67-03-PLAN.md
+last_updated: "2026-06-17T18:12:15.092Z"
 last_activity: 2026-06-17
 progress:
   total_phases: 36
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 8
-  percent: 3
+  completed_plans: 9
+  percent: 6
 ---
 
 # Project State
@@ -34,7 +34,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 Phase: 67 (continuity-data-model-migration) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-17
 
 **v10.0 phase map (67-71):**
@@ -116,6 +116,7 @@ Relevant to v4.2:
 - [Phase 67]: default 'anthology' = zero behavior change on upgrade (D-01); episode_summary_stale mirrors breakdown_stale/shotlist_stale; both ORM default + server_default set so non-ORM inserts default correctly
 - [Phase ?]: [Phase 67]: ContinuityMode lives in schemas.py as a str-enum (app layer, D-03), VARCHAR column unchanged; Pydantic rejects out-of-enum continuity_mode with 422, default anthology = unchanged behavior
 - [Phase ?]: [Phase 67]: update_show loop coerces Enum members to .value before setattr so the VARCHAR continuity_mode column stores 'standalone', not 'ContinuityMode.STANDALONE'
+- [Phase ?]: [Phase 67]: episode_summary_stale existence-gated on same-row summary (D-02), independent of show_id; reuses {write,scenes} (D-02a); flag surfaced read-only on Project, text internal (D-04)
 
 ### Pending Todos
 
@@ -144,6 +145,7 @@ Items acknowledged and deferred at v6.0 milestone close on 2026-06-11:
 These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UAT. The phase-27/31/33/34 gaps belong to already-shipped milestones (v3.1–v4.0).
 | Phase 67 P01 | 4min | 2 tasks | 2 files |
 | Phase 67 P02 | 5min | 2 tasks | 3 files |
+| Phase 67 P03 | 3min | 2 tasks | 3 files |
 
 ### Blockers/Concerns
 
@@ -152,6 +154,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-17T18:05:45.387Z
+Last session: 2026-06-17T18:12:00.941Z
 Stopped at: Completed 67-02-PLAN.md
 Resume file: None

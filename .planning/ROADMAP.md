@@ -586,7 +586,7 @@ Plans:
 **Plans**: 3 plans
 - [x] 67-01-PLAN.md — Schema foundation: idempotent delta 011 + Show/Project model columns
 - [x] 67-02-PLAN.md — Show continuity_mode API (enum + ShowCreate/Update/Response + tests)
-- [ ] 67-03-PLAN.md — Episode summary stale hook + read-only flag surface + tests
+- [x] 67-03-PLAN.md — Episode summary stale hook + read-only flag surface + tests
 
 ### Phase 68: Mode-Aware Generation Context Injection
 **Goal**: When the AI writes an episode, the prior context it receives is determined by the show's `continuity_mode` — connected carries continuity, anthology stays bible-only, standalone is fully independent
@@ -703,7 +703,7 @@ Plans:
 | 64. Frontend on Vercel | v9.0 | 0/? | Not started | - |
 | 65. CI/CD with GitHub Actions | v9.0 | 0/? | Not started | - |
 | 66. Public-Deploy Hardening & Post-Deploy Smoke Test | v9.0 | 0/? | Not started | - |
-| 67. Continuity Data Model & Migration | v10.0 | 2/3 | In Progress|  |
+| 67. Continuity Data Model & Migration | v10.0 | 3/3 | Complete   | 2026-06-17 |
 | 68. Mode-Aware Generation Context Injection | v10.0 | 0/? | Not started | - |
 | 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 0/? | Not started | - |
 | 70. Show Creation Wizard (mode + presets) | v10.0 | 0/? | Not started | - |
