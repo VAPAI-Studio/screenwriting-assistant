@@ -24,7 +24,7 @@ services:
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
       AI_PROVIDER: ${AI_PROVIDER:-anthropic}
       SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
-      ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:5173","http://localhost:3000"]}'
+      ALLOWED_ORIGINS: '${ALLOWED_ORIGINS:-["http://localhost:4321","http://localhost:3000"]}'
       ENVIRONMENT: ${ENVIRONMENT:-development}
     ports:
       - "8000:8000"
@@ -39,7 +39,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "5173:5173"
+      - "4321:4321"
     environment:
       - VITE_API_URL=/api
       - VITE_PROXY_TARGET=http://backend:8000

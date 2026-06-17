@@ -68,8 +68,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         
         # More permissive CSP for development
         response.headers["Content-Security-Policy"] = (
-            "default-src 'self' http://localhost:5173 http://localhost:5174; "
-            "connect-src 'self' http://localhost:5173 http://localhost:5174 http://localhost:8000; "
+            "default-src 'self' http://localhost:4321; "
+            "connect-src 'self' http://localhost:4321 http://localhost:8000; "
             "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
             "style-src 'self' 'unsafe-inline';"
         )

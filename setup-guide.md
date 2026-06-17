@@ -139,13 +139,13 @@ npm run dev
 
 ### 7. Accessing the Application
 
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:4321
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 
 ### 8. Testing the Application
 
-1. Open http://localhost:5173 in your browser
+1. Open http://localhost:4321 in your browser
 2. Create a new project
 3. Navigate to the project editor
 4. Fill in sections with your story content
@@ -179,7 +179,7 @@ DATABASE_URL=postgresql://screenwriter:password@localhost:5432/screenwriter_db
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4o
 SECRET_KEY=your-secret-key-here
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:4321,http://localhost:3000
 MAX_TOKENS=1500
 MAX_SECTION_LENGTH=1500
 CACHE_TTL=900

@@ -8,7 +8,8 @@ export default defineConfig({
   plugins: [react()],
   root: '.',
   server: {
-    port: 5173,
+    port: 4321,
+    strictPort: true,
     proxy: {
       '/api': {
         target: process.env.VITE_PROXY_TARGET ?? 'http://localhost:8000',

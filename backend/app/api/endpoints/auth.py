@@ -106,7 +106,7 @@ class MagicLinkResponse(schemas.MagicLinkResponse):
 async def request_magic_link(request: MagicLinkRequest):
     """Request a magic link for email authentication (legacy)."""
     token = auth_service.create_magic_link_token(request.email)
-    magic_link = f"http://localhost:5173/auth/verify?token={token}"
+    magic_link = f"http://localhost:4321/auth/verify?token={token}"
 
     return MagicLinkResponse(
         message="Magic link created (in production, this would be sent via email)",

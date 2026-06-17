@@ -32,7 +32,7 @@ uvicorn app.main:app --reload --port 8000
 ### Frontend (standalone)
 ```bash
 cd frontend
-npm run dev                        # Vite dev server on :5173
+npm run dev                        # Vite dev server on :4321
 npm run build                      # tsc && vite build
 npm run lint                       # ESLint
 ```
