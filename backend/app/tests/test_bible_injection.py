@@ -339,3 +339,209 @@ class TestBreakdownBibleInjection:
         messages = call_args.kwargs.get("messages", call_args[1].get("messages", []))
         user_msg = messages[1]["content"]
         assert "## Series Bible Context" in user_msg
+
+
+# ===========================================================================
+# TestContinuityModeInjection (Phase 68 -- SCONT-02/03/04)
+# ===========================================================================
+
+
+STALE_MARKER = "(summary may be out of date)"
+
+
+class TestContinuityModeInjection:
+    """Mode-branched prior-episode injection in build_bible_context.
+
+    connected -> bible + a Prior Episodes block (episode_number-ascending,
+    most-recent-8 cap, stale-tagged, empty summaries skipped).
+    anthology / standalone -> bible only.
+    show_id NULL -> None (feature-film behavior unchanged).
+    """
+
+    def test_connected_injects_prior_episodes(self, db_session):
+        """SCONT-02: connected show injects prior summaries plus the bible."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="connected")
+        _create_project(
+            db_session, show=show, episode_number=1,
+            episode_summary="In episode one the hero leaves home.",
+        )
+        _create_project(
+            db_session, show=show, episode_number=2,
+            episode_summary="In episode two the hero finds an ally.",
+        )
+        current = _create_project(db_session, show=show, episode_number=3)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        assert "Prior Episodes" in result
+        assert "In episode one the hero leaves home." in result
+        assert "In episode two the hero finds an ally." in result
+        # Bible still present.
+        assert "## Series Bible Context" in result
+        assert "Walter White" in result
+
+    def test_connected_orders_by_episode_number_not_positional(self, db_session):
+        """SCONT-02 ordering: rows inserted out of episode_number order must
+        still be injected in ascending episode_number order. Fails under
+        positional / insertion ordering."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="connected")
+        # Insert episode 2 BEFORE episode 1 on purpose.
+        _create_project(
+            db_session, show=show, episode_number=2,
+            episode_summary="LATER SUMMARY",
+        )
+        _create_project(
+            db_session, show=show, episode_number=1,
+            episode_summary="EARLY SUMMARY",
+        )
+        current = _create_project(db_session, show=show, episode_number=3)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        # Order must follow episode_number ascending, not creation order.
+        assert result.index("EARLY SUMMARY") < result.index("LATER SUMMARY")
+
+    def test_anthology_bible_only_no_prior_episodes(self, db_session):
+        """SCONT-03: anthology show injects bible only, no Prior Episodes."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="anthology")
+        _create_project(
+            db_session, show=show, episode_number=1,
+            episode_summary="A prior episode summary that must NOT appear.",
+        )
+        current = _create_project(db_session, show=show, episode_number=2)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        assert "## Series Bible Context" in result
+        assert "Prior Episodes" not in result
+        assert "A prior episode summary that must NOT appear." not in result
+
+    def test_standalone_bible_only_no_prior_episodes(self, db_session):
+        """SCONT-04: standalone show injects bible only, no Prior Episodes."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="standalone")
+        _create_project(
+            db_session, show=show, episode_number=1,
+            episode_summary="A prior episode summary that must NOT appear.",
+        )
+        current = _create_project(db_session, show=show, episode_number=2)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        assert "## Series Bible Context" in result
+        assert "Prior Episodes" not in result
+        assert "A prior episode summary that must NOT appear." not in result
+
+    def test_show_id_null_returns_none(self, db_session):
+        """SCONT-04: a standalone project (no show) returns None, unchanged."""
+        from app.utils.bible_context import build_bible_context
+
+        project = _create_project(db_session)
+        result = build_bible_context(db_session, project)
+        assert result is None
+
+    def test_connected_skips_null_empty_whitespace_summaries(self, db_session):
+        """Graceful degradation: null/empty/whitespace prior summaries are
+        skipped and the call does not raise; no Prior Episodes block emitted."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="connected")
+        _create_project(db_session, show=show, episode_number=1, episode_summary=None)
+        _create_project(db_session, show=show, episode_number=2, episode_summary="")
+        _create_project(db_session, show=show, episode_number=3, episode_summary="   ")
+        current = _create_project(db_session, show=show, episode_number=4)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        assert "Prior Episodes" not in result
+
+    def test_connected_stale_summary_tagged_with_marker(self, db_session):
+        """Stale prior summaries are still injected, tagged with the marker;
+        non-stale priors are injected without it."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="connected")
+        _create_project(
+            db_session, show=show, episode_number=1,
+            episode_summary="FRESH PRIOR SUMMARY",
+            episode_summary_stale=False,
+        )
+        _create_project(
+            db_session, show=show, episode_number=2,
+            episode_summary="STALE PRIOR SUMMARY",
+            episode_summary_stale=True,
+        )
+        current = _create_project(db_session, show=show, episode_number=3)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        assert "FRESH PRIOR SUMMARY" in result
+        assert "STALE PRIOR SUMMARY" in result
+        assert STALE_MARKER in result
+        # The marker should be associated with the stale entry, not the fresh one.
+        # The fresh summary line must not carry the marker.
+        fresh_line = next(
+            line for line in result.splitlines() if "Episode 1" in line
+        )
+        assert STALE_MARKER not in fresh_line
+        stale_line = next(
+            line for line in result.splitlines() if "Episode 2" in line
+        )
+        assert STALE_MARKER in stale_line
+
+    def test_connected_caps_to_most_recent_eight(self, db_session):
+        """Most-recent-8 cap: with 10 priors (episode_number 1..10) below
+        current=12, only episodes 3..10 are injected (the 8 highest)."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="connected")
+        for n in range(1, 11):
+            _create_project(
+                db_session, show=show, episode_number=n,
+                episode_summary=f"SUMMARY_FOR_EPISODE_{n}",
+            )
+        current = _create_project(db_session, show=show, episode_number=12)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        # The 8 highest episode_numbers below current (3..10) are injected.
+        for n in range(3, 11):
+            assert f"SUMMARY_FOR_EPISODE_{n}" in result
+        # Episodes 1 and 2 (oldest) are dropped. Use the per-episode header,
+        # which is collision-free (unlike the summary substring "..._1" vs "..._10").
+        assert "Episode 1:" not in result
+        assert "Episode 2:" not in result
+
+    def test_connected_branch_fires_on_string_value(self, db_session):
+        """VARCHAR-enum guard: the connected branch fires when continuity_mode
+        is the STRING 'connected' (the stored column value), proving the
+        comparison is to ContinuityMode.CONNECTED.value, not the enum object."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(db_session, continuity_mode="connected")
+        assert isinstance(show.continuity_mode, str)
+        _create_project(
+            db_session, show=show, episode_number=1,
+            episode_summary="STRING VALUE BRANCH SUMMARY",
+        )
+        current = _create_project(db_session, show=show, episode_number=2)
+
+        result = build_bible_context(db_session, current)
+
+        assert result is not None
+        assert "Prior Episodes" in result
+        assert "STRING VALUE BRANCH SUMMARY" in result
