@@ -1,5 +1,6 @@
 # backend/app/models/schemas.py
 
+import enum
 from pydantic import BaseModel, Field, ConfigDict, EmailStr, field_validator, model_validator
 from typing import List, Optional, Dict
 from datetime import datetime
@@ -909,9 +910,22 @@ class StoryboardFrameUpdate(BaseModel):
 # Show Schemas (v4.2 -- Phase 36)
 # ============================================================
 
+class ContinuityMode(str, enum.Enum):
+    """App-layer continuity mode for a show (v10.0 -- Phase 67, D-03).
+
+    Stored as VARCHAR on shows.continuity_mode (NOT a PG Enum) so new modes
+    need no ALTER TYPE migration. Default is anthology (D-01: zero behavior
+    change on upgrade). Follows the existing Framework str-enum convention.
+    """
+    CONNECTED = "connected"
+    ANTHOLOGY = "anthology"
+    STANDALONE = "standalone"
+
+
 class ShowCreate(BaseModel):
     title: str = Field(..., min_length=2, max_length=255)
     description: str = Field(default="", max_length=5000)
+    continuity_mode: ContinuityMode = ContinuityMode.ANTHOLOGY
 
     @field_validator('title')
     def validate_title(cls, v):
@@ -923,6 +937,7 @@ class ShowCreate(BaseModel):
 class ShowUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=2, max_length=255)
     description: Optional[str] = Field(None, max_length=5000)
+    continuity_mode: Optional[ContinuityMode] = None
 
     @field_validator('title')
     def validate_title(cls, v):
@@ -938,6 +953,7 @@ class ShowResponse(BaseModel):
     owner_id: UUID
     title: str
     description: str
+    continuity_mode: ContinuityMode
     created_at: datetime
     updated_at: Optional[datetime] = None
 
