@@ -10,6 +10,7 @@ from ..dependencies import get_db, get_current_user
 from ...utils import validate_project_title, validate_framework
 from ...exceptions import NotFoundException, ValidationException
 from ...templates import get_template, get_template_subsections
+from ...services.template_ai_service import template_ai_service
 
 router = APIRouter()
 
@@ -137,8 +138,50 @@ async def get_project(
 
     if not project:
         raise NotFoundException(resource="Project", identifier=str(project_id))
-    
+
     return project
+
+@router.post("/{project_id}/episode-summary")
+async def generate_episode_summary(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """ESUM-01: eager "complete episode" trigger.
+
+    Generate a bounded prose episode_summary from the project's screenplay text and
+    persist it (clearing episode_summary_stale). Owner-scoped: a project not owned by
+    the caller returns 404 (no cross-user read/write — threat T-69-01).
+
+    Empty-source choice (documented): if the summarizer returns "" (no screenplay
+    text to summarize), return 422 and DO NOT clobber an existing summary with empty.
+
+    The summarizer (template_ai_service.summarize_episode) does NOT commit — this
+    endpoint owns the write + commit (Phase 67 caller-commits convention). The
+    episode_summary TEXT is intentionally NOT surfaced on the Project read schema
+    (Phase 67 D-04 — threat T-69-02); this endpoint returns only the owner's status.
+    """
+    project = db.query(database.Project).filter(
+        database.Project.id == str(project_id),
+        database.Project.owner_id == str(current_user.id),
+    ).first()
+
+    if not project:
+        raise NotFoundException(resource="Project", identifier=str(project_id))
+
+    summary = await template_ai_service.summarize_episode(db, project)
+    if not summary:
+        # No source text to summarize — do not overwrite an existing summary.
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="No screenplay text available to summarize for this episode.",
+        )
+
+    project.episode_summary = summary
+    project.episode_summary_stale = False
+    db.commit()
+
+    return {"status": "success", "episode_summary_stale": False}
 
 @router.patch("/{project_id}", response_model=schemas.Project)
 async def update_project(
