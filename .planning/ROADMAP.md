@@ -610,7 +610,9 @@ Plans:
   1. Completing an episode generates an `episode_summary` via the AI and stores it on the episode
   2. A summary whose `episode_summary_stale` flag is True is regenerated before it is used as prior-episode context for a later connected episode, and the flag is cleared after a successful regeneration
   3. Regenerating one episode's stale summary does not regenerate or disturb other episodes' up-to-date summaries
-**Plans**: TBD
+**Plans**: 2 plans
+- [ ] 69-01-PLAN.md — Summarizer service (summarize_episode, episode_index source read) + eager POST /api/projects/{id}/episode-summary trigger + ESUM-01 tests (ESUM-01)
+- [ ] 69-02-PLAN.md — Lazy regenerate_stale_priors pre-pass wired into run_wizard before build_bible_context (connected-gated, regen-failure → Phase 68 marker fallback) + ESUM-03 tests (ESUM-03)
 
 ### Phase 70: Show Creation Wizard (mode + presets)
 **Goal**: At show creation (and edit), the user picks how episodes relate via friendly presets, and the flow adapts to that choice — making continuity mode a first-class, understandable setup step
