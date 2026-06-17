@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
 status: executing
-stopped_at: Phase 67 context gathered
-last_updated: "2026-06-17T17:59:54.597Z"
+stopped_at: Completed 67-02-PLAN.md
+last_updated: "2026-06-17T18:05:45.394Z"
 last_activity: 2026-06-17
 progress:
   total_phases: 36
   completed_phases: 1
   total_plans: 5
-  completed_plans: 7
+  completed_plans: 8
   percent: 3
 ---
 
@@ -33,7 +33,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 ## Current Position
 
 Phase: 67 (continuity-data-model-migration) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-17
 
@@ -114,6 +114,8 @@ Relevant to v4.2:
 - [Phase 54]: splitByHeadings is the pure zero-originals splitter (INT./EXT. slugline → one scene each; no heading → one "Untitled"; empty → []); title=slugline, content=body-after-slugline with the slugline STRIPPED because buildDocument re-prepends title.toUpperCase() (would double-render otherwise, D-54-03); after first save the existing title-anchor splitToScreenplays handles round-trips stably; empty editor is writable via a "Start writing" affordance (D-54-02)
 - [Phase 67]: continuity_mode is VARCHAR(20) String default 'anthology' (D-03), NOT a PG Enum so new modes need no ALTER TYPE migration
 - [Phase 67]: default 'anthology' = zero behavior change on upgrade (D-01); episode_summary_stale mirrors breakdown_stale/shotlist_stale; both ORM default + server_default set so non-ORM inserts default correctly
+- [Phase ?]: [Phase 67]: ContinuityMode lives in schemas.py as a str-enum (app layer, D-03), VARCHAR column unchanged; Pydantic rejects out-of-enum continuity_mode with 422, default anthology = unchanged behavior
+- [Phase ?]: [Phase 67]: update_show loop coerces Enum members to .value before setattr so the VARCHAR continuity_mode column stores 'standalone', not 'ContinuityMode.STANDALONE'
 
 ### Pending Todos
 
@@ -141,6 +143,7 @@ Items acknowledged and deferred at v6.0 milestone close on 2026-06-11:
 
 These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UAT. The phase-27/31/33/34 gaps belong to already-shipped milestones (v3.1–v4.0).
 | Phase 67 P01 | 4min | 2 tasks | 2 files |
+| Phase 67 P02 | 5min | 2 tasks | 3 files |
 
 ### Blockers/Concerns
 
@@ -149,6 +152,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-17T17:59:26.126Z
-Stopped at: Phase 67 context gathered
+Last session: 2026-06-17T18:05:45.387Z
+Stopped at: Completed 67-02-PLAN.md
 Resume file: None
