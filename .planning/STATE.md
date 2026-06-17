@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: completed
+status: verifying
 stopped_at: Completed 67-02-PLAN.md
-last_updated: "2026-06-17T18:17:13.883Z"
-last_activity: 2026-06-17 -- Phase 67 marked complete
+last_updated: "2026-06-17T19:37:18.543Z"
+last_activity: 2026-06-17
 progress:
   total_phases: 36
-  completed_phases: 2
-  total_plans: 5
-  completed_plans: 9
-  percent: 6
+  completed_phases: 3
+  total_plans: 6
+  completed_plans: 10
+  percent: 8
 ---
 
 # Project State
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 67 — continuity-data-model-migration
+**Current focus:** Phase 68 — mode-aware-generation-context-injection
 
 - Backend (Railway): https://web-production-73857.up.railway.app (/health 200)
 - Frontend (Vercel): https://screenwriting-assistant-lake.vercel.app (verified working in browser)
@@ -32,10 +32,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 67 — COMPLETE
-Plan: 3 of 3
-Status: Phase 67 complete
-Last activity: 2026-06-17 -- Phase 67 marked complete
+Phase: 68 (mode-aware-generation-context-injection) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-06-17
 
 **v10.0 phase map (67-71):**
 
@@ -117,6 +117,9 @@ Relevant to v4.2:
 - [Phase ?]: [Phase 67]: ContinuityMode lives in schemas.py as a str-enum (app layer, D-03), VARCHAR column unchanged; Pydantic rejects out-of-enum continuity_mode with 422, default anthology = unchanged behavior
 - [Phase ?]: [Phase 67]: update_show loop coerces Enum members to .value before setattr so the VARCHAR continuity_mode column stores 'standalone', not 'ContinuityMode.STANDALONE'
 - [Phase ?]: [Phase 67]: episode_summary_stale existence-gated on same-row summary (D-02), independent of show_id; reuses {write,scenes} (D-02a); flag surfaced read-only on Project, text internal (D-04)
+- [Phase ?]: [Phase 68]: build_bible_context branches on show.continuity_mode == ContinuityMode.CONNECTED.value (VARCHAR string compare); connected injects a Prior Episodes block, anthology/standalone/show_id-NULL unchanged
+- [Phase ?]: [Phase 68]: prior episodes ordered by episode_number.asc() (never positional), scoped to the project's own show_id (T-68-01), empty/whitespace skipped, most-recent PRIOR_EPISODE_CAP=8 (T-68-03), stale tagged with the '(summary may be out of date)' marker rather than skipped
+- [Phase ?]: [Phase 68]: connected show with empty bible but non-empty priors still emits the Prior Episodes block (None only when both empty); zero downstream/provider changes (single build_bible_context edit-site)
 
 ### Pending Todos
 
@@ -146,6 +149,7 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 | Phase 67 P01 | 4min | 2 tasks | 2 files |
 | Phase 67 P02 | 5min | 2 tasks | 3 files |
 | Phase 67 P03 | 3min | 2 tasks | 3 files |
+| Phase 68 P01 | 4min | 2 tasks | 2 files |
 
 ### Blockers/Concerns
 
@@ -154,6 +158,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-17T18:12:00.941Z
+Last session: 2026-06-17T19:36:41.667Z
 Stopped at: Completed 67-02-PLAN.md
 Resume file: None

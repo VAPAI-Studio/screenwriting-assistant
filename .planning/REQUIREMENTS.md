@@ -11,9 +11,9 @@
 ### Show continuity mode + generation (SCONT)
 
 - [x] **SCONT-01**: User can set a Show's continuity mode (`connected` / `anthology` / `standalone`) when creating or editing the show
-- [ ] **SCONT-02**: In `connected` mode, generating an episode feeds the AI the season arc plus the summaries of prior episodes, ordered by `episode_number` (never positional)
-- [ ] **SCONT-03**: In `anthology` mode, episode generation receives only the shared bible (world/tone), with no other-episode context
-- [ ] **SCONT-04**: In `standalone` mode, no cross-episode context is injected (feature-film behavior)
+- [x] **SCONT-02**: In `connected` mode, generating an episode feeds the AI the season arc plus the summaries of prior episodes, ordered by `episode_number` (never positional)
+- [x] **SCONT-03**: In `anthology` mode, episode generation receives only the shared bible (world/tone), with no other-episode context
+- [x] **SCONT-04**: In `standalone` mode, no cross-episode context is injected (feature-film behavior)
 
 ### Auto episode summary + invalidation (ESUM)
 
@@ -236,9 +236,9 @@
 |-------------|-------|--------|
 | SCONT-01 | Phase 67 | Complete |
 | ESUM-02 | Phase 67 | Complete |
-| SCONT-02 | Phase 68 | Pending |
-| SCONT-03 | Phase 68 | Pending |
-| SCONT-04 | Phase 68 | Pending |
+| SCONT-02 | Phase 68 | Complete |
+| SCONT-03 | Phase 68 | Complete |
+| SCONT-04 | Phase 68 | Complete |
 | ESUM-01 | Phase 69 | Pending |
 | ESUM-03 | Phase 69 | Pending |
 | SWZ-01 | Phase 70 | Pending |
