@@ -15,6 +15,7 @@
 - 📝 **v7.0 Breakdown Fidelity** — Phases 50-53 — deepen extraction (extract against scene text not summaries, per-appearance context, expanded categories, re-extract on change) — planned (requirements + roadmap defined 2026-06-06; execution gated on v6.0 close)
 - ✅ **v8.0 MCP Server** — Phases 55-61 (shipped 2026-06-12) — 17 MCP tools over remote Streamable HTTP, authed by the v5.0 `sa_<key>` gateway; live UAT passed (Claude Code). See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md)
 - 📝 **v9.0 Deploy (Railway + Vercel + CI/CD)** — Phases 62-66 — get the app running in production: backend + Postgres (pgvector) + `/media` volume on Railway, frontend on Vercel, migrations on boot, GitHub Actions tests-on-push + deploy-on-merge-to-`main`, public-deploy CORS/MCP hardening + post-deploy smoke test. Internal tool — scope is "deployed reliably." — planned (requirements + roadmap defined 2026-06-14)
+- 🚧 **v10.0 Show Type / Episode Continuity** — Phases 67-71 — each Show declares a single `continuity_mode` (connected / anthology / standalone) that changes what prior context the AI gets when writing an episode; AI auto-summarizes each episode (invalidated on edit, regenerated lazily) and feeds prior summaries into connected-mode generation; show-creation wizard picks the mode via presets; review is mode-aware. Internal tool — scope is "episodes connect coherently." See [.planning/v10.0-SHOW-TYPE-VISION.md](v10.0-SHOW-TYPE-VISION.md) — in progress (requirements + roadmap defined 2026-06-17)
 
 > **Direction note (2026-06-05):** This is an **internal tool**. Roadmap focus is the quality of script-writing and breakdown only. Market features (industry export, collaboration, AI-previz, public API platform) are out of scope. The separate AI previz platform stays disconnected for now.
 
@@ -143,6 +144,16 @@ Get the app running in production. Config-parametrization first (prerequisite fo
 - [x] **Phase 64: Frontend on Vercel** — DONE & LIVE. Vite app deployed on Vercel (souts team), HTTP 200, SPA rewrite works (/projects → 200), VITE_API_URL=`https://web-production-73857.up.railway.app/api` baked into the bundle. Vercel Deployment Protection was disabled (was returning 401 on all deploys). Pending: lock CORS to the Vercel domain (Phase 66) for end-to-end API calls.
 - [~] **Phase 65: CI/CD with GitHub Actions** — a workflow runs the backend test suite on every push as a gate (~399 tests, 4 pre-existing flakes tolerated) and, on merge to `main`, deploys the backend to Railway and the frontend to Vercel — depends on both deploy targets being configured; human-in-the-loop (deploy tokens/secrets entered into GitHub) — REPO-SIDE DONE (.github/workflows test+deploy, rerun flake tolerance); manual GitHub secrets pending → checklist
 - [~] **Phase 66: Public-Deploy Hardening & Post-Deploy Smoke Test** — CORS DONE & VERIFIED (ALLOWED_ORIGINS=["https://screenwriting-assistant-lake.vercel.app"] on Railway; preflight allows Vercel origin, rejects others with 400; end-to-end app verified working in browser). Repo-side smoke_test.sh + deploy gate + DNS-rebinding toggle done. Remaining: optional MCP_DNS_REBINDING_PROTECTION=true; PROD_BACKEND_URL/PROD_FRONTEND_URL GitHub secrets for the smoke gate (tied to Phase 65).
+
+### 🚧 v10.0 Show Type / Episode Continuity (Phases 67-71) — In Progress
+
+Each Show declares a single `continuity_mode` (`connected` / `anthology` / `standalone`) that changes what prior context the AI receives when writing an episode. Data model + idempotent `delta/*.sql` migration first (the `shows.continuity_mode` enum + `projects.episode_summary` + `projects.episode_summary_stale` columns, mirroring the existing `breakdown_stale`/`shotlist_stale` pattern), then mode-aware generation context injection (connected: season arc + prior-episode summaries ordered by `episode_number`, never positional; anthology: bible only; standalone: none), then AI auto-summary on episode completion with lazy regeneration of stale summaries before they feed later episodes, then the show-creation wizard (mode picked via Microserie / Serie conectada / Antología presets that are pure UI sugar over the single mode), then mode-aware review (connected checks continuity against prior summaries). Locked decisions (single axis, AI auto-summary, stale-flag invalidation, scale stays metadata, presets are UI sugar) per `.planning/v10.0-SHOW-TYPE-VISION.md`. Deferred (NOT this milestone): continuity-inconsistency detection, multi-season, hand-editable summaries, scale-as-behavior. Open questions folded into phase notes (default mode on migration, when the auto-summary fires, token-budget cap for long connected seasons) — resolved at plan-phase, not blockers.
+
+- [ ] **Phase 67: Continuity Data Model & Migration** — add `shows.continuity_mode` (enum connected/anthology/standalone), `projects.episode_summary` (TEXT, nullable), `projects.episode_summary_stale` (Boolean default False) via a new idempotent `delta/NNN_*.sql`; expose set/edit of the mode on the Show API and set `episode_summary_stale=True` whenever an episode is edited (mirrors `breakdown_stale`/`shotlist_stale`) — the foundation every later phase reads
+- [ ] **Phase 68: Mode-Aware Generation Context Injection** — episode-writing generation branches on `continuity_mode`: connected injects season arc + prior-episode `episode_summary` (ordered by `episode_number`); anthology injects only the shared bible; standalone injects no cross-episode context — mirrors the existing `bible_context` injection point
+- [ ] **Phase 69: Auto Episode Summary & Lazy Regeneration** — the AI generates and stores `episode_summary` when an episode is completed, and a stale summary is regenerated before it is used as prior-episode context for a later episode (lazy regen via the `episode_summary_stale` flag)
+- [ ] **Phase 70: Show Creation Wizard (mode + presets)** — the show create/edit flow lets the user pick the continuity mode via Microserie / Serie conectada / Antología presets (visual shortcuts that set the underlying single mode), and the flow adapts to the mode (connected surfaces the season-arc step; anthology hides cross-episode steps)
+- [ ] **Phase 71: Mode-Aware Review** — in connected mode, episode review additionally considers continuity with prior episodes (character/plot coherence checked against the prior-episode summaries); lighter scope, no inconsistency-detection engine
 
 ## Phase Details
 
@@ -562,6 +573,63 @@ Plans:
   3. A post-deploy smoke test confirms the backend `/health` responds at the Railway domain AND the deployed frontend loads, and this check gates deploy success
 **Plans**: TBD
 
+### Phase 67: Continuity Data Model & Migration
+**Goal**: A Show can declare its `continuity_mode` and every episode can carry an AI summary that is automatically invalidated when the episode changes — the data foundation the generation, summary, wizard, and review phases all read
+**Depends on**: Nothing (first phase of v10.0; pure schema + API groundwork)
+**Requirements**: SCONT-01, ESUM-02
+**Constraints to honor**: add `shows.continuity_mode` (enum `connected` | `anthology` | `standalone`), `projects.episode_summary` (TEXT, nullable), and `projects.episode_summary_stale` (Boolean, default False) via a NEW idempotent `backend/migrations/delta/NNN_*.sql` applied on boot (Phase 62 mechanism) — never an in-place ALTER that breaks re-runs; the stale flag mirrors the existing `breakdown_stale`/`shotlist_stale` pattern exactly; editing an episode (its screenplay/content) must set `episode_summary_stale=True`; standalone projects (`show_id` NULL) are unaffected. **Open question (resolve at plan-phase, not a blocker)**: the default `continuity_mode` applied to existing shows on migration — `connected` preserves the implicit "season" intent, `anthology` is the safest no-behavior-change default; decide here.
+**Success Criteria** (what must be TRUE):
+  1. A Show can be created or edited with a `continuity_mode` of `connected`, `anthology`, or `standalone`, and the value persists and is readable via the Show API
+  2. Starting the backend against an existing database applies the new `delta/NNN_*.sql` once and is a no-op on re-run (idempotent), with existing shows/episodes still valid and standalone projects unchanged
+  3. Each episode (Project) has an `episode_summary` (initially empty/null) and an `episode_summary_stale` flag defaulting to False
+  4. Editing an episode sets its `episode_summary_stale` to True, exactly as a script change sets `breakdown_stale`/`shotlist_stale`
+**Plans**: TBD
+
+### Phase 68: Mode-Aware Generation Context Injection
+**Goal**: When the AI writes an episode, the prior context it receives is determined by the show's `continuity_mode` — connected carries continuity, anthology stays bible-only, standalone is fully independent
+**Depends on**: Phase 67 (the `continuity_mode` column and `episode_summary` storage must exist for generation to branch on them)
+**Requirements**: SCONT-02, SCONT-03, SCONT-04
+**Constraints to honor**: branch at the existing `bible_context` assembly point (`breakdown_service.py:312` shows the pattern to mirror) inside the episode-writing prompt builders (`openai_service.py` / anthropic); in `connected` mode inject the season arc PLUS the `episode_summary` of prior episodes ordered by `episode_number` (the reliable key — NEVER positional, see the ScreenplayContent ordering bug that bit twice); in `anthology` inject only the shared bible (world/tone); in `standalone` inject no cross-episode context (feature-film behavior); standalone projects with `show_id` NULL keep their current behavior unchanged. This phase only READS summaries — it does not generate or regenerate them (that is Phase 69), so a missing/stale summary must degrade gracefully (e.g. skip that episode's contribution) rather than fail generation. **Open question (resolve at plan-phase, not a blocker)**: the token-budget / truncation policy when a connected season has many prior summaries — summaries are bounded but still need a cap.
+**Success Criteria** (what must be TRUE):
+  1. Generating an episode in a `connected` show feeds the prompt the season arc plus the summaries of prior episodes, ordered by `episode_number` (not positional)
+  2. Generating an episode in an `anthology` show feeds the prompt only the shared bible (world/tone) — no other-episode plot context
+  3. Generating an episode in a `standalone` show (or a standalone project) injects no cross-episode context
+  4. A connected episode with one or more missing/empty prior summaries still generates without error (degrades gracefully)
+**Plans**: TBD
+
+### Phase 69: Auto Episode Summary & Lazy Regeneration
+**Goal**: Each episode gets an AI-generated summary automatically, and a stale summary is refreshed before it is ever used as context for a later episode — so connected generation never reads an out-of-date summary
+**Depends on**: Phase 67 (the `episode_summary` / `episode_summary_stale` columns) and Phase 68 (the connected-mode injection that consumes the summaries)
+**Requirements**: ESUM-01, ESUM-03
+**Constraints to honor**: the summary is AI-AUTO-generated, not hand-written and not the full prior script (locked decision D2 — full scripts blow up tokens, manual summaries break the "magic"); it is stored on the episode (Project.`episode_summary`); regeneration is LAZY — a summary marked stale (Phase 67 flag) is regenerated just-in-time before Phase 68 reads it for a later episode, not eagerly on every edit; embeddings are OpenAI-only but summary text gen can use OpenAI or Anthropic via the existing provider abstraction. **Open question (resolve at plan-phase, not a blocker)**: exactly where the auto-summary first fires — on an explicit "complete episode" action vs. on the first request for a later episode's context — which affects cost and UX; decide here.
+**Success Criteria** (what must be TRUE):
+  1. Completing an episode generates an `episode_summary` via the AI and stores it on the episode
+  2. A summary whose `episode_summary_stale` flag is True is regenerated before it is used as prior-episode context for a later connected episode, and the flag is cleared after a successful regeneration
+  3. Regenerating one episode's stale summary does not regenerate or disturb other episodes' up-to-date summaries
+**Plans**: TBD
+
+### Phase 70: Show Creation Wizard (mode + presets)
+**Goal**: At show creation (and edit), the user picks how episodes relate via friendly presets, and the flow adapts to that choice — making continuity mode a first-class, understandable setup step
+**Depends on**: Phase 67 (the `continuity_mode` the wizard writes must exist on the Show model/API)
+**Requirements**: SWZ-01, SWZ-02
+**Constraints to honor**: presets (Microserie / Serie conectada / Antología) are PURE UI SUGAR over the single `continuity_mode` (locked decision D5) — they set the mode (+ optionally a sensible default `episode_duration_minutes`, which stays metadata, NOT part of the type per D4); the model stores only `continuity_mode`, never the preset label; the flow adapts to the mode (connected surfaces the season-arc bible step; anthology hides cross-episode steps); editing an existing show can change the mode (reuses the Phase 67 set/edit API).
+**Success Criteria** (what must be TRUE):
+  1. When creating a show, the user can pick a continuity mode via the Microserie / Serie conectada / Antología presets, and the chosen preset sets the underlying `continuity_mode`
+  2. The creation flow adapts to the selected mode — connected surfaces the season-arc step, anthology hides cross-episode steps
+  3. The persisted show carries only the resulting `continuity_mode` (presets leave no separate stored field), and a later edit can change the mode
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 71: Mode-Aware Review
+**Goal**: Episode review understands the show's continuity mode — connected episodes are reviewed for coherence with what came before, without standing up a full inconsistency-detection engine
+**Depends on**: Phase 68 (mode-aware context) and Phase 69 (prior-episode summaries must exist and be fresh to review against)
+**Requirements**: SREV-01
+**Constraints to honor**: scope is deliberately LIGHT — in `connected` mode, review additionally considers character/plot coherence against the prior-episode summaries; this is NOT the deferred automatic continuity-inconsistency detection ("character X is dead in ep2 but appears in ep4") — that stays out of this milestone; reuse the prior-episode summaries from Phase 69 as the coherence reference (ordered by `episode_number`); anthology/standalone review keeps its current standalone-quality scope (no cross-episode checks).
+**Success Criteria** (what must be TRUE):
+  1. In a `connected` show, episode review surfaces continuity considerations checked against the prior-episode summaries (character/plot coherence)
+  2. In `anthology` and `standalone` modes, review does not perform cross-episode continuity checks (standalone-quality scope preserved)
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -632,3 +700,8 @@ Plans:
 | 64. Frontend on Vercel | v9.0 | 0/? | Not started | - |
 | 65. CI/CD with GitHub Actions | v9.0 | 0/? | Not started | - |
 | 66. Public-Deploy Hardening & Post-Deploy Smoke Test | v9.0 | 0/? | Not started | - |
+| 67. Continuity Data Model & Migration | v10.0 | 0/? | Not started | - |
+| 68. Mode-Aware Generation Context Injection | v10.0 | 0/? | Not started | - |
+| 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 0/? | Not started | - |
+| 70. Show Creation Wizard (mode + presets) | v10.0 | 0/? | Not started | - |
+| 71. Mode-Aware Review | v10.0 | 0/? | Not started | - |

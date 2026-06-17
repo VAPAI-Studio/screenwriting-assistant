@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: planning
-last_updated: "2026-06-17T16:15:55.775Z"
+status: roadmap_complete
+last_updated: "2026-06-17T17:00:00.000Z"
 last_activity: 2026-06-17
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v9.0 Deploy — APP IS LIVE end-to-end.
+**Current focus:** v10.0 Show Type / Episode Continuity — roadmap created (Phases 67-71). Next: plan Phase 67 (Continuity Data Model & Migration).
 
 - Backend (Railway): https://web-production-73857.up.railway.app (/health 200)
 - Frontend (Vercel): https://screenwriting-assistant-lake.vercel.app (verified working in browser)
@@ -31,10 +31,21 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 67 — Continuity Data Model & Migration (first v10.0 phase, not yet planned)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-06-17 — Milestone v10.0 started
+Status: Roadmap complete — ready to plan Phase 67
+Last activity: 2026-06-17 — v10.0 roadmap created (Phases 67-71, 10/10 requirements mapped)
+
+**v10.0 phase map (67-71):**
+- Phase 67 Continuity Data Model & Migration — SCONT-01, ESUM-02 (shows.continuity_mode + episode_summary/_stale via delta migration)
+- Phase 68 Mode-Aware Generation Context Injection — SCONT-02/03/04 (branch prior-context on mode; prior summaries ordered by episode_number)
+- Phase 69 Auto Episode Summary & Lazy Regeneration — ESUM-01, ESUM-03 (AI auto-summary on completion; lazy regen of stale)
+- Phase 70 Show Creation Wizard (mode + presets) — SWZ-01, SWZ-02 (presets are UI sugar over the single mode)
+- Phase 71 Mode-Aware Review — SREV-01 (connected continuity review vs prior summaries; light scope)
+
+**Locked decisions (do not re-ask):** single continuity_mode axis; AI auto-summary (not manual/full-script); stale-flag invalidation + lazy regen; scale stays metadata (episode_duration_minutes); presets are UI sugar.
+**Deferred (no phases):** continuity-inconsistency detection; multi-season; hand-editable summaries; scale-as-behavior.
+**Open questions for plan-phase (folded into phase notes, not blockers):** default continuity_mode on migration (P67); when the auto-summary fires (P69); token-budget cap for long connected seasons (P68).
 
 ## Performance Metrics
 

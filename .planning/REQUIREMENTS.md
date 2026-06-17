@@ -234,6 +234,16 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| SCONT-01 | Phase 67 | Pending |
+| ESUM-02 | Phase 67 | Pending |
+| SCONT-02 | Phase 68 | Pending |
+| SCONT-03 | Phase 68 | Pending |
+| SCONT-04 | Phase 68 | Pending |
+| ESUM-01 | Phase 69 | Pending |
+| ESUM-03 | Phase 69 | Pending |
+| SWZ-01 | Phase 70 | Pending |
+| SWZ-02 | Phase 70 | Pending |
+| SREV-01 | Phase 71 | Pending |
 | DCFG-01 | Phase 62 | Pending |
 | DCFG-02 | Phase 62 | Pending |
 | DMIG-01 | Phase 62 | Pending |
@@ -310,7 +320,7 @@
 | EPIS-05 | Phase 42 | Complete |
 
 **Coverage:**
-- v10.0 requirements: 10 total (SCONT 4 / ESUM 3 / SWZ 2 / SREV 1) — Mapping pending (roadmap not yet created; phases continue from 67)
+- v10.0 requirements: 10 total (SCONT 4 / ESUM 3 / SWZ 2 / SREV 1) — Mapped to phases 67-71: 10/10 (67: SCONT-01, ESUM-02 / 68: SCONT-02,03,04 / 69: ESUM-01, ESUM-03 / 70: SWZ-01,02 / 71: SREV-01) — roadmap created 2026-06-17
 - v9.0 requirements: 13 total (DBKD 4 / DFND 2 / DCFG 2 / DMIG 1 / DCICD 2 / DSEC 1 / DVER 1) — Mapped to phases 62-66: 13/13 — Shipped & live 2026-06-15
 - v8.0 requirements: 21 total (MCPF 5 / MCPJ 3 / MCPW 3 / MCPB 2 / MCPS 3 / MCPP 3 / MCPD 2) — Mapped to phases 55-61: 21/21 — Pending (roadmap defined 2026-06-12)
 - v7.0 requirements: 12 total (BFID/APPR/CATG/REEX) — Mapped to phases 50-53: 12/12 — Planned (execution gated on v6.0 close)
@@ -321,4 +331,4 @@
 
 ---
 *Requirements defined: 2026-03-24*
-*Last updated: 2026-06-12 after v8.0 roadmap creation*
+*Last updated: 2026-06-17 after v10.0 roadmap creation*
