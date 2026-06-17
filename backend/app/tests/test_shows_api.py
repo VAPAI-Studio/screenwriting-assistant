@@ -169,6 +169,54 @@ class TestShowsAPI:
         )
         assert resp.status_code == 404
 
+    def test_create_show_with_continuity_mode(self, client, mock_auth_headers):
+        """POST with continuity_mode='connected' returns 201 and the body reflects it."""
+        resp = client.post(
+            "/api/shows/",
+            json={"title": "Connected Saga", "continuity_mode": "connected"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201
+        assert resp.json()["continuity_mode"] == "connected"
+
+    def test_create_show_default_continuity_mode(self, client, mock_auth_headers):
+        """POST without continuity_mode defaults to anthology (D-01)."""
+        resp = client.post(
+            "/api/shows/",
+            json={"title": "Anthology Show"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 201
+        assert resp.json()["continuity_mode"] == "anthology"
+
+    def test_update_continuity_mode_round_trip(self, client, mock_auth_headers):
+        """PUT continuity_mode='standalone' then GET returns 'standalone'."""
+        create_resp = client.post(
+            "/api/shows/",
+            json={"title": "Mode Round Trip"},
+            headers=mock_auth_headers,
+        )
+        show_id = create_resp.json()["id"]
+        update_resp = client.put(
+            f"/api/shows/{show_id}",
+            json={"continuity_mode": "standalone"},
+            headers=mock_auth_headers,
+        )
+        assert update_resp.status_code == 200
+        assert update_resp.json()["continuity_mode"] == "standalone"
+        get_resp = client.get(f"/api/shows/{show_id}", headers=mock_auth_headers)
+        assert get_resp.status_code == 200
+        assert get_resp.json()["continuity_mode"] == "standalone"
+
+    def test_create_show_invalid_continuity_mode(self, client, mock_auth_headers):
+        """POST with continuity_mode='bogus' is rejected with 422 (T-67-03)."""
+        resp = client.post(
+            "/api/shows/",
+            json={"title": "Bad Mode Show", "continuity_mode": "bogus"},
+            headers=mock_auth_headers,
+        )
+        assert resp.status_code == 422
+
     def test_create_show_fields_complete(self, client, mock_auth_headers):
         resp = client.post(
             "/api/shows/",

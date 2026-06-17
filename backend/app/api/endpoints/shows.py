@@ -1,3 +1,4 @@
+import enum
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -21,6 +22,7 @@ async def create_show(
     db_show = database.Show(
         title=body.title,
         description=body.description,
+        continuity_mode=body.continuity_mode.value,
         owner_id=str(current_user.id),
     )
     db.add(db_show)
@@ -77,6 +79,10 @@ async def update_show(
         raise NotFoundException(resource="Show", identifier=str(show_id))
     update_data = body.model_dump(exclude_unset=True)
     for field, value in update_data.items():
+        # Coerce Enum members (e.g. continuity_mode) to their string value so
+        # the VARCHAR column stores "standalone", not "ContinuityMode.STANDALONE".
+        if isinstance(value, enum.Enum):
+            value = value.value
         setattr(show, field, value)
     db.commit()
     db.refresh(show)
