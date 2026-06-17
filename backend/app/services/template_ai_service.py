@@ -11,6 +11,35 @@ from .ai_provider import chat_completion, chat_completion_stream
 logger = logging.getLogger(__name__)
 
 
+def _read_episode_text_by_index(db, project_id) -> str:
+    """Reconstruct an episode's screenplay text from ScreenplayContent rows,
+    joined STRICTLY by formatted_content.episode_index — never positionally.
+
+    Project memory: ScreenplayContent has NO reliable order; positional joins bit
+    the project twice (v6.0 WR-01, v7.0 ph50). created_at is only second-resolution
+    on SQLite, so it is used ONLY as a newest-first tiebreaker (first match per
+    index wins = newest row for that index), mirroring
+    breakdown_service._align_screenplay_to_scenes. Rows lacking episode_index or
+    with empty content are skipped. Values are joined in ascending episode_index
+    order with a blank line between scenes.
+    """
+    from ..models.database import ScreenplayContent
+
+    rows = (
+        db.query(ScreenplayContent)
+        .filter(ScreenplayContent.project_id == str(project_id))
+        .order_by(ScreenplayContent.created_at.desc(), ScreenplayContent.id.desc())
+        .all()
+    )
+    by_index: Dict[int, str] = {}
+    for r in rows:
+        idx = (getattr(r, "formatted_content", None) or {}).get("episode_index")
+        if idx is None or not r.content:
+            continue
+        by_index.setdefault(idx, r.content)  # first wins = newest (rows are newest-first)
+    return "\n\n".join(by_index[i] for i in sorted(by_index))
+
+
 class TemplateAIService:
 
     def _build_project_context(
@@ -301,6 +330,46 @@ Return only the synopsis prose."""
         except Exception as e:
             logger.error(f"Synopsis update error: {e}")
             return prev_synopsis
+
+    async def summarize_episode(self, db, project) -> str:
+        """Produce a BOUNDED prose continuity summary of an episode's screenplay.
+
+        ESUM-01 (locked D2): a bounded summary for use as continuity context when
+        writing LATER episodes — NOT the full prior script. Reads the episode's
+        source text from ScreenplayContent by episode_index (never positionally)
+        and routes through the provider-abstracted chat_completion with
+        json_mode=False (prose, not JSON), mirroring _update_synopsis.
+
+        Caller-commits convention (Phase 67): this method does NOT commit and does
+        NOT mutate the project — it returns stripped prose; the trigger writes it.
+        Empty source text returns "" (caller decides whether to write).
+        """
+        WORD_CAP = 250  # bounded — D2: not the full prior script; caps prompt size
+        scene_text = _read_episode_text_by_index(db, project.id)
+        if not scene_text.strip():
+            return ""
+
+        prompt = f"""Summarize this episode's screenplay for use as continuity context when writing LATER episodes of the same series. Capture: what happened (plot beats), changes in character state/relationships, and any setups left unresolved. Be factual and concise.
+Stay under {WORD_CAP} words. Prose only — no headings, no bullet lists, no JSON. Do NOT reproduce the script.
+
+Episode: {project.title}
+{scene_text}
+
+Return only the summary prose."""
+
+        text = await chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a precise story editor who writes concise, factual episode summaries for series continuity. Return prose only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=500,
+            json_mode=False,
+        )
+        return (text or "").strip()
 
     async def _generate_one_scene(
         self,

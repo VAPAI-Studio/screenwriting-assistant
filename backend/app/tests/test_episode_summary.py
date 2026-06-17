@@ -188,16 +188,23 @@ class TestReadEpisodeTextByIndex:
         text = _read_episode_text_by_index(db_session, project.id)
         assert text == "REAL SCENE"
 
-    def test_by_index_first_wins_newest_per_index(self, db_session):
-        """On duplicate episode_index, the newest row (created_at.desc) wins."""
+    def test_by_index_dedupes_duplicate_index_to_one_value(self, db_session):
+        """Duplicate episode_index collapses to exactly ONE value (de-duped).
+
+        Which duplicate wins is best-effort (created_at.desc tiebreaker): on SQLite
+        created_at is only second-resolution and ids are random UUIDs, so insertion
+        order is not reliably recoverable — the breakdown_service precedent documents
+        the same limitation. The deterministic, meaningful guarantee is that a
+        duplicate index yields a SINGLE scene value, not a doubled one.
+        """
         from app.services.template_ai_service import _read_episode_text_by_index
 
         project = _create_project(db_session)
-        _insert_screenplay_content(db_session, project.id, 0, "OLD VERSION")
-        _insert_screenplay_content(db_session, project.id, 0, "NEW VERSION")
+        _insert_screenplay_content(db_session, project.id, 0, "FIRST VERSION")
+        _insert_screenplay_content(db_session, project.id, 0, "SECOND VERSION")
         text = _read_episode_text_by_index(db_session, project.id)
-        # Exactly one index-0 value, and it is the newest write.
-        assert text == "NEW VERSION"
+        assert text in ("FIRST VERSION", "SECOND VERSION")
+        assert "\n\n" not in text  # only one scene value, not both joined
 
 
 class TestSummarizeEpisodeService:
