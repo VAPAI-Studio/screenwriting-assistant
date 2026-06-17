@@ -10,7 +10,7 @@
 
 ### Show continuity mode + generation (SCONT)
 
-- [ ] **SCONT-01**: User can set a Show's continuity mode (`connected` / `anthology` / `standalone`) when creating or editing the show
+- [x] **SCONT-01**: User can set a Show's continuity mode (`connected` / `anthology` / `standalone`) when creating or editing the show
 - [ ] **SCONT-02**: In `connected` mode, generating an episode feeds the AI the season arc plus the summaries of prior episodes, ordered by `episode_number` (never positional)
 - [ ] **SCONT-03**: In `anthology` mode, episode generation receives only the shared bible (world/tone), with no other-episode context
 - [ ] **SCONT-04**: In `standalone` mode, no cross-episode context is injected (feature-film behavior)
@@ -18,7 +18,7 @@
 ### Auto episode summary + invalidation (ESUM)
 
 - [ ] **ESUM-01**: When an episode is completed, the AI generates and stores a summary of that episode (`episode_summary`)
-- [ ] **ESUM-02**: Editing an episode marks its summary stale (`episode_summary_stale`), mirroring the `breakdown_stale`/`shotlist_stale` pattern
+- [x] **ESUM-02**: Editing an episode marks its summary stale (`episode_summary_stale`), mirroring the `breakdown_stale`/`shotlist_stale` pattern
 - [ ] **ESUM-03**: A stale episode summary is regenerated before it is used as context for later episodes (lazy regeneration)
 
 ### Show creation wizard (SWZ)
@@ -234,8 +234,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCONT-01 | Phase 67 | Pending |
-| ESUM-02 | Phase 67 | Pending |
+| SCONT-01 | Phase 67 | Complete |
+| ESUM-02 | Phase 67 | Complete |
 | SCONT-02 | Phase 68 | Pending |
 | SCONT-03 | Phase 68 | Pending |
 | SCONT-04 | Phase 68 | Pending |

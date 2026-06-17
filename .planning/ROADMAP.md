@@ -584,7 +584,7 @@ Plans:
   3. Each episode (Project) has an `episode_summary` (initially empty/null) and an `episode_summary_stale` flag defaulting to False
   4. Editing an episode sets its `episode_summary_stale` to True, exactly as a script change sets `breakdown_stale`/`shotlist_stale`
 **Plans**: 3 plans
-- [ ] 67-01-PLAN.md — Schema foundation: idempotent delta 011 + Show/Project model columns
+- [x] 67-01-PLAN.md — Schema foundation: idempotent delta 011 + Show/Project model columns
 - [ ] 67-02-PLAN.md — Show continuity_mode API (enum + ShowCreate/Update/Response + tests)
 - [ ] 67-03-PLAN.md — Episode summary stale hook + read-only flag surface + tests
 
@@ -703,7 +703,7 @@ Plans:
 | 64. Frontend on Vercel | v9.0 | 0/? | Not started | - |
 | 65. CI/CD with GitHub Actions | v9.0 | 0/? | Not started | - |
 | 66. Public-Deploy Hardening & Post-Deploy Smoke Test | v9.0 | 0/? | Not started | - |
-| 67. Continuity Data Model & Migration | v10.0 | 0/? | Not started | - |
+| 67. Continuity Data Model & Migration | v10.0 | 1/3 | In Progress|  |
 | 68. Mode-Aware Generation Context Injection | v10.0 | 0/? | Not started | - |
 | 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 0/? | Not started | - |
 | 70. Show Creation Wizard (mode + presets) | v10.0 | 0/? | Not started | - |

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: planning
+status: executing
 stopped_at: Phase 67 context gathered
-last_updated: "2026-06-17T16:29:18.035Z"
-last_activity: 2026-06-17 — v10.0 roadmap created (Phases 67-71, 10/10 requirements mapped)
+last_updated: "2026-06-17T17:59:54.597Z"
+last_activity: 2026-06-17
 progress:
   total_phases: 36
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 6
+  total_plans: 5
+  completed_plans: 7
   percent: 3
 ---
 
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** v10.0 Show Type / Episode Continuity — roadmap created (Phases 67-71). Next: plan Phase 67 (Continuity Data Model & Migration).
+**Current focus:** Phase 67 — continuity-data-model-migration
 
 - Backend (Railway): https://web-production-73857.up.railway.app (/health 200)
 - Frontend (Vercel): https://screenwriting-assistant-lake.vercel.app (verified working in browser)
@@ -32,10 +32,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 67 — Continuity Data Model & Migration (first v10.0 phase, not yet planned)
-Plan: —
-Status: Roadmap complete — ready to plan Phase 67
-Last activity: 2026-06-17 — v10.0 roadmap created (Phases 67-71, 10/10 requirements mapped)
+Phase: 67 (continuity-data-model-migration) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-17
 
 **v10.0 phase map (67-71):**
 
@@ -112,6 +112,8 @@ Relevant to v4.2:
 - [Phase 53]: extract loop skips _reconcile_scene_links when db_element.user_modified is True (loop guard, D-53-01) — user-owned elements' scene links are left untouched on re-extract; element_map membership preserved; non-user_modified elements STILL reconcile (Test B proves the guard is scoped to user_modified only); additive guard only, no schema change/migration/FE change (D-53-03); REEX-01 full chain (stale→re-extract→preserve→clear) proven by an integration test (D-53-02)
 - [Phase 54]: PATCH /phase-data is now a generic upsert (fetch-or-create, mirrors wizards.py) so the first save from an empty project no longer 404s (D-54-01); ScreenplayContent sync lives in a guarded branch `if phase=="write" and subsection_key=="screenplay_editor"` inside the generic PATCH (no new endpoint, no FE client change, D-54-05 option b) — delete-then-recreate scoped to project_id keeps repeated saves idempotent; formatted_content=sp preserves episode_index for v7.0 scene alignment; manual save REPLACES (wizard apply still APPENDS, unchanged); generic non-screenplay subsections never create ScreenplayContent (test-enforced)
 - [Phase 54]: splitByHeadings is the pure zero-originals splitter (INT./EXT. slugline → one scene each; no heading → one "Untitled"; empty → []); title=slugline, content=body-after-slugline with the slugline STRIPPED because buildDocument re-prepends title.toUpperCase() (would double-render otherwise, D-54-03); after first save the existing title-anchor splitToScreenplays handles round-trips stably; empty editor is writable via a "Start writing" affordance (D-54-02)
+- [Phase 67]: continuity_mode is VARCHAR(20) String default 'anthology' (D-03), NOT a PG Enum so new modes need no ALTER TYPE migration
+- [Phase 67]: default 'anthology' = zero behavior change on upgrade (D-01); episode_summary_stale mirrors breakdown_stale/shotlist_stale; both ORM default + server_default set so non-ORM inserts default correctly
 
 ### Pending Todos
 
@@ -138,6 +140,7 @@ Items acknowledged and deferred at v6.0 milestone close on 2026-06-11:
 | tech_debt | frontend npm run lint references non-existent ESLint config | tsc/build is the binding type gate |
 
 These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UAT. The phase-27/31/33/34 gaps belong to already-shipped milestones (v3.1–v4.0).
+| Phase 67 P01 | 4min | 2 tasks | 2 files |
 
 ### Blockers/Concerns
 
@@ -146,6 +149,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-17T16:29:18.027Z
+Last session: 2026-06-17T17:59:26.126Z
 Stopped at: Phase 67 context gathered
-Resume file: .planning/phases/67-continuity-data-model-migration/67-CONTEXT.md
+Resume file: None
