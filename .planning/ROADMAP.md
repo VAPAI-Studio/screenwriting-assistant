@@ -611,7 +611,7 @@ Plans:
   2. A summary whose `episode_summary_stale` flag is True is regenerated before it is used as prior-episode context for a later connected episode, and the flag is cleared after a successful regeneration
   3. Regenerating one episode's stale summary does not regenerate or disturb other episodes' up-to-date summaries
 **Plans**: 2 plans
-- [ ] 69-01-PLAN.md — Summarizer service (summarize_episode, episode_index source read) + eager POST /api/projects/{id}/episode-summary trigger + ESUM-01 tests (ESUM-01)
+- [x] 69-01-PLAN.md — Summarizer service (summarize_episode, episode_index source read) + eager POST /api/projects/{id}/episode-summary trigger + ESUM-01 tests (ESUM-01)
 - [ ] 69-02-PLAN.md — Lazy regenerate_stale_priors pre-pass wired into run_wizard before build_bible_context (connected-gated, regen-failure → Phase 68 marker fallback) + ESUM-03 tests (ESUM-03)
 
 ### Phase 70: Show Creation Wizard (mode + presets)
@@ -708,6 +708,6 @@ Plans:
 | 66. Public-Deploy Hardening & Post-Deploy Smoke Test | v9.0 | 0/? | Not started | - |
 | 67. Continuity Data Model & Migration | v10.0 | 3/3 | Complete   | 2026-06-17 |
 | 68. Mode-Aware Generation Context Injection | v10.0 | 1/1 | Complete   | 2026-06-17 |
-| 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 0/? | Not started | - |
+| 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 1/2 | In Progress|  |
 | 70. Show Creation Wizard (mode + presets) | v10.0 | 0/? | Not started | - |
 | 71. Mode-Aware Review | v10.0 | 0/? | Not started | - |

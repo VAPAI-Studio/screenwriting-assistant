@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: completed
+status: executing
 stopped_at: Completed 67-02-PLAN.md
-last_updated: "2026-06-17T19:40:52.318Z"
-last_activity: 2026-06-17 -- Phase 68 marked complete
+last_updated: "2026-06-17T20:31:29.265Z"
+last_activity: 2026-06-17
 progress:
   total_phases: 36
   completed_phases: 3
-  total_plans: 6
-  completed_plans: 10
+  total_plans: 8
+  completed_plans: 11
   percent: 8
 ---
 
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 68 — mode-aware-generation-context-injection
+**Current focus:** Phase 69 — auto-episode-summary-lazy-regeneration
 
 - Backend (Railway): https://web-production-73857.up.railway.app (/health 200)
 - Frontend (Vercel): https://screenwriting-assistant-lake.vercel.app (verified working in browser)
@@ -32,10 +32,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 68 — COMPLETE
-Plan: 1 of 1
-Status: Phase 68 complete
-Last activity: 2026-06-17 -- Phase 68 marked complete
+Phase: 69 (auto-episode-summary-lazy-regeneration) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
+Last activity: 2026-06-17
 
 **v10.0 phase map (67-71):**
 
@@ -120,6 +120,8 @@ Relevant to v4.2:
 - [Phase ?]: [Phase 68]: build_bible_context branches on show.continuity_mode == ContinuityMode.CONNECTED.value (VARCHAR string compare); connected injects a Prior Episodes block, anthology/standalone/show_id-NULL unchanged
 - [Phase ?]: [Phase 68]: prior episodes ordered by episode_number.asc() (never positional), scoped to the project's own show_id (T-68-01), empty/whitespace skipped, most-recent PRIOR_EPISODE_CAP=8 (T-68-03), stale tagged with the '(summary may be out of date)' marker rather than skipped
 - [Phase ?]: [Phase 68]: connected show with empty bible but non-empty priors still emits the Prior Episodes block (None only when both empty); zero downstream/provider changes (single build_bible_context edit-site)
+- [Phase ?]: [Phase 69]: summarize_episode is bounded prose via chat_completion(json_mode=False, max_tokens=500); reads ScreenplayContent by episode_index only (no positional); caller-commits (helper does not write/commit)
+- [Phase ?]: [Phase 69]: POST /api/projects/{id}/episode-summary owner-scoped (str-coerced, cross-owner 404); empty source -> 422 no-clobber of existing summary; episode_summary text kept off Project read schema (D-04)
 
 ### Pending Todos
 
@@ -150,6 +152,7 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 | Phase 67 P02 | 5min | 2 tasks | 3 files |
 | Phase 67 P03 | 3min | 2 tasks | 3 files |
 | Phase 68 P01 | 4min | 2 tasks | 2 files |
+| Phase 69 P01 | 4min | 3 tasks | 3 files |
 
 ### Blockers/Concerns
 
@@ -158,6 +161,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-17T19:36:41.667Z
+Last session: 2026-06-17T20:28:46.566Z
 Stopped at: Completed 67-02-PLAN.md
 Resume file: None
