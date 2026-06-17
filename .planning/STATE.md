@@ -2,15 +2,16 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: roadmap_complete
-last_updated: "2026-06-17T17:00:00.000Z"
-last_activity: 2026-06-17
+status: planning
+stopped_at: Phase 67 context gathered
+last_updated: "2026-06-17T16:29:18.035Z"
+last_activity: 2026-06-17 — v10.0 roadmap created (Phases 67-71, 10/10 requirements mapped)
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 36
+  completed_phases: 1
+  total_plans: 2
+  completed_plans: 6
+  percent: 3
 ---
 
 # Project State
@@ -37,6 +38,7 @@ Status: Roadmap complete — ready to plan Phase 67
 Last activity: 2026-06-17 — v10.0 roadmap created (Phases 67-71, 10/10 requirements mapped)
 
 **v10.0 phase map (67-71):**
+
 - Phase 67 Continuity Data Model & Migration — SCONT-01, ESUM-02 (shows.continuity_mode + episode_summary/_stale via delta migration)
 - Phase 68 Mode-Aware Generation Context Injection — SCONT-02/03/04 (branch prior-context on mode; prior summaries ordered by episode_number)
 - Phase 69 Auto Episode Summary & Lazy Regeneration — ESUM-01, ESUM-03 (AI auto-summary on completion; lazy regen of stale)
@@ -144,6 +146,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-14T22:53:02.240Z
-Stopped at: Phase 62 context gathered
-Resume file: .planning/phases/62-config-parametrization-migrations-on-boot/62-CONTEXT.md
+Last session: 2026-06-17T16:29:18.027Z
+Stopped at: Phase 67 context gathered
+Resume file: .planning/phases/67-continuity-data-model-migration/67-CONTEXT.md
