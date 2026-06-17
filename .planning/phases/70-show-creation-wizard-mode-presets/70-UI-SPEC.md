@@ -35,15 +35,15 @@ Declared values (Tailwind 4px-base scale; all multiples of 4):
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| xs | 4px (`gap-1`, `mt-0.5`→2px exception) | Indicator dot gaps, helper-line top margin |
+| xs | 4px (`gap-1`) | Indicator dot gaps |
 | sm | 8px (`gap-2`, `space-y-2`) | Compact stacking (preset card list rows) |
-| md | 10px (`space-y-2.5`) | Inter-card vertical spacing (matches `CreateProjectModal` template list) |
 | lg | 16px (`p-4`, `gap-4`) | Preset card inner padding + icon-to-text gap |
 | xl | 20px (`space-y-5`) | Form section spacing inside the modal body |
 | 2xl | 24px (`px-6`) | Modal horizontal padding |
 
-Exceptions:
+Exceptions (non-multiples of 4, declared with justification — preserved verbatim from existing components, not new arbitrary values):
 - `mt-0.5` (2px) on helper-line under card title — verbatim reuse of the `CreateProjectModal` card description offset.
+- `space-y-2.5` (10px) inter-card vertical spacing — verbatim reuse of the `CreateProjectModal` template list spacing; kept to stay visually consistent with the existing card-list pattern.
 - Modal header uses `pt-6 pb-4` (24/16px) — existing modal contract, unchanged.
 
 ---
