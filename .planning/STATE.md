@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v9.0
-milestone_name: Deploy
-status: live
-stopped_at: App LIVE end-to-end (Railway backend + Vercel frontend + CORS); only Phase 65 auto-deploy secrets remain
-last_updated: "2026-06-16T03:00:00.000Z"
-last_activity: 2026-06-15 -- Phases 63, 64 + CORS(66) DONE & verified end-to-end in browser
+milestone: v10.0
+milestone_name: Show Type / Episode Continuity
+status: planning
+last_updated: "2026-06-17T16:15:55.775Z"
+last_activity: 2026-06-17
 progress:
-  total_phases: 31
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
-  percent: 10
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -22,6 +21,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
 **Current focus:** v9.0 Deploy — APP IS LIVE end-to-end.
+
 - Backend (Railway): https://web-production-73857.up.railway.app (/health 200)
 - Frontend (Vercel): https://screenwriting-assistant-lake.vercel.app (verified working in browser)
 - CORS locked to the Vercel domain. Postgres+pgvector live, migrations applied on boot.
@@ -31,26 +31,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 62 COMPLETE (verified 4/4). Phases 63-66 REPO-SIDE COMPLETE (committed); each
-has a manual human-in-the-loop remainder (Railway/Vercel logins, secrets, prod env).
-Plan: all repo-work committed (62-01/02, 63-01, 64-01, 65-01, 66-01)
-Status: ⏸ Awaiting manual deploy steps → see .planning/DEPLOY-MANUAL-CHECKLIST.md
-Last activity: 2026-06-14 -- Phases 63-66 repo-work done autonomously (yolo)
-
-**What's left is NOT code** — it's account actions only:
-- Railway login + Postgres(pgvector) + volume + secrets (Phase 63)
-- Vercel login + VITE_API_URL + domain (Phase 64)
-- GitHub deploy-token secrets (Phase 65)
-- Prod ALLOWED_ORIGINS + smoke-URL secrets (Phase 66)
-Full ordered checklist: .planning/DEPLOY-MANUAL-CHECKLIST.md
-
-**v9.0 phase order (hard dependencies):**
-
-1. Phase 62 — Config Parametrization & Migrations-on-Boot (prerequisite; in-repo, no account)
-2. Phase 63 — Backend + Postgres + Volume on Railway (human-in-the-loop: Railway login + secrets)
-3. Phase 64 — Frontend on Vercel (needs Railway backend domain; human-in-the-loop: Vercel login + domain)
-4. Phase 65 — CI/CD with GitHub Actions (needs both targets configured; human-in-the-loop: deploy tokens → GitHub secrets)
-5. Phase 66 — Public-Deploy Hardening & Post-Deploy Smoke Test (needs Vercel domain + pipeline)
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-06-17 — Milestone v10.0 started
 
 ## Performance Metrics
 

@@ -119,7 +119,24 @@ Last updated: 2026-03-24
 
 ---
 
-## Current Milestone: v9.0 Deploy (Railway + Vercel + CI/CD)
+## Current Milestone: v10.0 Show Type / Episode Continuity
+
+**Goal:** Let each Show declare how its episodes relate (a single `continuity_mode`), and have that change what prior context the AI receives when writing an episode — so connected series/microseries carry continuity, while anthologies stay independent.
+
+**Target features:**
+- Per-show `continuity_mode`: `connected` (AI sees season arc + auto-generated summaries of prior episodes) · `anthology` (only the shared bible) · `standalone` (single episode / feature)
+- AI auto-generates a per-episode summary on completion, stored on the episode (Project), used as prior-episode context for connected shows (ordered by `episode_number` — the reliable key, never positional)
+- Summary invalidation: editing an episode marks its summary stale (`episode_summary_stale`, mirroring `breakdown_stale`/`shotlist_stale`); regenerated lazily before it feeds later episodes
+- Generation injects the right context per mode (arc + prior summaries for connected; bible-only for anthology; none for standalone) into the episode-writing prompts
+- Wizard/creation: pick the continuity mode at show creation; presets (Microserie / Serie conectada / Antología) as visual shortcuts over the single mode
+- Review aware of mode (continuity checks for connected; standalone-quality for anthology) — lighter scope
+
+**Key context:** Builds on the existing Show/Episode model — a `Show` already has a bible (`bible_characters/world_setting/season_arc/tone_style`) + `episode_duration_minutes`, and episodes are `Project` rows with `show_id` + `episode_number`. The leverage is in generation + auto-summary; "scale" (micro vs full series) stays metadata (`episode_duration_minutes`), NOT part of the type. Embeddings are OpenAI-only even though text gen can be Anthropic. Full decisions + deferred items in `.planning/v10.0-SHOW-TYPE-VISION.md`. Competitive note: BeatBandit (closest comparable) has within-project canon ("Context Engine") but NO cross-episode continuity — this feature is a differentiator. Internal tool — scope is "episodes connect coherently," not multi-season production management.
+
+**Out of scope (deferred):** automatic continuity-inconsistency detection; multi-season support; hand-editable/reviewable summaries (auto is the default); "scale" as a behavioral concept beyond the duration field.
+
+<details>
+<summary>Previous: Current Milestone v9.0 — Deploy (Railway + Vercel + CI/CD) — shipped/live</summary>
 
 **Goal:** Get the app running in production — backend + Postgres on Railway, frontend on Vercel, with GitHub Actions running tests on push and deploying to prod on merge to `main`.
 
@@ -134,6 +151,10 @@ Last updated: 2026-03-24
 **Key context:** User has Railway + Vercel (VAPAI-Studio) accounts and performs login/authorization steps when prompted. Secrets (OPENAI_API_KEY, ANTHROPIC_API_KEY, generated SECRET_KEY) loaded by the user directly into Railway. DB is a SINGLE Railway Postgres holding all data (projects, scripts, users, api_keys + pgvector RAG embeddings) — not a separate agent DB. `Procfile` and `runtime.txt` already exist; no `.github/workflows/` yet. ~399 tests pass (4 pre-existing flakes) — usable as CI gate. config.py already validates SECRET_KEY ≠ default in prod. Full decisions captured in `.planning/DEPLOY-MILESTONE-NOTES.md`. This is an internal tool — scope is "get it deployed reliably," not a public API platform.
 
 **Out of scope (carried as known debt, does not block deploy):** legacy `framework` enum bug (pre-existing, broken in Postgres app-wide); confirming dependency pins with a clean `docker compose build`; Hermes static-header verification.
+
+**Status:** Shipped & live (2026-06-15). Backend on Railway (https://web-production-73857.up.railway.app), frontend on Vercel (https://screenwriting-assistant-lake.vercel.app), CORS locked, end-to-end verified.
+
+</details>
 
 <details>
 <summary>Previous: Current State (v8.0 shipped) — MCP Server</summary>
@@ -204,4 +225,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-06-05 after milestone v6.0 started*
+*Last updated: 2026-06-17 — milestone v10.0 (Show Type / Episode Continuity) started*
