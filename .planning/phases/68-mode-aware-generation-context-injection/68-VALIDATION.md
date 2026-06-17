@@ -1,8 +1,8 @@
 ---
 phase: 68
 slug: mode-aware-generation-context-injection
-status: draft
-nyquist_compliant: false
+status: approved
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-06-17
 ---

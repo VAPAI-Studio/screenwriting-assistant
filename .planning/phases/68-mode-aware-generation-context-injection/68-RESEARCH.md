@@ -260,10 +260,12 @@ priors = (
 | A2 | Stale summaries should be injected-with-marker rather than skipped | Q5 | Low — Phase 69 lazy-regen clears the flag before Phase 68 reads in the wired flow; either choice is safe |
 | A3 | `standalone`-mode shows should still get the bible (just no cross-episode), matching `anthology` | SCONT-04 | ROADMAP success-criterion #3 says standalone injects "no cross-episode context" (silent on bible). Bible-only fallthrough satisfies it. If the intent is "no context AT ALL for standalone shows," planner must add an explicit early-return for `continuity_mode == standalone`. Recommend confirming. |
 
-## Open Questions
+## Open Questions (RESOLVED at plan-phase, 2026-06-17)
 
-1. **`standalone` show vs bible:** Should a `standalone`-mode *show* (distinct from a `show_id` NULL film) still receive its bible? (A3 above.) Recommendation: yes (bible-only, like anthology) — but flag for an explicit planner decision since the ROADMAP wording is ambiguous.
-2. **Prior-episode cap N:** Lock the exact value (recommend 8). Depends partly on Phase 69's summary length, which doesn't exist yet.
+1. **`standalone` show vs bible:** Should a `standalone`-mode *show* (distinct from a `show_id` NULL film) still receive its bible? **RESOLVED → YES** (bible-only, like anthology; only the `## Prior Episodes` block is suppressed). D-STANDALONE-BIBLE.
+2. **Prior-episode cap N:** **RESOLVED → 8** (`PRIOR_EPISODE_CAP = 8`, most-recent-8 by `episode_number`). D-CAP.
+
+Also resolved: **stale summaries** → injected WITH `(summary may be out of date)` marker, only null/empty/whitespace skipped (D-STALE).
 
 ## Environment Availability
 
