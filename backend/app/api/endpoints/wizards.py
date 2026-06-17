@@ -13,6 +13,8 @@ from ...services.template_ai_service import template_ai_service
 from ...db import SessionLocal
 from ...services.agent_review_middleware import agent_review_middleware
 from ...utils.bible_context import build_bible_context
+from ...utils.episode_summary import regenerate_stale_priors
+from ...models.schemas import ContinuityMode
 from .phase_data import _mark_breakdown_stale, _mark_shotlist_stale
 
 logger = logging.getLogger(__name__)
@@ -129,6 +131,16 @@ async def run_wizard(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
     if not project.template:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Project has no template")
+
+    # ESUM-03 lazy regen: in connected mode, regenerate any stale prior-episode
+    # summaries BEFORE build_bible_context reads them, so the frozen bible_context
+    # string sees fresh rows (Pitfall 2). Gated on connected mode; on per-prior AI
+    # failure the flag stays True and Phase 68's stale-with-marker path degrades
+    # gracefully (generation never fails). Must precede the build_bible_context call.
+    if project.show_id:
+        show = db.query(database.Show).filter(database.Show.id == str(project.show_id)).first()
+        if show and show.continuity_mode == ContinuityMode.CONNECTED.value:
+            await regenerate_stale_priors(db, show, project)
 
     # Build bible context for episode projects (passed as string to background task)
     bible_context = build_bible_context(db, project)
