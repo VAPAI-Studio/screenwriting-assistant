@@ -1,8 +1,34 @@
 # Requirements: Screenwriting Assistant
 
-**Defined:** 2026-03-24 (v4.2) · updated 2026-06-14 (v9.0 — Deploy)
-**Active Milestone:** v9.0 — Deploy (Railway + Vercel + CI/CD). v8.0 MCP Server shipped.
+**Defined:** 2026-03-24 (v4.2) · updated 2026-06-17 (v10.0 — Show Type / Episode Continuity)
+**Active Milestone:** v10.0 — Show Type / Episode Continuity. v9.0 Deploy shipped & live.
 **Core Value:** From blank page to production-ready breakdown — AI helps you write the screenplay and then extracts everything you need to produce it.
+
+## v10.0 Requirements — Show Type / Episode Continuity
+
+**Defined:** 2026-06-17 · Each Show declares a single `continuity_mode` that changes what prior context the AI receives when writing an episode: connected series/microseries carry continuity (season arc + auto-generated summaries of prior episodes), anthologies stay independent, standalone is a single feature. Builds on the existing Show/Episode model (episodes are `Project` rows with `show_id` + `episode_number`). Full decisions + deferred items in `.planning/v10.0-SHOW-TYPE-VISION.md`. Note: prefix `CONT` is taken by v6.0 (Script Continuity); this milestone uses `SCONT` (Show Continuity).
+
+### Show continuity mode + generation (SCONT)
+
+- [ ] **SCONT-01**: User can set a Show's continuity mode (`connected` / `anthology` / `standalone`) when creating or editing the show
+- [ ] **SCONT-02**: In `connected` mode, generating an episode feeds the AI the season arc plus the summaries of prior episodes, ordered by `episode_number` (never positional)
+- [ ] **SCONT-03**: In `anthology` mode, episode generation receives only the shared bible (world/tone), with no other-episode context
+- [ ] **SCONT-04**: In `standalone` mode, no cross-episode context is injected (feature-film behavior)
+
+### Auto episode summary + invalidation (ESUM)
+
+- [ ] **ESUM-01**: When an episode is completed, the AI generates and stores a summary of that episode (`episode_summary`)
+- [ ] **ESUM-02**: Editing an episode marks its summary stale (`episode_summary_stale`), mirroring the `breakdown_stale`/`shotlist_stale` pattern
+- [ ] **ESUM-03**: A stale episode summary is regenerated before it is used as context for later episodes (lazy regeneration)
+
+### Show creation wizard (SWZ)
+
+- [ ] **SWZ-01**: User picks the continuity mode at show creation, with presets (Microserie / Serie conectada / Antología) as visual shortcuts that set the underlying mode
+- [ ] **SWZ-02**: The creation flow adapts to the mode (connected surfaces the season-arc step; anthology hides cross-episode steps)
+
+### Mode-aware review (SREV)
+
+- [ ] **SREV-01**: In `connected` mode, episode review considers continuity with prior episodes (character/plot coherence against the prior-episode summaries)
 
 ## v9.0 Requirements — Deploy (Railway + Vercel + CI/CD)
 
@@ -284,7 +310,8 @@
 | EPIS-05 | Phase 42 | Complete |
 
 **Coverage:**
-- v9.0 requirements: 13 total (DBKD 4 / DFND 2 / DCFG 2 / DMIG 1 / DCICD 2 / DSEC 1 / DVER 1) — Mapped to phases 62-66: 13/13 — Pending (roadmap defined 2026-06-14)
+- v10.0 requirements: 10 total (SCONT 4 / ESUM 3 / SWZ 2 / SREV 1) — Mapping pending (roadmap not yet created; phases continue from 67)
+- v9.0 requirements: 13 total (DBKD 4 / DFND 2 / DCFG 2 / DMIG 1 / DCICD 2 / DSEC 1 / DVER 1) — Mapped to phases 62-66: 13/13 — Shipped & live 2026-06-15
 - v8.0 requirements: 21 total (MCPF 5 / MCPJ 3 / MCPW 3 / MCPB 2 / MCPS 3 / MCPP 3 / MCPD 2) — Mapped to phases 55-61: 21/21 — Pending (roadmap defined 2026-06-12)
 - v7.0 requirements: 12 total (BFID/APPR/CATG/REEX) — Mapped to phases 50-53: 12/12 — Planned (execution gated on v6.0 close)
 - v6.0 requirements: 12 total
