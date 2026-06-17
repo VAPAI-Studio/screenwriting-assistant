@@ -53,11 +53,11 @@ Exceptions:
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Display (modal title `Dialog.Title`) | 20px (`text-xl`) | 600 (`font-semibold`, `font-display`) | default (~1.4) |
-| Card title (preset Spanish label) | 14px (`text-sm`) | 500 (`font-medium`) | default (~1.5) |
+| Card title (preset Spanish label) | 14px (`text-sm`) | 600 (`font-semibold`) | default (~1.5) |
 | Body / helper line (English helper under each card) | 12px (`text-xs`) | 400 (regular) | ~1.5 |
-| Label (field labels, e.g. "Continuity", "Season Arc") | 12px (`text-xs`) | 500 (`font-medium`), `uppercase tracking-wider` | default |
+| Label (field labels, e.g. "Continuity", "Season Arc") | 12px (`text-xs`) | 600 (`font-semibold`), `uppercase tracking-wider` | default |
 
-Two weights in active use: regular (400) for body/helper, medium/semibold (500/600) for titles and labels — consistent with the existing modal. Do NOT introduce additional sizes or weights.
+Exactly two weights in active use: regular (400) for body/helper text, and semibold (600) for titles and labels — consistent with the existing modal. No `font-medium` (500) anywhere in this phase. Do NOT introduce additional sizes or weights.
 
 ---
 
@@ -87,9 +87,11 @@ Accent is NOT applied to unselected cards, body text, or as a general interactiv
 
 ### Preset card section (new — in `CreateShowModal`, and reused on edit)
 
+**Primary visual anchor: the preset-card section — the first meaningful choice the user makes** when creating a show. Layout draws the eye to the three cards first (title field above is a single line; the cards occupy the largest vertical block and carry the only accent color in the selected state).
+
 Reuse the `CreateProjectModal` clickable-card pattern verbatim (lines 138–163): `<button type="button">` with `flex items-center gap-4 p-4 rounded-xl border`, icon chip (`w-10 h-10 rounded-lg`), title + helper text block, conditional selected dot. Wrap in `space-y-2.5`.
 
-Three cards, in this order. Spanish label (`text-sm font-medium text-foreground`) + English helper line (`text-xs text-muted-foreground mt-0.5`):
+Three cards, in this order. Spanish label (`text-sm font-semibold text-foreground`) + English helper line (`text-xs text-muted-foreground mt-0.5`):
 
 | Order | Spanish label (verbatim, D-05) | English helper line | Suggested `lucide-react` icon | Sets `continuity_mode` | Seeds `episode_duration_minutes` |
 |-------|--------------------------------|---------------------|-------------------------------|------------------------|----------------------------------|
@@ -99,14 +101,14 @@ Three cards, in this order. Spanish label (`text-sm font-medium text-foreground`
 
 Selection model: single-select. Exactly one card selected at a time; selecting a card sets `continuity_mode` and seeds `episode_duration_minutes` per the table. Default on open: no card pre-selected (Create CTA stays disabled until a preset is chosen — see interaction states). For the **edit** surface, the card matching the show's current `continuity_mode` is pre-selected on mount (Microserie vs. Serie conectada disambiguated by the stored duration: 2 → Microserie, else connected → Serie conectada).
 
-A short section label above the cards: `Continuity` (`text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2`), matching existing field labels.
+A short section label above the cards: `Continuity` (`text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2`), matching existing field labels.
 
 ### Conditional season-arc reveal (D-07)
 
 When a **connected** preset (Microserie or Serie conectada) is selected, reveal a **Season Arc** field inline, positioned directly below the preset card list and above the modal Actions row. Hidden entirely for **Antología** and when no preset is selected.
 
 - Field: `<textarea rows={3}>` reusing the exact input styling from `CreateShowModal` description field (`w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm ... focus:ring-amber-500/30 ... resize-none`).
-- Label: `Season Arc` (`text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2`), matching `BIBLE_SECTIONS` "Season Arc" (constants.ts) so it maps cleanly to `bible_season_arc`.
+- Label: `Season Arc` (`text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2`), matching `BIBLE_SECTIONS` "Season Arc" (constants.ts) so it maps cleanly to `bible_season_arc`.
 - Placeholder: reuse the bible placeholder — `Outline the overarching story arc for the season...`
 - Optional, not required — empty season arc must not block submit. Reveal/hide animates with the existing `animate-fade-up` (0.5s) keyframe for a non-jarring inline appearance.
 
@@ -151,7 +153,7 @@ UI is English (en-US) except the three Spanish preset labels (hardcoded per D-05
 | Preset 3 label / helper | `Antología` / `Independent episodes — each stands alone, no cross-episode context.` |
 | Season Arc label / placeholder | `Season Arc` / `Outline the overarching story arc for the season...` |
 | Primary CTA (create) | `Create Show` (idle) / `Creating...` (pending) — unchanged |
-| Primary CTA (edit) | `Save` / `Saving...` (reuse existing edit-surface save semantics) |
+| Primary CTA (edit) | `Save Changes` (idle) / `Saving...` (pending) |
 | Empty state heading | not applicable — wizard always renders the three presets (no data-driven empty state) |
 | Empty state body | not applicable |
 | Error state | On create/update failure, show inline message below the Actions row: `Couldn't save the show. Check your connection and try again.` (`text-xs text-destructive`). |
