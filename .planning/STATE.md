@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: executing
+status: verifying
 stopped_at: Completed 67-02-PLAN.md
-last_updated: "2026-06-17T20:31:29.265Z"
+last_updated: "2026-06-17T20:38:47.380Z"
 last_activity: 2026-06-17
 progress:
   total_phases: 36
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 8
-  completed_plans: 11
-  percent: 8
+  completed_plans: 12
+  percent: 11
 ---
 
 # Project State
@@ -34,7 +34,7 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 Phase: 69 (auto-episode-summary-lazy-regeneration) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-17
 
 **v10.0 phase map (67-71):**
@@ -122,6 +122,8 @@ Relevant to v4.2:
 - [Phase ?]: [Phase 68]: connected show with empty bible but non-empty priors still emits the Prior Episodes block (None only when both empty); zero downstream/provider changes (single build_bible_context edit-site)
 - [Phase ?]: [Phase 69]: summarize_episode is bounded prose via chat_completion(json_mode=False, max_tokens=500); reads ScreenplayContent by episode_index only (no positional); caller-commits (helper does not write/commit)
 - [Phase ?]: [Phase 69]: POST /api/projects/{id}/episode-summary owner-scoped (str-coerced, cross-owner 404); empty source -> 422 no-clobber of existing summary; episode_summary text kept off Project read schema (D-04)
+- [Phase ?]: [Phase 69]: ESUM-03 lazy regen wired as an async pre-pass (regenerate_stale_priors) in run_wizard BEFORE the sync build_bible_context, connected-gated; per-prior try/except leaves stale=True on AI failure -> Phase 68 marker fallback, generation never fails
+- [Phase ?]: [Phase 69]: regenerate_stale_priors mirrors _build_prior_episodes_block query shape (same show_id, episode_number<current, episode_number.asc), existence-gated to stale-with-summary priors only (SC-3); summarize_episode stays caller-commit, pre-pass owns the single commit
 
 ### Pending Todos
 
@@ -153,6 +155,7 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 | Phase 67 P03 | 3min | 2 tasks | 3 files |
 | Phase 68 P01 | 4min | 2 tasks | 2 files |
 | Phase 69 P01 | 4min | 3 tasks | 3 files |
+| Phase 69 P02 | ~6min | 2 tasks | 3 files |
 
 ### Blockers/Concerns
 
@@ -161,6 +164,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-17T20:28:46.566Z
+Last session: 2026-06-17T20:38:11.770Z
 Stopped at: Completed 67-02-PLAN.md
 Resume file: None

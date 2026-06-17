@@ -612,7 +612,7 @@ Plans:
   3. Regenerating one episode's stale summary does not regenerate or disturb other episodes' up-to-date summaries
 **Plans**: 2 plans
 - [x] 69-01-PLAN.md — Summarizer service (summarize_episode, episode_index source read) + eager POST /api/projects/{id}/episode-summary trigger + ESUM-01 tests (ESUM-01)
-- [ ] 69-02-PLAN.md — Lazy regenerate_stale_priors pre-pass wired into run_wizard before build_bible_context (connected-gated, regen-failure → Phase 68 marker fallback) + ESUM-03 tests (ESUM-03)
+- [x] 69-02-PLAN.md — Lazy regenerate_stale_priors pre-pass wired into run_wizard before build_bible_context (connected-gated, regen-failure → Phase 68 marker fallback) + ESUM-03 tests (ESUM-03)
 
 ### Phase 70: Show Creation Wizard (mode + presets)
 **Goal**: At show creation (and edit), the user picks how episodes relate via friendly presets, and the flow adapts to that choice — making continuity mode a first-class, understandable setup step
@@ -708,6 +708,6 @@ Plans:
 | 66. Public-Deploy Hardening & Post-Deploy Smoke Test | v9.0 | 0/? | Not started | - |
 | 67. Continuity Data Model & Migration | v10.0 | 3/3 | Complete   | 2026-06-17 |
 | 68. Mode-Aware Generation Context Injection | v10.0 | 1/1 | Complete   | 2026-06-17 |
-| 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 1/2 | In Progress|  |
+| 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 2/2 | Complete   | 2026-06-17 |
 | 70. Show Creation Wizard (mode + presets) | v10.0 | 0/? | Not started | - |
 | 71. Mode-Aware Review | v10.0 | 0/? | Not started | - |

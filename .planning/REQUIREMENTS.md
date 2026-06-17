@@ -19,7 +19,7 @@
 
 - [x] **ESUM-01**: When an episode is completed, the AI generates and stores a summary of that episode (`episode_summary`)
 - [x] **ESUM-02**: Editing an episode marks its summary stale (`episode_summary_stale`), mirroring the `breakdown_stale`/`shotlist_stale` pattern
-- [ ] **ESUM-03**: A stale episode summary is regenerated before it is used as context for later episodes (lazy regeneration)
+- [x] **ESUM-03**: A stale episode summary is regenerated before it is used as context for later episodes (lazy regeneration)
 
 ### Show creation wizard (SWZ)
 
@@ -240,7 +240,7 @@
 | SCONT-03 | Phase 68 | Complete |
 | SCONT-04 | Phase 68 | Complete |
 | ESUM-01 | Phase 69 | Complete |
-| ESUM-03 | Phase 69 | Pending |
+| ESUM-03 | Phase 69 | Complete |
 | SWZ-01 | Phase 70 | Pending |
 | SWZ-02 | Phase 70 | Pending |
 | SREV-01 | Phase 71 | Pending |
