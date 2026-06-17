@@ -53,6 +53,24 @@ def _mark_shotlist_stale(db: Session, project_id) -> None:
             project.shotlist_stale = True
 
 
+def _mark_episode_summary_stale(db: Session, project_id) -> None:
+    """Set episode_summary_stale=True if this episode already has a summary.
+
+    Does not commit -- caller's existing commit covers the change.
+    Existence-gated (D-02): only flips True when the Project's OWN
+    episode_summary is non-empty (truthy after strip). When no summary
+    exists yet there is nothing to invalidate, so the flag stays False.
+    Keys purely on summary existence -- show linkage (show_id) is
+    irrelevant, so standalone projects are unaffected unless they carry a
+    summary of their own.
+    """
+    project = db.query(database.Project).filter(
+        database.Project.id == str(project_id)
+    ).first()
+    if project and project.episode_summary and project.episode_summary.strip():
+        project.episode_summary_stale = True
+
+
 def _verify_project_ownership(db: Session, project_id: UUID, user_id: UUID) -> database.Project:
     """Verify user owns the project and return it."""
     project = db.query(database.Project).filter(
@@ -255,6 +273,9 @@ async def update_subsection_data(
 
     if phase in BREAKDOWN_SENSITIVE_PHASES:
         _mark_breakdown_stale(db, project_id)
+        # Same write/scenes edit site (D-02a); existence-gated inside the helper,
+        # so it only flips when this episode already has a summary to invalidate.
+        _mark_episode_summary_stale(db, project_id)
     if phase in SHOTLIST_SENSITIVE_PHASES:
         _mark_shotlist_stale(db, project_id)
 
