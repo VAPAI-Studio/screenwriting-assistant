@@ -104,6 +104,9 @@ class Project(ProjectBase):
     updated_at: Optional[datetime] = None
     show_id: Optional[UUID] = None
     episode_number: Optional[int] = None
+    # Read-only staleness flag (D-04). The episode_summary TEXT stays internal and
+    # is intentionally NOT exposed here; only this boolean is surfaced from the ORM.
+    episode_summary_stale: bool = False
     sections: List[Section] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
