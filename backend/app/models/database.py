@@ -105,6 +105,9 @@ class Show(Base):
     bible_tone_style = Column(Text, default="")
     episode_duration_minutes = Column(Integer, nullable=True)
 
+    # Continuity mode (v10.0 -- Phase 67). VARCHAR not PG Enum (D-03); default 'anthology' (D-01).
+    continuity_mode = Column(String(20), nullable=False, default="anthology", server_default="anthology")
+
 
 class SectionType(str, enum.Enum):
     INCITING_INCIDENT = "inciting_incident"
@@ -163,6 +166,10 @@ class Project(Base):
     breakdown_stale = Column(Boolean, default=False)
     shotlist_stale = Column(Boolean, default=False)
     storyboard_style = Column(String(30), nullable=True)
+
+    # Episode auto-summary (v10.0 -- Phase 67). Nullable storage; generation lands in Phase 69 (ESUM-02).
+    episode_summary = Column(Text, nullable=True)
+    episode_summary_stale = Column(Boolean, default=False, server_default="false")
 
     # Episode linking (Phase 39, v4.2)
     show_id = Column(UUID(as_uuid=True), ForeignKey("shows.id", ondelete="CASCADE"), nullable=True, index=True)
