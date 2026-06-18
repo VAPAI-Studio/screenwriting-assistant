@@ -17,7 +17,9 @@ const PRESET_ICON_MAP: Record<string, LucideIcon> = {
 // Raised when the show was created but the chained bible seed failed (CR-01).
 // Lets onError distinguish "nothing created" from "created, defaults not seeded".
 class BibleSeedError extends Error {
-  constructor(public readonly show: Show, public readonly cause: unknown) {
+  // `cause` would be the standard slot, but the project targets ES2020 (no
+  // Error.cause); expose the underlying error under a distinct name instead.
+  constructor(public readonly show: Show, public readonly seedError: unknown) {
     super('Show created, but applying the preset defaults failed.');
     this.name = 'BibleSeedError';
   }
@@ -72,17 +74,30 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
       return show;
     },
     onSuccess: (show) => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SHOWS] });
-      // Reset local state BEFORE closing — onOpenChange(false) unmounts this dialog,
-      // so setState after it would warn on an unmounted component (CR-02).
-      setTitle('');
-      setDescription('');
-      setSelectedPreset(null);
-      setSeasonArc('');
-      onOpenChange(false);
-      navigate(ROUTES.SHOW(show.id));
+      finishAndGoToShow(show.id);
+    },
+    onError: (err) => {
+      // The show was created but the bible seed failed (CR-01). Don't strand the user
+      // in the modal (NEW-02): refresh the list and navigate so they can finish setup
+      // on the show page. A non-BibleSeedError means nothing was created — keep the
+      // modal open and let the inline error copy explain.
+      if (err instanceof BibleSeedError) {
+        finishAndGoToShow(err.show.id);
+      }
     },
   });
+
+  // Reset local state BEFORE closing — onOpenChange(false) unmounts this dialog,
+  // so setState after it would warn on an unmounted component (CR-02).
+  const finishAndGoToShow = (showId: string) => {
+    queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SHOWS] });
+    setTitle('');
+    setDescription('');
+    setSelectedPreset(null);
+    setSeasonArc('');
+    onOpenChange(false);
+    navigate(ROUTES.SHOW(showId));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

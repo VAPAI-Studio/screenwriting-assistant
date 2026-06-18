@@ -56,6 +56,14 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
     () => presetIdForMode(continuityMode, bible.episode_duration_minutes)
   );
 
+  // Timed "Saved" flashes — tracked so they can be cancelled on unmount (NEW-01).
+  const modeSavedTimer = useRef<ReturnType<typeof setTimeout>>();
+  const savedFieldTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => {
+    if (modeSavedTimer.current) clearTimeout(modeSavedTimer.current);
+    if (savedFieldTimer.current) clearTimeout(savedFieldTimer.current);
+  }, []);
+
   // Initialize from bible props on mount only -- avoid overwriting local edits on query refetch
   const loaded = useRef(false);
   useEffect(() => {
@@ -86,7 +94,14 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BIBLE(showId) });
       // Auto-dismiss the "Saved" indicator instead of leaving it on forever (WR-02).
       setModeSaved(true);
-      setTimeout(() => setModeSaved(false), 2000);
+      if (modeSavedTimer.current) clearTimeout(modeSavedTimer.current);
+      modeSavedTimer.current = setTimeout(() => setModeSaved(false), 2000);
+    },
+    onError: () => {
+      // A failed mode-change PUT leaves the card selected locally but the backend
+      // still holds the prior mode (WR-01). Revert to the persisted selection so the
+      // UI doesn't lie, and surface the failure inline.
+      setSelectedPreset(presetIdForMode(continuityMode, duration));
     },
   });
 
@@ -101,7 +116,8 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
     onSuccess: (_data, variables) => {
       const field = Object.keys(variables)[0];
       setSavedField(field);
-      setTimeout(() => setSavedField(null), 2000);
+      if (savedFieldTimer.current) clearTimeout(savedFieldTimer.current);
+      savedFieldTimer.current = setTimeout(() => setSavedField(null), 2000);
     },
   });
 
@@ -160,6 +176,11 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
             );
           })}
         </div>
+        {updateShowMutation.isError && (
+          <p className="mt-2.5 text-xs text-red-400" role="alert">
+            Could not change the continuity mode. Check your connection and try again.
+          </p>
+        )}
       </div>
 
       {BIBLE_SECTIONS.map((section) => (
