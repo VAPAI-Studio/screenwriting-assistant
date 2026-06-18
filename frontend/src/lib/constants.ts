@@ -1,7 +1,7 @@
 // frontend/src/lib/constants.ts
 
 import { SectionType, Framework } from '../types';
-import type { BreakdownCategory } from '../types';
+import type { BreakdownCategory, ContinuityMode } from '../types';
 
 // API Configuration
 export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
@@ -367,6 +367,48 @@ export const DURATION_PRESETS = [
   { value: 44, label: '44 min' },
   { value: 60, label: '60 min' },
   { value: -1, label: 'Custom...' },
+] as const;
+
+// Show creation presets (v10.0 -- Phase 70). Single source of truth for the
+// three continuity presets consumed by both the create modal (Plan 02) and the
+// edit-side mode control (Plan 03). Spanish labels verbatim (D-05, no i18n).
+// `icon` is the lucide-react component name as a string; consumers map it to the
+// imported component. `duration` seeds the editable episode_duration_minutes
+// default and is NOT coupled to the mode beyond seeding (D-03). Microserie's
+// duration of 2 is a CUSTOM seed -- it is intentionally NOT added to
+// DURATION_PRESETS (UI-SPEC decision; adding 2 to shared presets is Deferred).
+export const SHOW_PRESETS: ReadonlyArray<{
+  id: string;
+  label: string;
+  helper: string;
+  icon: string;
+  mode: ContinuityMode;
+  duration: number | null;
+}> = [
+  {
+    id: 'microserie',
+    label: 'Microserie',
+    helper: 'Short connected episodes that build on each other (~2 min each).',
+    icon: 'Zap',
+    mode: 'connected',
+    duration: 2,
+  },
+  {
+    id: 'serie-conectada',
+    label: 'Serie conectada',
+    helper: 'A connected series — each episode carries the season arc and prior episodes forward (~22 min each).',
+    icon: 'Link',
+    mode: 'connected',
+    duration: 22,
+  },
+  {
+    id: 'antologia',
+    label: 'Antología',
+    helper: 'Independent episodes — each stands alone, no cross-episode context.',
+    icon: 'LayoutGrid',
+    mode: 'anthology',
+    duration: null,
+  },
 ] as const;
 
 export const ORCHESTRATOR_PROMPT_TEMPLATE = `You are {name}, an orchestrator agent that coordinates multiple specialized screenwriting consultants. You synthesize insights from book-based and tag-based agents to provide comprehensive, well-rounded guidance.
