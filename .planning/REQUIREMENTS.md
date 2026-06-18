@@ -23,8 +23,8 @@
 
 ### Show creation wizard (SWZ)
 
-- [ ] **SWZ-01**: User picks the continuity mode at show creation, with presets (Microserie / Serie conectada / Antología) as visual shortcuts that set the underlying mode
-- [ ] **SWZ-02**: The creation flow adapts to the mode (connected surfaces the season-arc step; anthology hides cross-episode steps)
+- [x] **SWZ-01**: User picks the continuity mode at show creation, with presets (Microserie / Serie conectada / Antología) as visual shortcuts that set the underlying mode
+- [x] **SWZ-02**: The creation flow adapts to the mode (connected surfaces the season-arc step; anthology hides cross-episode steps)
 
 ### Mode-aware review (SREV)
 
@@ -241,8 +241,8 @@
 | SCONT-04 | Phase 68 | Complete |
 | ESUM-01 | Phase 69 | Complete |
 | ESUM-03 | Phase 69 | Complete |
-| SWZ-01 | Phase 70 | Pending |
-| SWZ-02 | Phase 70 | Pending |
+| SWZ-01 | Phase 70 | Complete |
+| SWZ-02 | Phase 70 | Complete |
 | SREV-01 | Phase 71 | Pending |
 | DCFG-01 | Phase 62 | Pending |
 | DCFG-02 | Phase 62 | Pending |
