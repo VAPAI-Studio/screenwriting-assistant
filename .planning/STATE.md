@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: milestone_complete
-stopped_at: Milestone complete (Phase 71 was final phase)
-last_updated: 2026-06-18T15:15:32.933Z
-last_activity: 2026-06-18 -- Phase 71 execution started
+status: Awaiting next milestone
+stopped_at: Phase 70 UI-SPEC approved
+last_updated: "2026-06-18T15:50:21.095Z"
+last_activity: 2026-06-18 — Milestone v10.0 completed and archived
 progress:
   total_phases: 36
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 12
   completed_plans: 16
-  percent: 14
+  percent: 17
 ---
 
 # Project State
@@ -32,22 +32,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 71
-Plan: Not started
-Status: Milestone complete
-Last activity: 2026-06-18
-
-**v10.0 phase map (67-71):**
-
-- Phase 67 Continuity Data Model & Migration — SCONT-01, ESUM-02 (shows.continuity_mode + episode_summary/_stale via delta migration)
-- Phase 68 Mode-Aware Generation Context Injection — SCONT-02/03/04 (branch prior-context on mode; prior summaries ordered by episode_number)
-- Phase 69 Auto Episode Summary & Lazy Regeneration — ESUM-01, ESUM-03 (AI auto-summary on completion; lazy regen of stale)
-- Phase 70 Show Creation Wizard (mode + presets) — SWZ-01, SWZ-02 (presets are UI sugar over the single mode)
-- Phase 71 Mode-Aware Review — SREV-01 (connected continuity review vs prior summaries; light scope)
-
-**Locked decisions (do not re-ask):** single continuity_mode axis; AI auto-summary (not manual/full-script); stale-flag invalidation + lazy regen; scale stays metadata (episode_duration_minutes); presets are UI sugar.
-**Deferred (no phases):** continuity-inconsistency detection; multi-season; hand-editable summaries; scale-as-behavior.
-**Open questions for plan-phase (folded into phase notes, not blockers):** default continuity_mode on migration (P67); when the auto-summary fires (P69); token-budget cap for long connected seasons (P68).
+Phase: Milestone v10.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-06-18 — Milestone v10.0 completed and archived
 
 ## Performance Metrics
 
@@ -146,6 +134,14 @@ Items acknowledged and deferred at v6.0 milestone close on 2026-06-11:
 | verification_gap | phase-34 (v4.0 — shipped) | human_needed (pre-existing, old milestone) |
 | verification_gap | phase-54 (post-v7.0 standalone) | human_needed (3 visual UAT items, not v6.0) |
 | tech_debt | ScreenplayContent duplicate-row accumulation per episode_index | deferred per D-49-03 (needs schema change) |
+
+Items acknowledged and deferred at v10.0 milestone close on 2026-06-18:
+
+| Category | Item | Status |
+|----------|------|--------|
+| uat_gap | phase-70 (70-HUMAN-UAT.md) | advisory — 5 browser-only visual checks; phase verified PASSED at code level |
+| tech_debt | ESUM-01 eager episode-summary trigger not surfaced in frontend UI | deferred (lazy regen covers stale priors; needs UI button) |
+| tech_debt | migration 011 continuity_mode lacks SQL NOT NULL (ORM enforces) | deferred (no runtime impact; default 'anthology' covers existing rows) |
 | tech_debt | test-suite isolation flakiness (yolo/session tests) | pre-existing, not a v6.0 regression |
 | tech_debt | frontend npm run lint references non-existent ESLint config | tsc/build is the binding type gate |
 
@@ -167,3 +163,7 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 Last session: 2026-06-17T23:24:06.973Z
 Stopped at: Phase 70 UI-SPEC approved
 Resume file: .planning/phases/70-show-creation-wizard-mode-presets/70-UI-SPEC.md
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

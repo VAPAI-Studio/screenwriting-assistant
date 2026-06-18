@@ -1,5 +1,23 @@
 # Milestones
 
+## v10.0 Show Type / Episode Continuity (Shipped: 2026-06-18)
+
+**Phases completed:** 5 phases (67-71), 10 plans
+**Requirements:** 10/10 (SCONT 4 / ESUM 3 / SWZ 2 / SREV 1)
+**Audit:** PASSED — 4/4 cross-phase integration links wired, 2/2 E2E flows complete
+
+**Key accomplishments:**
+
+- **Continuity data model (P67):** Idempotent migration 011 adds `shows.continuity_mode` (VARCHAR default 'anthology'), `projects.episode_summary` (TEXT) and `projects.episode_summary_stale` (BOOLEAN). `continuity_mode` (connected/anthology/standalone) is settable on Show create/update, validated by a Pydantic `ContinuityMode` str-enum (422 on bad values). Editing an episode marks its summary stale via `_mark_episode_summary_stale` (SCONT-01, ESUM-02).
+- **Mode-aware generation context (P68):** `build_bible_context` branches on `continuity_mode` — connected episodes get an `episode_number`-ordered, 8-capped, stale-tagged "Prior Episodes" block; anthology/standalone/film stay bible-only (SCONT-02/03/04).
+- **Auto episode summaries + lazy regen (P69):** AI auto-generates a per-episode summary stored on `Project.episode_summary`; `regenerate_stale_priors` runs just-in-time before context build so a later episode always reads fresh priors (ESUM-01, ESUM-03).
+- **Show-creation wizard + edit-side mode control (P70):** `CreateShowModal` and `BibleEditor` drive continuity mode via Microserie / Serie conectada / Antología preset cards (pure UI sugar over the single `continuity_mode`), with a conditional Season Arc reveal for connected presets (SWZ-01/02).
+- **Mode-aware review (P71):** In connected mode, `script_writer_wizard` review additionally considers character/plot coherence against the prior-episode summaries — a bounded enrichment of existing agent review, not a full inconsistency-detection engine (SREV-01).
+
+**Known deferred items at close:** 3 (see STATE.md Deferred Items) — episode-summary eager-trigger UI not yet surfaced; migration 011 lacks SQL-level NOT NULL on continuity_mode (ORM-enforced, default covers existing rows); 5 advisory browser-only visual UAT checks for Phase 70 (phase verified PASSED at code level).
+
+---
+
 ## v8.0 MCP Server (Shipped: 2026-06-12)
 
 **Phases completed:** 7 phases (55-61), 14 commits
@@ -15,6 +33,7 @@
 6. **Verified end-to-end live from Claude Code** — connected over real HTTP with a static `sa_<key>` bearer, listed 17 tools, `whoami` returned the key owner
 
 **Tech debt / flagged for review:**
+
 - Legacy `framework` Postgres enum broken app-wide (uppercase ORM names vs lowercase PG labels) — worked around in MCP; worth a schema fix
 - Dependency pinning (starlette/sse-starlette) to avoid a FastAPI bump — confirm with a clean `docker compose build`
 - In-memory job registry is per-worker (single uvicorn worker assumed)

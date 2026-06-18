@@ -33,6 +33,11 @@ From blank page to production-ready breakdown — AI helps you write the screenp
 - ✓ Assets panel with breakdown elements grouped by category, media thumbnails, audio playback — v3.0
 - ✓ AI chat in Breakdown mode with shotlist + element context awareness, shot create/modify via conversation — v3.0
 - ✓ Bidirectional sync between screenplay and shotlist (staleness banner + acknowledge) — v3.0
+- ✓ Each Show declares a single `continuity_mode` (connected / anthology / standalone) on create + edit (SCONT-01) — v10.0
+- ✓ Mode-aware generation context: connected gets episode_number-ordered prior-episode summaries; anthology/standalone don't (SCONT-02/03/04) — v10.0
+- ✓ AI auto-summarizes each episode; summaries invalidate on edit and regenerate lazily before feeding later episodes (ESUM-01/02/03) — v10.0
+- ✓ Show-creation wizard + edit-side mode control via Microserie / Serie conectada / Antología presets (pure UI sugar over the single mode) (SWZ-01/02) — v10.0
+- ✓ Connected-mode episode review considers character/plot coherence against prior-episode summaries (SREV-01) — v10.0
 
 ### Active (v4.2 — complete)
 
@@ -116,10 +121,23 @@ Last updated: 2026-03-24
 | `scene_item_id SET NULL` on scene delete | Shot survives scene deletion; can be reassigned | ✓ Good |
 | StaticFiles mount at `/media` for uploaded files | Simple serving without additional infrastructure | ✓ Good |
 | Two-phase AI call for breakdown chat (stream then extract action) | Streaming UX preserved; action extraction done post-stream | ✓ Good |
+| Single `continuity_mode` axis (connected/anthology/standalone), not separate flags | One understandable setup choice; presets are pure UI sugar over it | ✓ Good (v10.0) |
+| Scale (micro vs full series) stays metadata (`episode_duration_minutes`), NOT part of the type | Keeps the mode about continuity behavior only; duration is orthogonal | ✓ Good (v10.0) |
+| AI auto-summarizes episodes; stale-flag invalidation + lazy regen before read | Avoids token blowup of full prior scripts and manual summary upkeep | ✓ Good (v10.0) |
+| Prior episodes ordered by `episode_number` only, never positional | ScreenplayContent has no reliable order (bit twice historically) | ✓ Good (v10.0) |
+| `continuity_mode` VARCHAR default 'anthology' (no PG enum) | Extensible without migration; mirrors VARCHAR category decision | ✓ Good (v10.0) — note: no SQL NOT NULL, ORM-enforced |
+| Mode-aware review enriches existing agent review (not a forced/new check) | Keeps scope light; zero-agent pass-through preserved; defers inconsistency engine | ✓ Good (v10.0) |
 
 ---
 
-## Current Milestone: v10.0 Show Type / Episode Continuity
+## Current State: v10.0 Show Type / Episode Continuity — SHIPPED 2026-06-18
+
+**Shipped:** v10.0 (phases 67-71, 10 plans, 10/10 requirements). Each Show now declares a single `continuity_mode` (connected / anthology / standalone) chosen via friendly presets at creation/edit; the AI auto-summarizes each episode (stale-invalidated, lazily regenerated) and feeds prior-episode summaries into connected-mode generation AND review. Milestone audit PASSED (4/4 cross-phase integration links, 2/2 E2E flows). Known debt: episode-summary eager-trigger UI not yet surfaced (lazy regen covers stale priors); 5 advisory browser-only visual UAT checks for the Phase 70 wizard.
+
+**Next milestone:** TBD — start with `/gsd:new-milestone`.
+
+<details>
+<summary>v10.0 milestone goal + target features (delivered)</summary>
 
 **Goal:** Let each Show declare how its episodes relate (a single `continuity_mode`), and have that change what prior context the AI receives when writing an episode — so connected series/microseries carry continuity, while anthologies stay independent.
 
@@ -134,6 +152,8 @@ Last updated: 2026-03-24
 **Key context:** Builds on the existing Show/Episode model — a `Show` already has a bible (`bible_characters/world_setting/season_arc/tone_style`) + `episode_duration_minutes`, and episodes are `Project` rows with `show_id` + `episode_number`. The leverage is in generation + auto-summary; "scale" (micro vs full series) stays metadata (`episode_duration_minutes`), NOT part of the type. Embeddings are OpenAI-only even though text gen can be Anthropic. Full decisions + deferred items in `.planning/v10.0-SHOW-TYPE-VISION.md`. Competitive note: BeatBandit (closest comparable) has within-project canon ("Context Engine") but NO cross-episode continuity — this feature is a differentiator. Internal tool — scope is "episodes connect coherently," not multi-season production management.
 
 **Out of scope (deferred):** automatic continuity-inconsistency detection; multi-season support; hand-editable/reviewable summaries (auto is the default); "scale" as a behavioral concept beyond the duration field.
+
+</details>
 
 <details>
 <summary>Previous: Current Milestone v9.0 — Deploy (Railway + Vercel + CI/CD) — shipped/live</summary>
@@ -225,4 +245,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-06-17 — milestone v10.0 (Show Type / Episode Continuity) started*
+*Last updated: 2026-06-18 — after v10.0 (Show Type / Episode Continuity) milestone*
