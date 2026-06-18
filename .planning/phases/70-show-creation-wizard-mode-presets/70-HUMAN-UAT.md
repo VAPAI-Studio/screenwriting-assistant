@@ -1,10 +1,16 @@
 ---
-status: partial
+status: advisory
 phase: 70-show-creation-wizard-mode-presets
 source: [70-VERIFICATION.md]
 started: 2026-06-18T14:12:21Z
-updated: 2026-06-18T14:12:21Z
+updated: 2026-06-18T14:30:00Z
 ---
+
+> NOTE: Phase verification is PASSED. All code-level risks are resolved — including the
+> two items (#4 cross-show navigation / CR-03, #5 bible-seed failure / CR-01) that
+> previously carried code-level risk. The remaining items below are advisory visual
+> confirmations only; they do NOT block phase completion. Run them in a browser when
+> the full stack (backend + DB) is available.
 
 ## Current Test
 
