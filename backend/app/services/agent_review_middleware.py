@@ -60,11 +60,16 @@ Return ONLY the refined output as valid JSON matching the schema above. No expla
 # prompt ONLY for connected-mode script_writer_wizard reviews. The instruction is
 # deliberately scoped to COHERENCE CONSIDERATIONS and explicitly forbids exhaustive
 # inconsistency auditing — the continuity-inconsistency engine is deferred (D-out).
-CONTINUITY_MERGE_BLOCK = """
+# Split into prefix/suffix so the (untrusted, possibly brace-containing) prior-episode
+# text is CONCATENATED, never passed through str.format() — screenplay summaries routinely
+# contain `{...}` which would raise KeyError under .format() (mirrors the format_map/
+# defaultdict safety already used by _build_pipeline_system_prompt).
+CONTINUITY_MERGE_BLOCK_PREFIX = """
 
 CONNECTED-SHOW CONTINUITY REFERENCE:
 The following are summaries of PRIOR episodes in this show, provided ONLY as a coherence reference.
-{continuity_context}
+"""
+CONTINUITY_MERGE_BLOCK_SUFFIX = """
 
 When applying the agent feedback, ADDITIONALLY flag any character or plot COHERENCE CONSIDERATIONS that read inconsistently against these prior episodes, and gently reconcile them where the agent feedback already supports it.
 Do NOT perform an exhaustive inconsistency audit or a correctness review of the prior episodes themselves — this is a light coherence pass, not full continuity-inconsistency detection. The prior summaries are reference only and must not be rewritten or emitted in the output."""
@@ -257,8 +262,10 @@ class AgentReviewMiddleware:
         # non-whitespace continuity_context is supplied. Single appended segment so
         # the prompt is identical to pre-Phase-71 output when it is None/blank.
         if continuity_context and continuity_context.strip():
-            system_prompt += CONTINUITY_MERGE_BLOCK.format(
-                continuity_context=continuity_context.strip()
+            system_prompt += (
+                CONTINUITY_MERGE_BLOCK_PREFIX
+                + continuity_context.strip()
+                + CONTINUITY_MERGE_BLOCK_SUFFIX
             )
 
         raw_json = json.dumps(raw_output) if not isinstance(raw_output, str) else raw_output

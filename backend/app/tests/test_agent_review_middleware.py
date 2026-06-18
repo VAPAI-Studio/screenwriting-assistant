@@ -401,7 +401,9 @@ def _merge_system_message(mock_chat):
     (the merge call runs after all agent-review calls)."""
     last_call = mock_chat.call_args_list[-1]
     messages = last_call.kwargs["messages"]
-    return next(m["content"] for m in messages if m["role"] == "system")
+    system = next((m["content"] for m in messages if m["role"] == "system"), None)
+    assert system is not None, "merge call had no system message"
+    return system
 
 
 @pytest.mark.asyncio
@@ -439,10 +441,48 @@ async def test_connected_threads_continuity_into_merge_prompt(db_session, owner_
     assert "Episode 1" in merge_system
     # Coherence-instruction token present.
     assert "coherence" in merge_system.lower()
-    # Bounded: explicitly forbids exhaustive inconsistency auditing.
+    # Bounded: explicitly forbids exhaustive inconsistency auditing (D4). These tokens
+    # appear ONLY in CONTINUITY_MERGE_BLOCK_SUFFIX, not in the base MERGE_SYSTEM_PROMPT,
+    # so the assertion fails if the bounded block is absent.
     lowered = merge_system.lower()
-    assert "inconsistency" in lowered or "exhaustive" in lowered
-    assert "not" in lowered
+    assert "exhaustive" in lowered
+    assert "inconsistency" in lowered
+
+
+@pytest.mark.asyncio
+async def test_continuity_context_with_braces_does_not_crash(db_session, owner_id, make_agent):
+    """Regression (CR-01): prior-episode summaries routinely contain `{...}` (dialogue,
+    scene direction). The continuity block must be concatenated, not str.format()-ed, or
+    a KeyError crashes the merge. The brace text must survive verbatim into the prompt."""
+    agent1 = make_agent(name="Script Agent")
+    _make_pipeline_map(db_session, owner_id, agent1.id, phase="write", subsection_key="script_writer_wizard")
+
+    raw_output = {"screenplays": [{"title": "Ep 2", "content": "original", "episode_index": 0}]}
+    review_response = json.dumps({"issues": [], "suggestions": ["x"], "refined_fields": {}})
+    merge_response = json.dumps({"screenplays": [{"title": "Ep 2", "content": "refined", "episode_index": 0}]})
+
+    # Braces that would break str.format(): {hero}, {{escaped}}, and a bare {.
+    continuity = "Episode 1: Hero says {bombshell} and {{nested}} — note { unbalanced."
+
+    def session_factory():
+        return db_session
+
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=[review_response, merge_response]) as mock_chat:
+        result = await agent_review_middleware.review_step_output(
+            phase="write",
+            subsection_key="script_writer_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="script_writer_wizard",
+            continuity_context=continuity,
+        )
+
+    assert result["review_applied"] is True
+    merge_system = _merge_system_message(mock_chat)
+    # Brace text survived verbatim — proves no .format() substitution occurred.
+    assert "{bombshell}" in merge_system
+    assert "{ unbalanced" in merge_system
 
 
 @pytest.mark.asyncio

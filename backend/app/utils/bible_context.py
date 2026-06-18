@@ -33,6 +33,11 @@ STALE_SUMMARY_MARKER = " (summary may be out of date)"
 def _build_prior_episodes_block(db: Session, show: Show, project: Project) -> Optional[str]:
     """Build the connected-mode "Prior Episodes" block, or None if there is none.
 
+    NOTE: semi-public. Also imported by api/endpoints/wizards.py (Phase 71) to build the
+    same connected-mode coherence reference for episode review. Keep the signature/return
+    contract stable for that caller.
+
+
     Queries strictly-prior episodes (episode_number < current) for THIS show
     only, ordered by episode_number ascending (reliable integer key -- NEVER
     positional, the recurring v6.0/v7.0 ordering bug), skips empty/whitespace
