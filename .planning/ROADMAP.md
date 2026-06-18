@@ -623,7 +623,10 @@ Plans:
   1. When creating a show, the user can pick a continuity mode via the Microserie / Serie conectada / Antología presets, and the chosen preset sets the underlying `continuity_mode`
   2. The creation flow adapts to the selected mode — connected surfaces the season-arc step, anthology hides cross-episode steps
   3. The persisted show carries only the resulting `continuity_mode` (presets leave no separate stored field), and a later edit can change the mode
-**Plans**: TBD
+**Plans**: 3 plans
+  - [ ] 70-01-PLAN.md — ContinuityMode type + shared SHOW_PRESETS config (frontend foundation)
+  - [ ] 70-02-PLAN.md — CreateShowModal preset cards + conditional season-arc + chained duration/season-arc seed
+  - [ ] 70-03-PLAN.md — Edit-side mode-change control in BibleEditor (pre-selected, PUT /api/shows)
 **UI hint**: yes
 
 ### Phase 71: Mode-Aware Review
