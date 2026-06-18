@@ -44,6 +44,18 @@ logging.basicConfig(
 # skip starting the MCP manager. Production never sets it. The dedicated MCP
 # integration test enters the real lifespan once itself.
 SKIP_MCP_LIFESPAN = os.environ.get("SKIP_MCP_LIFESPAN") == "1"
+# Tests drive the app via TestClient against an in-memory SQLite engine (see
+# conftest.py), so the app lifespan must NOT run init_db()/run_migrations against
+# the real settings.DATABASE_URL (Postgres) — that connects to localhost:5432 and
+# fails on CI runners with no Postgres. Production never sets this flag.
+SKIP_DB_INIT = os.environ.get("SKIP_DB_INIT") == "1"
+
+
+def _maybe_init_db():
+    if SKIP_DB_INIT:
+        logging.info("Skipping init_db() (SKIP_DB_INIT=1)")
+        return
+    init_db()
 
 
 @contextlib.asynccontextmanager
@@ -59,12 +71,12 @@ async def lifespan(app: FastAPI):
     """
     if SKIP_MCP_LIFESPAN:
         logging.info("Starting Screenwriter Assistant API (MCP manager skipped)...")
-        init_db()
+        _maybe_init_db()
         yield
         return
     async with mcp_app.router.lifespan_context(mcp_app):
         logging.info("Starting Screenwriter Assistant API...")
-        init_db()
+        _maybe_init_db()
         logging.info("Database initialized successfully")
         yield
         logging.info("Shutting down Screenwriter Assistant API...")

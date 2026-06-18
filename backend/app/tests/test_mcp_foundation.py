@@ -19,13 +19,15 @@ import httpx
 import pytest
 
 from app.main import app, lifespan
-from app.db import SessionLocal
+import app.db as app_db  # use app_db.SessionLocal at call time so the conftest
+# session-rebind to the SQLite test engine is picked up (a module-level
+# `from app.db import SessionLocal` would bind the original Postgres factory). #ci
 from app.models.database import ApiKey as ApiKeyModel, User as UserModel
 
 
 def _seed_key(token: str):
     """Create a User + active sa_ ApiKey in the app DB. Returns (user_id, key_id, email)."""
-    db = SessionLocal()
+    db = app_db.SessionLocal()
     try:
         uid = str(uuid.uuid4())
         email = f"mcp_{uid[:8]}@example.com"
@@ -47,7 +49,7 @@ def _seed_key(token: str):
 
 
 def _read_request_count(key_id):
-    db = SessionLocal()
+    db = app_db.SessionLocal()
     try:
         k = db.query(ApiKeyModel).filter(ApiKeyModel.id == key_id).first()
         return k.request_count if k else None
@@ -91,6 +93,13 @@ async def test_mcp_foundation_end_to_end():
     # the (single-use) MCP manager and hit "run() can only be called once".
     prev_skip = main_mod.SKIP_MCP_LIFESPAN
     main_mod.SKIP_MCP_LIFESPAN = False
+
+    # Point the MCP session factory (auth path + tool calls) at the same SQLite test
+    # DB the key was seeded into. app_db.SessionLocal is rebound to the test engine by
+    # the conftest _bind_app_db_to_test_engine fixture; without this override mcp_session
+    # uses the real Postgres SessionLocal and auth returns 401 on CI (no Postgres). #ci
+    from app.mcp_server.session import set_session_factory_override
+    set_session_factory_override(app_db.SessionLocal)
     try:
         # Enter the app lifespan ONCE (starts the MCP session manager task group —
         # Pitfall 4). All assertions run inside this single entry.
@@ -123,3 +132,4 @@ async def test_mcp_foundation_end_to_end():
                             await session.call_tool("whoami", {})
     finally:
         main_mod.SKIP_MCP_LIFESPAN = prev_skip
+        set_session_factory_override(None)

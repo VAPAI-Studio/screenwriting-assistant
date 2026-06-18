@@ -10,6 +10,12 @@ import uuid
 # dedicated MCP integration test (test_mcp_foundation.py) does not use these
 # fixtures and runs the real lifespan itself.
 os.environ.setdefault("SKIP_MCP_LIFESPAN", "1")
+# Tests use the in-memory SQLite test engine (test_engine fixture builds the schema
+# via Base.metadata.create_all). The app lifespan must NOT run init_db()/migrations
+# against the real Postgres DATABASE_URL — that connects to localhost:5432 and fails
+# on CI runners with no Postgres (the failures were masked until the import-time
+# OpenAI-client crash was fixed). #ci
+os.environ.setdefault("SKIP_DB_INIT", "1")
 
 import pytest
 from fastapi.testclient import TestClient
@@ -97,6 +103,29 @@ def test_engine():
     Base.metadata.create_all(bind=engine)
     yield engine
     Base.metadata.drop_all(bind=engine)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _bind_app_db_to_test_engine(test_engine):
+    """Rebind app.db.engine / app.db.SessionLocal to the in-memory SQLite test engine
+    for the whole session. Some tests and endpoints call app.db.SessionLocal() directly
+    (e.g. test_mcp_foundation's _seed_key, the /mcp auth path) rather than going through
+    the overridden get_db dependency — without this they would hit the real Postgres
+    DATABASE_URL and fail on CI (no Postgres). #ci
+    """
+    import app.db as app_db
+
+    orig_engine = app_db.engine
+    orig_sessionlocal = app_db.SessionLocal
+    app_db.engine = test_engine
+    app_db.SessionLocal = sessionmaker(
+        autocommit=False, autoflush=False, bind=test_engine
+    )
+    try:
+        yield
+    finally:
+        app_db.engine = orig_engine
+        app_db.SessionLocal = orig_sessionlocal
 
 @pytest.fixture(scope="function")
 def db_session(test_engine):
