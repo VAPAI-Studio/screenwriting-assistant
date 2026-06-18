@@ -389,3 +389,117 @@ async def test_agents_consulted_has_summary(db_session, owner_id, make_agent):
         assert "summary" in ac
         assert isinstance(ac["summary"], str)
         assert len(ac["summary"]) > 0
+
+
+# ---------------------------------------------------------------------------
+# Phase 71-01: Mode-aware continuity_context threading (SREV-01)
+# ---------------------------------------------------------------------------
+
+
+def _merge_system_message(mock_chat):
+    """Return the system message content of the LAST chat_completion call
+    (the merge call runs after all agent-review calls)."""
+    last_call = mock_chat.call_args_list[-1]
+    messages = last_call.kwargs["messages"]
+    return next(m["content"] for m in messages if m["role"] == "system")
+
+
+@pytest.mark.asyncio
+async def test_connected_threads_continuity_into_merge_prompt(db_session, owner_id, make_agent):
+    """Connected script_writer_wizard review with continuity_context set: the merge
+    prompt's system message contains the prior-episode text, a coherence-instruction
+    token, AND a token forbidding exhaustive inconsistency auditing (D4)."""
+    agent1 = make_agent(name="Script Agent")
+    _make_pipeline_map(db_session, owner_id, agent1.id, phase="write", subsection_key="script_writer_wizard")
+
+    raw_output = {"screenplays": [{"title": "Ep 2", "content": "original", "episode_index": 0}]}
+    review_response = json.dumps({"issues": [], "suggestions": ["sharpen dialogue"], "refined_fields": {}})
+    merge_response = json.dumps({"screenplays": [{"title": "Ep 2", "content": "refined", "episode_index": 0}]})
+
+    continuity = "\n### Prior Episodes (for continuity)\n\n**Episode 1: The Beginning**\nHero leaves home."
+
+    def session_factory():
+        return db_session
+
+    side_effects = [review_response, merge_response]
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects) as mock_chat:
+        result = await agent_review_middleware.review_step_output(
+            phase="write",
+            subsection_key="script_writer_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="script_writer_wizard",
+            continuity_context=continuity,
+        )
+
+    assert result["review_applied"] is True
+    merge_system = _merge_system_message(mock_chat)
+    # Prior-episode text is present.
+    assert "Episode 1" in merge_system
+    # Coherence-instruction token present.
+    assert "coherence" in merge_system.lower()
+    # Bounded: explicitly forbids exhaustive inconsistency auditing.
+    lowered = merge_system.lower()
+    assert "inconsistency" in lowered or "exhaustive" in lowered
+    assert "not" in lowered
+
+
+@pytest.mark.asyncio
+async def test_no_continuity_context_merge_prompt_clean(db_session, owner_id, make_agent):
+    """Without continuity_context, the merge prompt's system message contains NO
+    continuity/coherence tokens (D5: byte-identical to today)."""
+    agent1 = make_agent(name="Script Agent")
+    _make_pipeline_map(db_session, owner_id, agent1.id, phase="write", subsection_key="script_writer_wizard")
+
+    raw_output = {"screenplays": [{"title": "Ep 2", "content": "original", "episode_index": 0}]}
+    review_response = json.dumps({"issues": [], "suggestions": ["note"], "refined_fields": {}})
+    merge_response = json.dumps({"screenplays": [{"title": "Ep 2", "content": "refined", "episode_index": 0}]})
+
+    def session_factory():
+        return db_session
+
+    side_effects = [review_response, merge_response]
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock, side_effect=side_effects) as mock_chat:
+        result = await agent_review_middleware.review_step_output(
+            phase="write",
+            subsection_key="script_writer_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="script_writer_wizard",
+        )
+
+    assert result["review_applied"] is True
+    merge_system = _merge_system_message(mock_chat)
+    lowered = merge_system.lower()
+    assert "prior episodes" not in lowered
+    assert "coherence" not in lowered
+    assert "continuity" not in lowered
+
+
+@pytest.mark.asyncio
+async def test_zero_agents_passthrough_with_continuity(db_session, owner_id):
+    """Zero mapped agents + continuity_context set: REVW-04 pass-through preserved —
+    raw_output returned, review_applied False, chat_completion never called (D3)."""
+    raw_output = {"screenplays": [{"title": "Ep 2", "content": "Once upon a time...", "episode_index": 0}]}
+    continuity = "\n### Prior Episodes (for continuity)\n\n**Episode 1: The Beginning**\nHero leaves home."
+
+    def session_factory():
+        return db_session
+
+    with patch("app.services.agent_review_middleware.chat_completion", new_callable=AsyncMock) as mock_chat:
+        result = await agent_review_middleware.review_step_output(
+            phase="write",
+            subsection_key="script_writer_wizard",
+            raw_output=raw_output,
+            owner_id=owner_id,
+            session_factory=session_factory,
+            wizard_type="script_writer_wizard",
+            continuity_context=continuity,
+        )
+
+    assert result["output"] == raw_output
+    assert result["agents_consulted"] == []
+    assert result["review_applied"] is False
+    mock_chat.assert_not_called()
