@@ -4,8 +4,8 @@ milestone: v10.0
 milestone_name: Show Type / Episode Continuity
 status: executing
 stopped_at: Phase 70 UI-SPEC approved
-last_updated: "2026-06-18T01:14:37.976Z"
-last_activity: 2026-06-18 -- Phase 70 planning complete
+last_updated: "2026-06-18T13:47:28.815Z"
+last_activity: 2026-06-18 -- Phase 70 execution started
 progress:
   total_phases: 36
   completed_phases: 4
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-24)
 
 **Core value:** From blank page to production-ready breakdown -- AI helps you write the screenplay and then extracts everything you need to produce it.
-**Current focus:** Phase 69 — auto-episode-summary-lazy-regeneration
+**Current focus:** Phase 70 — show-creation-wizard-mode-presets
 
 - Backend (Railway): https://web-production-73857.up.railway.app (/health 200)
 - Frontend (Vercel): https://screenwriting-assistant-lake.vercel.app (verified working in browser)
@@ -32,10 +32,10 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 ## Current Position
 
-Phase: 69 — COMPLETE
-Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-06-18 -- Phase 70 planning complete
+Phase: 70 (show-creation-wizard-mode-presets) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 70
+Last activity: 2026-06-18 -- Phase 70 execution started
 
 **v10.0 phase map (67-71):**
 
