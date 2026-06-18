@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v10.0
 milestone_name: Show Type / Episode Continuity
-status: completed
-stopped_at: Phase 70 context gathered
-last_updated: "2026-06-17T21:26:59.228Z"
-last_activity: 2026-06-17 -- Phase 69 marked complete
+status: executing
+stopped_at: Phase 70 UI-SPEC approved
+last_updated: "2026-06-18T01:14:37.976Z"
+last_activity: 2026-06-18 -- Phase 70 planning complete
 progress:
   total_phases: 36
   completed_phases: 4
-  total_plans: 8
+  total_plans: 11
   completed_plans: 12
   percent: 11
 ---
@@ -34,8 +34,8 @@ See: .planning/PROJECT.md (updated 2026-03-24)
 
 Phase: 69 — COMPLETE
 Plan: 2 of 2
-Status: Phase 69 complete
-Last activity: 2026-06-17 -- Phase 69 marked complete
+Status: Ready to execute
+Last activity: 2026-06-18 -- Phase 70 planning complete
 
 **v10.0 phase map (67-71):**
 
@@ -164,6 +164,6 @@ These do not block v6.0; the v6.0 phase-48 gap was resolved by the 2026-06-11 UA
 
 ## Session Continuity
 
-Last session: 2026-06-17T21:26:59.221Z
-Stopped at: Phase 70 context gathered
-Resume file: .planning/phases/70-show-creation-wizard-mode-presets/70-CONTEXT.md
+Last session: 2026-06-17T23:24:06.973Z
+Stopped at: Phase 70 UI-SPEC approved
+Resume file: .planning/phases/70-show-creation-wizard-mode-presets/70-UI-SPEC.md
