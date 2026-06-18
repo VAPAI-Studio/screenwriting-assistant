@@ -77,7 +77,7 @@ export function ShowDetail({ showId }: ShowDetailProps) {
       {/* Series Bible */}
       <section className="mb-12">
         <h2 className="text-xl font-semibold text-foreground mb-4">Series Bible</h2>
-        {bible && <BibleEditor showId={showId} bible={bible} />}
+        {bible && <BibleEditor showId={showId} bible={bible} continuityMode={show.continuity_mode} />}
       </section>
 
       {/* Episode List */}
