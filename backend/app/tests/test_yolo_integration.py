@@ -180,12 +180,25 @@ def test_gating_combined(db_session, owner_id, make_agent):
 
 
 @pytest.fixture
-def mock_project():
-    """Minimal project-like object for _yolo_run_wizard."""
-    project = MagicMock()
-    project.id = str(uuid.uuid4())
-    project.template = MagicMock()
-    project.template.value = "short_movie"
+def mock_project(db_session, owner_id):
+    """A real persisted Project row for _yolo_run_wizard.
+
+    Must be a real row (not a MagicMock): _yolo_run_wizard's _get_or_create_phase_data
+    flushes a PhaseData with project_id=project.id, and the test engine enforces SQLite
+    foreign keys once any test has enabled the pragma on the shared StaticPool connection
+    — an orphan MagicMock id then trips 'FOREIGN KEY constraint failed' depending on suite
+    order (#ci). template stays TemplateType.SHORT_MOVIE so project.template.value works.
+    """
+    from app.models.database import Project, TemplateType
+
+    project = Project(
+        id=str(uuid.uuid4()),
+        owner_id=owner_id,
+        title="YOLO Test Project",
+        template=TemplateType.SHORT_MOVIE,
+    )
+    db_session.add(project)
+    db_session.flush()
     return project
 
 

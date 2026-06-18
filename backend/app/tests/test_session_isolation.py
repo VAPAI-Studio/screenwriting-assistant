@@ -179,15 +179,19 @@ async def test_orchestrate_uses_session_factory():
     mock_session.id = uuid4()
     mock_session.project = MagicMock()
     mock_session.project.title = "Test Project"
+    mock_session.project.template.value = "short_movie"  # real template id so get_template() resolves
     mock_session.project.sections = []
     mock_session.messages = []
 
-    # Build a mock db for the initial specialist query (not concurrent)
+    # Build a mock db for the initial specialist query (not concurrent).
+    # PhaseData query must return [] so _format_project_context stays on the
+    # template branch without trying to read PhaseData attrs off agent mocks.
     mock_db = MagicMock()
     mock_query = MagicMock()
     mock_db.query.return_value = mock_query
     mock_query.filter.return_value = mock_query
     mock_query.all.return_value = specialist_agents
+    mock_db.query.return_value.filter.return_value.all.return_value = specialist_agents
 
     service = AgentService()
 

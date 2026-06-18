@@ -65,6 +65,16 @@ def _http_client(token):
     )
 
 
+@pytest.fixture
+def anyio_backend():
+    # Pin to a single backend. The MCP StreamableHTTPSessionManager.run() is
+    # single-use per instance and mcp_app is a module-level singleton, so the
+    # default asyncio+trio parametrization would consume it on the first backend
+    # and fail the second with "run() can only be called once" (#ci). One backend
+    # is sufficient for this HTTP-path integration smoke test.
+    return "asyncio"
+
+
 @pytest.mark.anyio
 async def test_mcp_foundation_end_to_end():
     from mcp.client.streamable_http import streamable_http_client
