@@ -450,11 +450,19 @@ export interface StoryboardFrame {
 // Show types (v4.2 -- Phase 38)
 // ============================================================
 
+// Continuity mode for a show (v10.0 -- Phase 70).
+// Mirrors the backend ContinuityMode str-enum (schemas.py). All three values
+// are included for type-completeness even though the creation wizard only
+// offers two presets -- `standalone` is the show_id IS NULL feature-film path
+// (D-02), not a wizard preset.
+export type ContinuityMode = 'connected' | 'anthology' | 'standalone';
+
 export interface Show {
   id: string;
   owner_id: string;
   title: string;
   description: string;
+  continuity_mode: ContinuityMode;
   created_at: string;
   updated_at: string | null;
 }
@@ -462,6 +470,7 @@ export interface Show {
 export interface ShowCreate {
   title: string;
   description?: string;
+  continuity_mode?: ContinuityMode;
 }
 
 export interface BibleResponse {
