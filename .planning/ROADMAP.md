@@ -638,7 +638,7 @@ Plans:
   1. In a `connected` show, episode review surfaces continuity considerations checked against the prior-episode summaries (character/plot coherence)
   2. In `anthology` and `standalone` modes, review does not perform cross-episode continuity checks (standalone-quality scope preserved)
 **Plans**: 1 plan
-  - [ ] 71-01-PLAN.md — Thread connected-mode prior-episode block into agent review middleware as continuity_context + bounded coherence merge-prompt instruction; anthology/standalone & zero-agent paths unchanged (SREV-01)
+  - [x] 71-01-PLAN.md — Thread connected-mode prior-episode block into agent review middleware as continuity_context + bounded coherence merge-prompt instruction; anthology/standalone & zero-agent paths unchanged (SREV-01)
 
 ## Progress
 
@@ -714,4 +714,4 @@ Plans:
 | 68. Mode-Aware Generation Context Injection | v10.0 | 1/1 | Complete   | 2026-06-17 |
 | 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 2/2 | Complete   | 2026-06-17 |
 | 70. Show Creation Wizard (mode + presets) | v10.0 | 3/3 | Complete    | 2026-06-18 |
-| 71. Mode-Aware Review | v10.0 | 0/? | Not started | - |
+| 71. Mode-Aware Review | v10.0 | 1/1 | Complete   | 2026-06-18 |
