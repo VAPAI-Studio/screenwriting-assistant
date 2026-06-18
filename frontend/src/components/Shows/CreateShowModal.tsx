@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
+import { X, Zap, Link, LayoutGrid, type LucideIcon } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Button } from '../UI/Button';
-import { QUERY_KEYS, ROUTES } from '../../lib/constants';
+import { QUERY_KEYS, ROUTES, SHOW_PRESETS } from '../../lib/constants';
+import type { Show } from '../../types';
+
+const PRESET_ICON_MAP: Record<string, LucideIcon> = {
+  Zap,
+  Link,
+  LayoutGrid,
+};
 
 interface CreateShowModalProps {
   open: boolean;
@@ -15,23 +22,53 @@ interface CreateShowModalProps {
 export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [seasonArc, setSeasonArc] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const selectedPresetObj = SHOW_PRESETS.find((p) => p.id === selectedPreset);
+  const isConnected = selectedPresetObj?.mode === 'connected';
+
   const createShowMutation = useMutation({
-    mutationFn: api.createShow,
+    mutationFn: async (): Promise<Show> => {
+      const preset = SHOW_PRESETS.find((p) => p.id === selectedPreset);
+      const show = await api.createShow({
+        title,
+        description: description || undefined,
+        continuity_mode: preset?.mode,
+      });
+
+      // Two-call sequence (PATTERNS Integration Finding #2): episode_duration_minutes
+      // and bible_season_arc are Bible fields, not ShowCreate fields — seed them via a
+      // single chained updateBible after the show (and its auto-provisioned bible) exist.
+      const bibleUpdate: { episode_duration_minutes?: number | null; bible_season_arc?: string } = {};
+      if (preset && preset.duration !== null) {
+        bibleUpdate.episode_duration_minutes = preset.duration;
+      }
+      if (preset?.mode === 'connected' && seasonArc.trim()) {
+        bibleUpdate.bible_season_arc = seasonArc.trim();
+      }
+      if (Object.keys(bibleUpdate).length > 0) {
+        await api.updateBible(show.id, bibleUpdate);
+      }
+
+      return show;
+    },
     onSuccess: (show) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SHOWS] });
       onOpenChange(false);
       setTitle('');
       setDescription('');
+      setSelectedPreset(null);
+      setSeasonArc('');
       navigate(ROUTES.SHOW(show.id));
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createShowMutation.mutate({ title, description: description || undefined });
+    createShowMutation.mutate();
   };
 
   return (
@@ -69,6 +106,44 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
               />
             </div>
 
+            {/* Continuity */}
+            <div>
+              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                Continuity
+              </label>
+              <div className="space-y-2.5">
+                {SHOW_PRESETS.map((preset) => {
+                  const isSelected = selectedPreset === preset.id;
+                  const Icon = PRESET_ICON_MAP[preset.icon] || LayoutGrid;
+
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setSelectedPreset(preset.id)}
+                      className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border transition-all duration-200
+                        ${isSelected
+                          ? 'border-amber-500/40 bg-amber-500/5 glow-amber'
+                          : 'border-border hover:border-muted-foreground/20 hover:bg-muted/30'
+                        }`}
+                    >
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors
+                        ${isSelected ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-foreground">{preset.label}</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{preset.helper}</p>
+                      </div>
+                      {isSelected && (
+                        <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Description */}
             <div>
               <label htmlFor="show-description" className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
@@ -84,6 +159,23 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
               />
             </div>
 
+            {/* Season Arc — connected presets only (D-07) */}
+            {isConnected && (
+              <div className="animate-fade-up">
+                <label htmlFor="show-season-arc" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Season Arc
+                </label>
+                <textarea
+                  id="show-season-arc"
+                  value={seasonArc}
+                  onChange={(e) => setSeasonArc(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40 transition-all resize-none"
+                  placeholder="Outline the overarching story arc for the season..."
+                  rows={3}
+                />
+              </div>
+            )}
+
             {/* Actions */}
             <div className="flex justify-end gap-2.5 pt-2">
               <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
@@ -91,7 +183,7 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
               </Button>
               <Button
                 type="submit"
-                disabled={!title || createShowMutation.isPending}
+                disabled={!title || !selectedPreset || createShowMutation.isPending}
               >
                 {createShowMutation.isPending ? 'Creating...' : 'Create Show'}
               </Button>
