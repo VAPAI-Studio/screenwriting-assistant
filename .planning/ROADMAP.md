@@ -625,8 +625,8 @@ Plans:
   3. The persisted show carries only the resulting `continuity_mode` (presets leave no separate stored field), and a later edit can change the mode
 **Plans**: 3 plans
   - [x] 70-01-PLAN.md — ContinuityMode type + shared SHOW_PRESETS config (frontend foundation)
-  - [ ] 70-02-PLAN.md — CreateShowModal preset cards + conditional season-arc + chained duration/season-arc seed
-  - [ ] 70-03-PLAN.md — Edit-side mode-change control in BibleEditor (pre-selected, PUT /api/shows)
+  - [x] 70-02-PLAN.md — CreateShowModal preset cards + conditional season-arc + chained duration/season-arc seed
+  - [x] 70-03-PLAN.md — Edit-side mode-change control in BibleEditor (pre-selected, PUT /api/shows)
 **UI hint**: yes
 
 ### Phase 71: Mode-Aware Review
@@ -712,5 +712,5 @@ Plans:
 | 67. Continuity Data Model & Migration | v10.0 | 3/3 | Complete   | 2026-06-17 |
 | 68. Mode-Aware Generation Context Injection | v10.0 | 1/1 | Complete   | 2026-06-17 |
 | 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 2/2 | Complete   | 2026-06-17 |
-| 70. Show Creation Wizard (mode + presets) | v10.0 | 1/3 | In Progress|  |
+| 70. Show Creation Wizard (mode + presets) | v10.0 | 3/3 | Complete   | 2026-06-18 |
 | 71. Mode-Aware Review | v10.0 | 0/? | Not started | - |
