@@ -53,6 +53,17 @@ jobs:
         working-directory: frontend
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        # `vercel build` runs `npm run build` (tsc && vite build) locally on the
+        # runner, so node_modules must exist first — otherwise `vite: not found`
+        # (exit 127). The Vercel dashboard build is bypassed by --prebuilt.
+        run: npm ci
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
       - name: Pull Vercel env, build, and deploy (prod)
