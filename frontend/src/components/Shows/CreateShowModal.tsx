@@ -23,8 +23,12 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [seasonArc, setSeasonArc] = useState('');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  const selectedPresetObj = SHOW_PRESETS.find((p) => p.id === selectedPreset);
+  const isConnected = selectedPresetObj?.mode === 'connected';
 
   const createShowMutation = useMutation({
     mutationFn: async (): Promise<Show> => {
@@ -36,11 +40,17 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
       });
 
       // Two-call sequence (PATTERNS Integration Finding #2): episode_duration_minutes
-      // is a Bible field, not a ShowCreate field — seed it via a chained updateBible.
+      // and bible_season_arc are Bible fields, not ShowCreate fields — seed them via a
+      // single chained updateBible after the show (and its auto-provisioned bible) exist.
+      const bibleUpdate: { episode_duration_minutes?: number | null; bible_season_arc?: string } = {};
       if (preset && preset.duration !== null) {
-        await api.updateBible(show.id, {
-          episode_duration_minutes: preset.duration,
-        });
+        bibleUpdate.episode_duration_minutes = preset.duration;
+      }
+      if (preset?.mode === 'connected' && seasonArc.trim()) {
+        bibleUpdate.bible_season_arc = seasonArc.trim();
+      }
+      if (Object.keys(bibleUpdate).length > 0) {
+        await api.updateBible(show.id, bibleUpdate);
       }
 
       return show;
@@ -51,6 +61,7 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
       setTitle('');
       setDescription('');
       setSelectedPreset(null);
+      setSeasonArc('');
       navigate(ROUTES.SHOW(show.id));
     },
   });
@@ -147,6 +158,23 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
                 rows={3}
               />
             </div>
+
+            {/* Season Arc — connected presets only (D-07) */}
+            {isConnected && (
+              <div className="animate-fade-up">
+                <label htmlFor="show-season-arc" className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Season Arc
+                </label>
+                <textarea
+                  id="show-season-arc"
+                  value={seasonArc}
+                  onChange={(e) => setSeasonArc(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40 transition-all resize-none"
+                  placeholder="Outline the overarching story arc for the season..."
+                  rows={3}
+                />
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex justify-end gap-2.5 pt-2">
