@@ -63,8 +63,8 @@ def _get_character_data(db: Session, project_id) -> list:
 async def _run_wizard_background(
     run_id, project_id, template_id: str,
     wizard_type: str, config: dict, phase: str, owner_id: str,
-    bible_context: str = None,
-    continuity_context: str = None,
+    bible_context: Optional[str] = None,
+    continuity_context: Optional[str] = None,
 ):
     """Background task: run wizard generation and update the WizardRun record."""
     db = SessionLocal()
