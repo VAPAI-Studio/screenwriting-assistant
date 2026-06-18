@@ -637,7 +637,8 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. In a `connected` show, episode review surfaces continuity considerations checked against the prior-episode summaries (character/plot coherence)
   2. In `anthology` and `standalone` modes, review does not perform cross-episode continuity checks (standalone-quality scope preserved)
-**Plans**: TBD
+**Plans**: 1 plan
+  - [ ] 71-01-PLAN.md — Thread connected-mode prior-episode block into agent review middleware as continuity_context + bounded coherence merge-prompt instruction; anthology/standalone & zero-agent paths unchanged (SREV-01)
 
 ## Progress
 
