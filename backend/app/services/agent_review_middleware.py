@@ -56,6 +56,20 @@ The output MUST match this JSON schema exactly:
 Return ONLY the refined output as valid JSON matching the schema above. No explanations, no markdown."""
 
 
+# Phase 71 (SREV-01, D4): Bounded continuity block appended to the merge system
+# prompt ONLY for connected-mode script_writer_wizard reviews. The instruction is
+# deliberately scoped to COHERENCE CONSIDERATIONS and explicitly forbids exhaustive
+# inconsistency auditing — the continuity-inconsistency engine is deferred (D-out).
+CONTINUITY_MERGE_BLOCK = """
+
+CONNECTED-SHOW CONTINUITY REFERENCE:
+The following are summaries of PRIOR episodes in this show, provided ONLY as a coherence reference.
+{continuity_context}
+
+When applying the agent feedback, ADDITIONALLY flag any character or plot COHERENCE CONSIDERATIONS that read inconsistently against these prior episodes, and gently reconcile them where the agent feedback already supports it.
+Do NOT perform an exhaustive inconsistency audit or a correctness review of the prior episodes themselves — this is a light coherence pass, not full continuity-inconsistency detection. The prior summaries are reference only and must not be rewritten or emitted in the output."""
+
+
 def _summarize_feedback(feedback: Dict[str, Any]) -> str:
     """Build a concise summary string from agent feedback."""
     parts = []
@@ -84,8 +98,16 @@ class AgentReviewMiddleware:
         owner_id: str,
         session_factory: SessionFactory,
         wizard_type: Optional[str] = None,
+        continuity_context: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Main entry point: look up mapped agents, fan out reviews, merge results."""
+        """Main entry point: look up mapped agents, fan out reviews, merge results.
+
+        continuity_context (Phase 71, SREV-01): an optional plain string of
+        prior-episode summaries (connected-mode + script_writer_wizard only). When
+        present, a bounded coherence instruction is injected into the merge prompt.
+        None (default) keeps the merge path byte-identical to today (D5). It NEVER
+        forces a review — zero-agent pass-through (REVW-04) is preserved (D3).
+        """
         # Lookup agents using a dedicated session
         db = session_factory()
         try:
@@ -118,7 +140,9 @@ class AgentReviewMiddleware:
 
         # REVW-03: AI merge with schema validation
         merge_type = wizard_type or subsection_key
-        refined_output = await self._merge_reviews(raw_output, successful, merge_type)
+        refined_output = await self._merge_reviews(
+            raw_output, successful, merge_type, continuity_context=continuity_context
+        )
 
         # Build agents_consulted metadata with summaries
         agents_consulted = [
@@ -205,8 +229,14 @@ class AgentReviewMiddleware:
         raw_output: Any,
         reviews: List[Dict[str, Any]],
         wizard_type: str,
+        continuity_context: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """Merge multiple agent reviews into refined output via AI call."""
+        """Merge multiple agent reviews into refined output via AI call.
+
+        When continuity_context is a non-empty string (Phase 71, connected-mode
+        script_writer_wizard), a bounded coherence block is appended to the system
+        prompt. When None/blank, the system prompt is byte-identical to today (D5).
+        """
         schema_info = WIZARD_RESULT_SCHEMAS.get(wizard_type)
         schema_description = schema_info["description"] if schema_info else "Same schema as the input"
 
@@ -222,6 +252,14 @@ class AgentReviewMiddleware:
             wizard_type=wizard_type,
             schema_description=schema_description,
         )
+
+        # Phase 71 (D4/D5): append the bounded continuity block ONLY when a
+        # non-whitespace continuity_context is supplied. Single appended segment so
+        # the prompt is identical to pre-Phase-71 output when it is None/blank.
+        if continuity_context and continuity_context.strip():
+            system_prompt += CONTINUITY_MERGE_BLOCK.format(
+                continuity_context=continuity_context.strip()
+            )
 
         raw_json = json.dumps(raw_output) if not isinstance(raw_output, str) else raw_output
         user_content = (
