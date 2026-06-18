@@ -13,11 +13,21 @@ logger = logging.getLogger(__name__)
 
 class EmbeddingService:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        # Lazy client init (mirrors ai_provider._get_openai_client): constructing the
+        # singleton at import time must NOT require OPENAI_API_KEY, or `import app.main`
+        # fails wherever the key is absent (e.g. CI test collection). The OpenAI SDK
+        # validates credentials at construction, so defer it until first actual use.
+        self._client = None
         self.model = settings.EMBEDDING_MODEL
         # In-memory LRU cache for query embeddings
         self._cache: OrderedDict = OrderedDict()
         self._max_cache_size = 500
+
+    @property
+    def client(self) -> AsyncOpenAI:
+        if self._client is None:
+            self._client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        return self._client
 
     async def embed_text(self, text: str) -> List[float]:
         """Generate embedding for a single text, with caching."""
