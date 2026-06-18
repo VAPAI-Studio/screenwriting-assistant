@@ -28,7 +28,7 @@
 
 ### Mode-aware review (SREV)
 
-- [ ] **SREV-01**: In `connected` mode, episode review considers continuity with prior episodes (character/plot coherence against the prior-episode summaries)
+- [x] **SREV-01**: In `connected` mode, episode review considers continuity with prior episodes (character/plot coherence against the prior-episode summaries)
 
 ## v9.0 Requirements — Deploy (Railway + Vercel + CI/CD)
 
@@ -243,7 +243,7 @@
 | ESUM-03 | Phase 69 | Complete |
 | SWZ-01 | Phase 70 | Complete |
 | SWZ-02 | Phase 70 | Complete |
-| SREV-01 | Phase 71 | Pending |
+| SREV-01 | Phase 71 | Complete |
 | DCFG-01 | Phase 62 | Pending |
 | DCFG-02 | Phase 62 | Pending |
 | DMIG-01 | Phase 62 | Pending |

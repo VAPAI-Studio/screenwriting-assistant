@@ -714,4 +714,4 @@ Plans:
 | 68. Mode-Aware Generation Context Injection | v10.0 | 1/1 | Complete   | 2026-06-17 |
 | 69. Auto Episode Summary & Lazy Regeneration | v10.0 | 2/2 | Complete   | 2026-06-17 |
 | 70. Show Creation Wizard (mode + presets) | v10.0 | 3/3 | Complete    | 2026-06-18 |
-| 71. Mode-Aware Review | v10.0 | 1/1 | Complete   | 2026-06-18 |
+| 71. Mode-Aware Review | v10.0 | 1/1 | Complete    | 2026-06-18 |
