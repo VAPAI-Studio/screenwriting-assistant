@@ -16,12 +16,18 @@ interface BibleEditorProps {
 const PRESET_ICON_MAP: Record<string, typeof Zap> = { Zap, Link, LayoutGrid };
 
 // Pre-selection rule (UI-SPEC :102): duration 2 + connected -> Microserie,
-// other connected -> Serie conectada, anthology/standalone -> Antología.
+// other connected -> Serie conectada, anthology -> Antología. A show in the
+// pre-existing 'standalone' (feature-film) mode maps to NO preset card (IN-02):
+// none of the three presets represents standalone, so highlighting Antología
+// would be misleading.
 function presetIdForMode(mode: ContinuityMode, durationMinutes: number | null): string {
   if (mode === 'connected') {
     return durationMinutes === 2 ? 'microserie' : 'serie-conectada';
   }
-  return 'antologia';
+  if (mode === 'anthology') {
+    return 'antologia';
+  }
+  return '';
 }
 
 export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps) {
@@ -68,10 +74,19 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
     }
   }, [bible, continuityMode]);
 
+  const [modeSaved, setModeSaved] = useState(false);
+
   const updateShowMutation = useMutation({
     mutationFn: (mode: ContinuityMode) => api.updateShow(showId, { continuity_mode: mode }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SHOW(showId) });
+      // The stored episode_duration_minutes in the BIBLE cache is the sole input to
+      // presetIdForMode's Microserie-vs-Serie-conectada disambiguation, so it must be
+      // refreshed too or a navigate-away-and-return can re-select the wrong card (WR-03).
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BIBLE(showId) });
+      // Auto-dismiss the "Saved" indicator instead of leaving it on forever (WR-02).
+      setModeSaved(true);
+      setTimeout(() => setModeSaved(false), 2000);
     },
   });
 
@@ -107,7 +122,7 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
           <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Continuity
           </span>
-          {updateShowMutation.isSuccess && !updateShowMutation.isPending && (
+          {modeSaved && !updateShowMutation.isPending && (
             <span className="flex items-center gap-1 text-xs text-emerald-400">
               <Check className="h-3 w-3" /> Saved
             </span>

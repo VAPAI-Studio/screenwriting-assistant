@@ -14,6 +14,15 @@ const PRESET_ICON_MAP: Record<string, LucideIcon> = {
   LayoutGrid,
 };
 
+// Raised when the show was created but the chained bible seed failed (CR-01).
+// Lets onError distinguish "nothing created" from "created, defaults not seeded".
+class BibleSeedError extends Error {
+  constructor(public readonly show: Show, public readonly cause: unknown) {
+    super('Show created, but applying the preset defaults failed.');
+    this.name = 'BibleSeedError';
+  }
+}
+
 interface CreateShowModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,7 +41,7 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
 
   const createShowMutation = useMutation({
     mutationFn: async (): Promise<Show> => {
-      const preset = SHOW_PRESETS.find((p) => p.id === selectedPreset);
+      const preset = selectedPresetObj;
       const show = await api.createShow({
         title,
         description: description || undefined,
@@ -50,18 +59,27 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
         bibleUpdate.bible_season_arc = seasonArc.trim();
       }
       if (Object.keys(bibleUpdate).length > 0) {
-        await api.updateBible(show.id, bibleUpdate);
+        // If the bible seed fails after the show was created, surface it as an error
+        // (CR-01) — the show exists but its preset defaults were not persisted. The
+        // navigate target carries the show id so the user can finish setup there.
+        try {
+          await api.updateBible(show.id, bibleUpdate);
+        } catch (err) {
+          throw new BibleSeedError(show, err);
+        }
       }
 
       return show;
     },
     onSuccess: (show) => {
       queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SHOWS] });
-      onOpenChange(false);
+      // Reset local state BEFORE closing — onOpenChange(false) unmounts this dialog,
+      // so setState after it would warn on an unmounted component (CR-02).
       setTitle('');
       setDescription('');
       setSelectedPreset(null);
       setSeasonArc('');
+      onOpenChange(false);
       navigate(ROUTES.SHOW(show.id));
     },
   });
@@ -174,6 +192,15 @@ export function CreateShowModal({ open, onOpenChange }: CreateShowModalProps) {
                   rows={3}
                 />
               </div>
+            )}
+
+            {/* Error copy (CR-01 / WR-01) */}
+            {createShowMutation.isError && (
+              <p className="text-xs text-red-400" role="alert">
+                {createShowMutation.error instanceof BibleSeedError
+                  ? 'Show created, but applying the preset defaults failed. Open the show to finish setting it up.'
+                  : 'Could not create the show. Check your connection and try again.'}
+              </p>
             )}
 
             {/* Actions */}
