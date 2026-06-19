@@ -157,7 +157,7 @@ class Project(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     owner_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     title = Column(String(255), nullable=False)
-    framework = Column(Enum(Framework), nullable=True)  # Legacy: kept for backward compat
+    framework = Column(Enum(Framework, values_callable=lambda x: [e.value for e in x]), nullable=True)  # Legacy: kept for backward compat. values_callable so PG gets the lowercase value ('three_act'), not the member name ('THREE_ACT') — same fix as `template` below.
     template = Column(Enum(TemplateType, values_callable=lambda x: [e.value for e in x]), nullable=True)
     current_phase = Column(Enum(PhaseType, values_callable=lambda x: [e.value for e in x]), default=PhaseType.IDEA)
     template_config = Column(JSON, default=dict)
@@ -189,7 +189,7 @@ class Section(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False, index=True)
-    type = Column(Enum(SectionType), nullable=False)
+    type = Column(Enum(SectionType, values_callable=lambda x: [e.value for e in x]), nullable=False)
     user_notes = Column(Text, default="")
     ai_suggestions = Column(JSON, default=dict)
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -204,7 +204,7 @@ class ChecklistItem(Base):
     section_id = Column(UUID(as_uuid=True), ForeignKey("sections.id"), nullable=False, index=True)
     prompt = Column(Text, nullable=False)
     answer = Column(Text, default="")
-    status = Column(Enum(ChecklistStatus), default=ChecklistStatus.PENDING)
+    status = Column(Enum(ChecklistStatus, values_callable=lambda x: [e.value for e in x]), default=ChecklistStatus.PENDING)
     order = Column(Integer, default=0)
 
     section = sa_relationship("Section", back_populates="checklist_items")

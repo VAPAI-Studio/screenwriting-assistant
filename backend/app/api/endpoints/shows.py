@@ -211,7 +211,9 @@ async def create_episode(
         )
         episode_number = (max_num or 0) + 1
 
-    # 3. Create project with show linkage
+    # 3. Create project with show linkage. The Project.framework column uses
+    # values_callable so the Enum serializes to its lowercase value matching the
+    # Postgres enum labels (see database.py).
     db_project = database.Project(
         title=body.title,
         framework=body.framework,
