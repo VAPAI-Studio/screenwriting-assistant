@@ -53,12 +53,14 @@ def register(mcp):
 
     @mcp.tool()
     def project_list(ctx: Context) -> dict:
-        """List the authenticated user's projects (id, title, framework, and
-        whether each belongs to a show). The starting point for any session."""
+        """List the authenticated user's standalone projects (Films). Episodes
+        (projects with a show_id) are listed per-show via episode_list, not here.
+        The starting point for any session."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             rows = db.query(database.Project).filter(
-                database.Project.owner_id == str(user.id)
+                database.Project.owner_id == str(user.id),
+                database.Project.show_id.is_(None),
             ).order_by(database.Project.created_at.desc()).all()
             return {"summary": f"{len(rows)} project(s)", "projects": [_project_brief(p) for p in rows]}
 

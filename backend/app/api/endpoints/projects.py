@@ -111,14 +111,20 @@ async def list_projects(
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """List all projects for the current user"""
+    """List the user's standalone projects (Films).
+
+    Episodes are Projects with a show_id and are listed under their show via
+    GET /api/shows/{id}/episodes — exclude them here so they don't show up as
+    standalone films.
+    """
     projects = db.query(database.Project).options(
         joinedload(database.Project.sections)
             .joinedload(database.Section.checklist_items)
     ).filter(
-        database.Project.owner_id == current_user.id
+        database.Project.owner_id == current_user.id,
+        database.Project.show_id.is_(None),
     ).order_by(database.Project.created_at.desc()).all()
-    
+
     return projects
 
 @router.get("/{project_id}", response_model=schemas.Project)
