@@ -183,6 +183,29 @@ class Project(Base):
                                       cascade="all, delete-orphan")
     shots = sa_relationship("Shot", back_populates="project", cascade="all, delete-orphan")
     asset_media = sa_relationship("AssetMedia", back_populates="project", cascade="all, delete-orphan")
+    socratic_questions = sa_relationship("SocraticQuestion", back_populates="project", cascade="all, delete-orphan")
+
+
+class SocraticQuestion(Base):
+    """A book+script-grounded "hard question" for a project (migration 012).
+
+    One pending (answer IS NULL) question per project at a time. Answering one
+    starts a 3h lazy-regen cooldown (see socratic_service). The author's answers
+    are fed back into the project context for generation/review.
+    """
+    __tablename__ = "socratic_questions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    question = Column(Text, nullable=False)
+    rationale = Column(Text, nullable=True)
+    source_concepts = Column(JSON, default=list)  # list of book concept/title strings the question drew on
+    answer = Column(Text, nullable=True)
+    answered_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    project = sa_relationship("Project", back_populates="socratic_questions")
+
 
 class Section(Base):
     __tablename__ = "sections"

@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import { SectionEditor } from './SectionEditor';
 import { ChatSidebar } from './ChatSidebar';
 import { EpisodeBreadcrumb } from './EpisodeBreadcrumb';
+import { SocraticPanel } from './SocraticPanel';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import { QUERY_KEYS, ERROR_MESSAGES } from '../../lib/constants';
 import { Button } from '../UI/Button';
@@ -102,7 +103,10 @@ export function Editor() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-5 pb-0">
+          <SocraticPanel projectId={projectId!} />
+        </div>
         {selectedSection ? (
           <SectionEditor
             section={selectedSection}
@@ -110,7 +114,7 @@ export function Editor() {
             onRequestReview={() => setShowChat(true)}
           />
         ) : (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center py-16">
             <p className="text-sm text-muted-foreground">Select a section to start editing</p>
           </div>
         )}

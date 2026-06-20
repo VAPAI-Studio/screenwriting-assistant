@@ -530,6 +530,22 @@ export interface RegenerateSceneResponse {
   error?: string;
 }
 
+// Socratic "hard questions" (book + script grounded)
+export interface SocraticQuestion {
+  id: string;
+  question: string;
+  rationale: string | null;
+  source_concepts: string[];
+  answer: string | null;
+  answered_at: string | null;
+  created_at: string | null;
+}
+
+export type SocraticCurrent =
+  | { status: 'pending'; question: SocraticQuestion }
+  | { status: 'new'; question: SocraticQuestion }
+  | { status: 'cooldown'; cooldown_seconds: number; last_answered: SocraticQuestion | null };
+
 export interface KeepSceneVersionRequest {
   project_id: string;
   phase: string;

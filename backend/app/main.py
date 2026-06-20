@@ -17,6 +17,7 @@ from .api.endpoints import media as media_ep
 from .api.endpoints import breakdown_chat as breakdown_chat_ep
 from .api.endpoints import storyboard as storyboard_ep
 from .api.endpoints import shows as shows_ep
+from .api.endpoints import socratic as socratic_ep
 from .config import settings
 from .middleware import (
     LoggingMiddleware,
@@ -158,6 +159,7 @@ app.include_router(media_ep.router, prefix="/api/media", tags=["media"])
 app.include_router(breakdown_chat_ep.router, prefix="/api/breakdown-chat", tags=["breakdown-chat"])
 app.include_router(storyboard_ep.router, prefix="/api/storyboard", tags=["storyboard"])
 app.include_router(shows_ep.router, prefix="/api/shows", tags=["shows"])
+app.include_router(socratic_ep.router, prefix="/api/projects", tags=["socratic"])
 
 # Serve uploaded media files
 os.makedirs(settings.MEDIA_DIR, exist_ok=True)

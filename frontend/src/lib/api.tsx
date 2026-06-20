@@ -27,9 +27,9 @@ const getHeaders = (): Record<string, string> => ({
 });
 
 // Create a fetch wrapper with timeout
-const fetchWithTimeout = async (url: string, options: RequestInit = {}) => {
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs: number = API_TIMEOUT) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
@@ -1380,5 +1380,37 @@ export const api = {
       headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to revoke API key');
+  },
+
+  // ============================================================
+  // Socratic "hard questions"
+  // ============================================================
+  async getSocraticCurrent(projectId: string): Promise<import('../types').SocraticCurrent> {
+    // Generation can take a while; allow extra time.
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/projects/${projectId}/socratic/current`,
+      { headers: getHeaders() },
+      90000,
+    );
+    if (!response.ok) throw new Error('Failed to load question');
+    return response.json();
+  },
+
+  async answerSocratic(projectId: string, questionId: string, answer: string): Promise<import('../types').SocraticQuestion> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/projects/${projectId}/socratic/${questionId}/answer`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify({ answer }) },
+    );
+    if (!response.ok) throw new Error('Failed to save answer');
+    return response.json();
+  },
+
+  async getSocraticHistory(projectId: string): Promise<{ questions: import('../types').SocraticQuestion[] }> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/projects/${projectId}/socratic/history`,
+      { headers: getHeaders() },
+    );
+    if (!response.ok) throw new Error('Failed to load history');
+    return response.json();
   },
 };
