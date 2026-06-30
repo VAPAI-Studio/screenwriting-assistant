@@ -514,11 +514,13 @@ class TestEpisodeModel:
     def test_episode_create_schema_validation(self):
         """Test EpisodeCreate schema validates correctly."""
         from app.models.schemas import EpisodeCreate
-        # Valid input
+        # Valid input — episodes are template-based now (default short_movie),
+        # framework is deprecated/optional.
         ep = EpisodeCreate(title="Pilot")
         assert ep.title == "Pilot"
         assert ep.episode_number is None
-        assert ep.framework.value == "three_act"
+        assert ep.template.value == "short_movie"
+        assert ep.framework is None
 
         # With episode_number
         ep2 = EpisodeCreate(title="Episode Two", episode_number=2)
@@ -549,11 +551,11 @@ class TestEpisodesAPI:
         return resp.json()["id"]
 
     def test_create_episode(self, client, mock_auth_headers):
-        """POST with title and episode_number returns 201 with show_id, episode_number, and 6 sections."""
+        """POST with title returns 201 with show_id, episode_number, and a template."""
         show_id = self._create_show(client, mock_auth_headers)
         resp = client.post(
             f"/api/shows/{show_id}/episodes",
-            json={"title": "Pilot", "episode_number": 1},
+            json={"title": "Pilot", "episode_number": 1, "template": "short_movie"},
             headers=mock_auth_headers,
         )
         assert resp.status_code == 201
@@ -561,7 +563,9 @@ class TestEpisodesAPI:
         assert data["title"] == "Pilot"
         assert data["show_id"] == show_id
         assert data["episode_number"] == 1
-        assert len(data["sections"]) == 6
+        # Template-based: scaffolds phase_data, not the legacy 6 sections.
+        assert data["template"] == "short_movie"
+        assert data.get("current_phase") == "idea"
 
     def test_create_episode_auto_number(self, client, mock_auth_headers):
         """POST without episode_number auto-assigns 1 for first, 2 for second."""
@@ -582,16 +586,18 @@ class TestEpisodesAPI:
         assert resp2.status_code == 201
         assert resp2.json()["episode_number"] == 2
 
-    def test_create_episode_custom_framework(self, client, mock_auth_headers):
-        """POST with framework=hero_journey creates episode with that framework."""
+    def test_create_episode_template(self, client, mock_auth_headers):
+        """POST with a template creates a template-based episode (no framework)."""
         show_id = self._create_show(client, mock_auth_headers)
         resp = client.post(
             f"/api/shows/{show_id}/episodes",
-            json={"title": "Hero Ep", "framework": "hero_journey"},
+            json={"title": "Template Ep", "template": "short_movie"},
             headers=mock_auth_headers,
         )
         assert resp.status_code == 201
-        assert resp.json()["framework"] == "hero_journey"
+        data = resp.json()
+        assert data["template"] == "short_movie"
+        assert data["framework"] is None
 
     def test_create_episode_show_not_found(self, client, mock_auth_headers):
         """POST to non-existent show returns 404."""
@@ -602,21 +608,26 @@ class TestEpisodesAPI:
         )
         assert resp.status_code == 404
 
-    def test_create_episode_sections_count(self, client, mock_auth_headers):
-        """Create episode and verify exactly 6 sections returned."""
+    def test_create_episode_scaffolds_phase_data(self, client, mock_auth_headers, db_session):
+        """Template-based episode scaffolds phase_data (idea/story/scenes/write)."""
+        from app.models import database
         show_id = self._create_show(client, mock_auth_headers)
         resp = client.post(
             f"/api/shows/{show_id}/episodes",
-            json={"title": "Section Count Ep"},
+            json={"title": "Phase Data Ep", "template": "short_movie"},
             headers=mock_auth_headers,
         )
         assert resp.status_code == 201
-        sections = resp.json()["sections"]
-        assert len(sections) == 6
-        section_types = [s["type"] for s in sections]
-        assert "inciting_incident" in section_types
-        assert "climax" in section_types
-        assert "resolution" in section_types
+        episode_id = resp.json()["id"]
+        rows = (
+            db_session.query(database.PhaseData)
+            .filter(database.PhaseData.project_id == episode_id)
+            .all()
+        )
+        assert len(rows) > 0
+        phases = {r.phase.value if hasattr(r.phase, "value") else r.phase for r in rows}
+        assert "idea" in phases
+        assert "write" in phases
 
     def test_list_episodes(self, client, mock_auth_headers):
         """GET /api/shows/{show_id}/episodes returns episodes ordered by episode_number."""
