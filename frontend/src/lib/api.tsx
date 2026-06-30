@@ -1383,6 +1383,18 @@ export const api = {
   },
 
   // ============================================================
+  // Episode context (bible + prior episodes carried into an episode)
+  // ============================================================
+  async getEpisodeContext(projectId: string): Promise<import('../types').EpisodeContext> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/projects/${projectId}/episode-context`,
+      { headers: getHeaders() },
+    );
+    if (!response.ok) throw new Error('Failed to load episode context');
+    return response.json();
+  },
+
+  // ============================================================
   // Socratic "hard questions"
   // ============================================================
   async getSocraticCurrent(projectId: string): Promise<import('../types').SocraticCurrent> {

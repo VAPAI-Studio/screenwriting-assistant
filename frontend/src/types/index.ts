@@ -530,6 +530,34 @@ export interface RegenerateSceneResponse {
   error?: string;
 }
 
+// Episode context — the global data an episode carries (bible + prior episodes)
+export interface EpisodeContextBible {
+  characters: string;
+  world_setting: string;
+  season_arc: string;
+  tone_style: string;
+  episode_duration_minutes: number | null;
+}
+
+export interface EpisodePriorSummary {
+  episode_number: number;
+  title: string;
+  summary: string;
+  stale: boolean;
+}
+
+export type EpisodeContext =
+  | { is_episode: false }
+  | {
+      is_episode: true;
+      show_id: string;
+      show_title: string;
+      continuity_mode: 'connected' | 'anthology' | 'standalone';
+      episode_number: number | null;
+      bible: EpisodeContextBible;
+      prior_episodes: EpisodePriorSummary[];
+    };
+
 // Socratic "hard questions" (book + script grounded)
 export interface SocraticQuestion {
   id: string;

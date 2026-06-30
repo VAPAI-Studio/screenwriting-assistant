@@ -250,5 +250,78 @@ async def delete_project(
     
     db.delete(project)
     db.commit()
-    
+
     return {"status": "success", "message": "Project deleted"}
+
+
+@router.get("/{project_id}/episode-context")
+async def get_episode_context(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Read-only view of the global data an episode carries: the show's bible and
+    (in connected mode) the prior episodes' summaries. Returns is_episode=False for
+    standalone films so the UI can hide the panel.
+    """
+    project = (
+        db.query(database.Project)
+        .filter(
+            database.Project.id == str(project_id),
+            database.Project.owner_id == current_user.id,
+        )
+        .first()
+    )
+    if not project:
+        raise NotFoundException(resource="Project", identifier=str(project_id))
+
+    if not project.show_id:
+        return {"is_episode": False}
+
+    show = db.query(database.Show).filter(database.Show.id == str(project.show_id)).first()
+    if not show:
+        return {"is_episode": False}
+
+    mode = show.continuity_mode or "anthology"
+
+    bible = {
+        "characters": show.bible_characters or "",
+        "world_setting": show.bible_world_setting or "",
+        "season_arc": show.bible_season_arc or "",
+        "tone_style": show.bible_tone_style or "",
+        "episode_duration_minutes": show.episode_duration_minutes,
+    }
+
+    # Prior episodes (connected mode only) — strictly-prior, ordered by episode_number.
+    prior_episodes = []
+    if mode == schemas.ContinuityMode.CONNECTED.value and project.episode_number is not None:
+        priors = (
+            db.query(database.Project)
+            .filter(
+                database.Project.show_id == str(show.id),
+                database.Project.episode_number < project.episode_number,
+                database.Project.episode_summary.isnot(None),
+            )
+            .order_by(database.Project.episode_number.asc())
+            .all()
+        )
+        for p in priors:
+            summary = (p.episode_summary or "").strip()
+            if not summary:
+                continue
+            prior_episodes.append({
+                "episode_number": p.episode_number,
+                "title": p.title,
+                "summary": summary,
+                "stale": bool(p.episode_summary_stale),
+            })
+
+    return {
+        "is_episode": True,
+        "show_id": str(show.id),
+        "show_title": show.title,
+        "continuity_mode": mode,
+        "episode_number": project.episode_number,
+        "bible": bible,
+        "prior_episodes": prior_episodes,
+    }

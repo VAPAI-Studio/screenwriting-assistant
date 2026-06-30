@@ -8,6 +8,7 @@ import { PhaseNavigation } from './PhaseNavigation';
 import type { YoloProgress } from './PhaseNavigation';
 import { SubsectionSidebar } from './SubsectionSidebar';
 import { ContentArea } from './ContentArea';
+import { EpisodeContextPanel } from './EpisodeContextPanel';
 import { SidebarChat } from '../Shared/SidebarChat';
 import type { PhaseConfig, SubsectionConfig, YoloEvent } from '../../types/template';
 
@@ -167,6 +168,9 @@ export function ProjectWorkspace() {
         isYoloRunning={isYoloRunning}
         yoloProgress={yoloProgress}
       />
+
+      {/* Episode context — what the bible/prior episodes carry in (episodes only) */}
+      {projectId && <EpisodeContextPanel projectId={projectId} />}
 
       <div className="flex flex-1 overflow-hidden">
         {/* Subsection Sidebar */}
