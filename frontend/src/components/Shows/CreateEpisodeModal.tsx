@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X } from 'lucide-react';
+import { X, Tv, Film } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Button } from '../UI/Button';
 import { QUERY_KEYS } from '../../lib/constants';
-import { Framework } from '../../types';
-import { FRAMEWORK_LABELS } from '../../lib/section-config';
+import type { TemplateListItem } from '../../types/template';
+
+const TEMPLATE_ICON_MAP: Record<string, typeof Tv> = {
+  tv: Tv,
+  film: Film,
+};
 
 interface CreateEpisodeModalProps {
   showId: string;
@@ -17,23 +21,28 @@ interface CreateEpisodeModalProps {
 
 export function CreateEpisodeModal({ showId, nextEpisodeNumber, open, onOpenChange }: CreateEpisodeModalProps) {
   const [title, setTitle] = useState('');
-  const [framework, setFramework] = useState<Framework>(Framework.THREE_ACT);
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const queryClient = useQueryClient();
 
+  const { data: templates = [] } = useQuery({
+    queryKey: [QUERY_KEYS.TEMPLATES],
+    queryFn: () => api.getTemplates(),
+  });
+
   const createMutation = useMutation({
-    mutationFn: (data: { title: string; framework: string }) =>
+    mutationFn: (data: { title: string; template: string }) =>
       api.createEpisode(showId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EPISODES(showId) });
       onOpenChange(false);
       setTitle('');
-      setFramework(Framework.THREE_ACT);
+      setSelectedTemplate('');
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({ title, framework });
+    createMutation.mutate({ title, template: selectedTemplate });
   };
 
   return (
@@ -76,21 +85,42 @@ export function CreateEpisodeModal({ showId, nextEpisodeNumber, open, onOpenChan
               />
             </div>
 
-            {/* Framework */}
+            {/* Template Selection */}
             <div>
-              <label htmlFor="episode-framework" className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Framework
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Template
               </label>
-              <select
-                id="episode-framework"
-                value={framework}
-                onChange={(e) => setFramework(e.target.value as Framework)}
-                className="w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/40 transition-all"
-              >
-                {Object.entries(FRAMEWORK_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+              <div className="space-y-2.5">
+                {templates.map((tmpl: TemplateListItem) => {
+                  const isSelected = selectedTemplate === tmpl.id;
+                  const Icon = TEMPLATE_ICON_MAP[tmpl.icon] || Film;
+
+                  return (
+                    <button
+                      key={tmpl.id}
+                      type="button"
+                      onClick={() => setSelectedTemplate(tmpl.id)}
+                      className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border transition-all duration-200
+                        ${isSelected
+                          ? 'border-indigo-500/40 bg-indigo-500/5'
+                          : 'border-border hover:border-muted-foreground/20 hover:bg-muted/30'
+                        }`}
+                    >
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors
+                        ${isSelected ? 'bg-indigo-500/15 text-indigo-400' : 'bg-muted text-muted-foreground'}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-foreground">{tmpl.name}</div>
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tmpl.description}</p>
+                      </div>
+                      {isSelected && (
+                        <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Actions */}
@@ -100,7 +130,7 @@ export function CreateEpisodeModal({ showId, nextEpisodeNumber, open, onOpenChan
               </Button>
               <Button
                 type="submit"
-                disabled={!title.trim() || createMutation.isPending}
+                disabled={!title.trim() || !selectedTemplate || createMutation.isPending}
               >
                 {createMutation.isPending ? 'Creating...' : 'Create Episode'}
               </Button>

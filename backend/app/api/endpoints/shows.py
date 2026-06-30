@@ -8,6 +8,7 @@ from uuid import UUID
 from ...models import schemas, database
 from ..dependencies import get_db, get_current_user
 from ...exceptions import NotFoundException
+from ...templates import get_template, get_template_subsections
 
 router = APIRouter()
 
@@ -211,12 +212,19 @@ async def create_episode(
         )
         episode_number = (max_num or 0) + 1
 
-    # 3. Create project with show linkage. The Project.framework column uses
-    # values_callable so the Enum serializes to its lowercase value matching the
-    # Postgres enum labels (see database.py).
+    # 3. Validate the template (episodes are template-based, like films — the
+    # legacy/classic framework flow is no longer offered).
+    try:
+        get_template(body.template.value)
+    except ValueError:
+        raise NotFoundException(resource="Template", identifier=str(body.template.value))
+
+    # 4. Create the episode project with show linkage, scaffolding phase_data the
+    # same way create_project_v2 does for standalone films.
     db_project = database.Project(
         title=body.title,
-        framework=body.framework,
+        template=body.template,
+        current_phase=database.PhaseType.IDEA,
         show_id=str(show_id),
         episode_number=episode_number,
         owner_id=str(current_user.id),
@@ -224,20 +232,15 @@ async def create_episode(
     db.add(db_project)
     db.flush()
 
-    # 4. Create default sections (identical to standalone project creation)
-    section_types = [
-        database.SectionType.INCITING_INCIDENT,
-        database.SectionType.PLOT_POINT_1,
-        database.SectionType.MIDPOINT,
-        database.SectionType.PLOT_POINT_2,
-        database.SectionType.CLIMAX,
-        database.SectionType.RESOLUTION,
-    ]
-    for section_type in section_types:
-        db.add(database.Section(
+    # 5. Auto-create phase_data rows for all subsections in the template.
+    for sub in get_template_subsections(body.template.value):
+        db.add(database.PhaseData(
             project_id=db_project.id,
-            type=section_type,
-            ai_suggestions={"issues": [], "suggestions": []},
+            phase=sub["phase"],
+            subsection_key=sub["subsection_key"],
+            sort_order=sub["sort_order"],
+            content={},
+            ai_suggestions={},
         ))
 
     db.commit()

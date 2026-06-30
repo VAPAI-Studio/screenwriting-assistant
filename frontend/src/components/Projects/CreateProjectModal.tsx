@@ -4,10 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import * as Dialog from '@radix-ui/react-dialog';
 import { X, Tv, Film } from 'lucide-react';
 import { api } from '../../lib/api';
-import { Framework } from '../../types';
 import type { TemplateListItem } from '../../types/template';
 import { Button } from '../UI/Button';
-import { FRAMEWORK_LABELS } from '../../lib/section-config';
 import { QUERY_KEYS } from '../../lib/constants';
 
 const TEMPLATE_ICON_MAP: Record<string, typeof Tv> = {
@@ -20,13 +18,9 @@ interface CreateProjectModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-type ProjectMode = 'template' | 'legacy';
-
 export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalProps) {
   const [title, setTitle] = useState('');
-  const [mode, setMode] = useState<ProjectMode>('template');
   const [selectedTemplate, setSelectedTemplate] = useState<string>('');
-  const [framework, setFramework] = useState<Framework>(Framework.THREE_ACT);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -46,26 +40,12 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
     }
   });
 
-  const createLegacyMutation = useMutation({
-    mutationFn: api.createProject,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.PROJECTS] });
-      onOpenChange(false);
-      setTitle('');
-      setFramework(Framework.THREE_ACT);
-    }
-  });
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === 'template') {
-      createV2Mutation.mutate({ title, template: selectedTemplate });
-    } else {
-      createLegacyMutation.mutate({ title, framework });
-    }
+    createV2Mutation.mutate({ title, template: selectedTemplate });
   };
 
-  const isPending = createV2Mutation.isPending || createLegacyMutation.isPending;
+  const isPending = createV2Mutation.isPending;
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -102,34 +82,11 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
               />
             </div>
 
-            {/* Mode Toggle */}
-            <div className="flex bg-muted/40 p-0.5 rounded-lg">
-              <button
-                type="button"
-                onClick={() => setMode('template')}
-                className={`flex-1 py-2 px-3 text-xs font-medium rounded-md transition-all duration-200
-                  ${mode === 'template'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                  }`}
-              >
-                Templates
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('legacy')}
-                className={`flex-1 py-2 px-3 text-xs font-medium rounded-md transition-all duration-200
-                  ${mode === 'legacy'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                  }`}
-              >
-                Classic
-              </button>
-            </div>
-
             {/* Template Selection */}
-            {mode === 'template' && (
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Template
+              </label>
               <div className="space-y-2.5">
                 {templates.map((tmpl: TemplateListItem) => {
                   const isSelected = selectedTemplate === tmpl.id;
@@ -161,26 +118,7 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
                   );
                 })}
               </div>
-            )}
-
-            {/* Legacy Framework Selection */}
-            {mode === 'legacy' && (
-              <div>
-                <label htmlFor="framework" className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Framework
-                </label>
-                <select
-                  id="framework"
-                  value={framework}
-                  onChange={(e) => setFramework(e.target.value as Framework)}
-                  className="w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40 transition-all"
-                >
-                  {Object.entries(FRAMEWORK_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </div>
-            )}
+            </div>
 
             {/* Actions */}
             <div className="flex justify-end gap-2.5 pt-2">
@@ -189,7 +127,7 @@ export function CreateProjectModal({ open, onOpenChange }: CreateProjectModalPro
               </Button>
               <Button
                 type="submit"
-                disabled={!title || isPending || (mode === 'template' && !selectedTemplate)}
+                disabled={!title || isPending || !selectedTemplate}
               >
                 {isPending ? 'Creating...' : 'Create Project'}
               </Button>

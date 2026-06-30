@@ -1339,7 +1339,7 @@ export const api = {
     return response.json();
   },
 
-  async createEpisode(showId: string, data: { title: string; framework?: string }): Promise<Project> {
+  async createEpisode(showId: string, data: { title: string; template: string }): Promise<Project> {
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/shows/${showId}/episodes`,
       {

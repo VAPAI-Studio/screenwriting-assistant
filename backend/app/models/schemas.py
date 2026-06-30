@@ -987,7 +987,11 @@ class BibleResponse(BaseModel):
 class EpisodeCreate(BaseModel):
     title: str = Field(..., min_length=2, max_length=255)
     episode_number: Optional[int] = Field(None, ge=1)
-    framework: Framework = Framework.THREE_ACT
+    # Template-based creation (new default). Episodes scaffold phase_data like films.
+    template: TemplateType = TemplateType.SHORT_MOVIE
+    # Legacy/classic framework is deprecated and no longer offered in the UI; kept
+    # optional so old clients don't 422. Ignored when template is used.
+    framework: Optional[Framework] = None
 
     @field_validator('title')
     def validate_title(cls, v):

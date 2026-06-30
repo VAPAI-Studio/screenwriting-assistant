@@ -76,7 +76,13 @@ export function EpisodeList({ showId }: EpisodeListProps) {
           {episodes.map((episode) => (
             <button
               key={episode.id}
-              onClick={() => navigate(ROUTES.PROJECT(episode.id))}
+              onClick={() =>
+                navigate(
+                  (episode as any).template
+                    ? `/projects/${episode.id}/${(episode as any).current_phase || 'idea'}`
+                    : ROUTES.PROJECT(episode.id)
+                )
+              }
               className="group w-full flex items-center gap-3 px-4 py-3 rounded-lg border border-transparent hover:border-border hover:bg-muted/50 transition-all text-left"
             >
               {/* Episode number */}
@@ -89,8 +95,8 @@ export function EpisodeList({ showId }: EpisodeListProps) {
                 {episode.title}
               </span>
 
-              {/* Framework badge */}
-              {episode.framework && (
+              {/* Framework badge (legacy episodes only) */}
+              {!(episode as any).template && episode.framework && (
                 <span className="flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
                   {FRAMEWORK_LABELS[episode.framework]}
                 </span>
