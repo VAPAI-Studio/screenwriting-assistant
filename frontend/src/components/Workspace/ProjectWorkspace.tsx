@@ -9,6 +9,7 @@ import type { YoloProgress } from './PhaseNavigation';
 import { SubsectionSidebar } from './SubsectionSidebar';
 import { ContentArea } from './ContentArea';
 import { EpisodeContextPanel } from './EpisodeContextPanel';
+import { SeriesNav } from './SeriesNav';
 import { SidebarChat } from '../Shared/SidebarChat';
 import type { PhaseConfig, SubsectionConfig, YoloEvent } from '../../types/template';
 
@@ -158,6 +159,15 @@ export function ProjectWorkspace() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-56px)]">
+      {/* Series navigation — only for episodes (projects with a show_id) */}
+      {project?.show_id && (
+        <SeriesNav
+          showId={project.show_id}
+          episodeNumber={project.episode_number ?? null}
+          episodeTitle={project.title}
+        />
+      )}
+
       {/* Phase Navigation */}
       <PhaseNavigation
         phases={templateConfig.phases}
