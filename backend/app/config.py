@@ -89,6 +89,17 @@ class Settings(BaseSettings):
     IMAGEN_MODEL: str = "imagen-3.0-generate-001"
     IMAGEN_REGION: str = "us-central1"
 
+    # vapai-studio integration (Send-to-vapai). Empty VAPAI_MCP_URL disables the
+    # feature; the endpoint then returns 424. The screenplay is pushed to vapai's
+    # FastMCP HTTP endpoint (Streamable HTTP / JSON-RPC) authenticated with a
+    # shared bearer token — no per-user Supabase JWT needed.
+    VAPAI_MCP_URL: str = ""            # e.g. http://localhost:8765/mcp
+    VAPAI_MCP_API_KEY: str = ""        # Bearer; matches vapai's MCP_API_KEY
+    VAPAI_DEFAULT_USER_ID: str = ""    # optional; passed as create_project user_id
+    VAPAI_WEB_URL: str = ""            # e.g. http://localhost:3000 — base for deep link
+    VAPAI_TIMEOUT_SECONDS: float = 30.0
+    VAPAI_PROJECT_TYPE: str = "standalone"  # one of standalone/series/film/short
+
     @field_validator('AI_PROVIDER')
     def validate_ai_provider(cls, v):
         if v not in ("openai", "anthropic"):

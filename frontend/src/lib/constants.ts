@@ -8,6 +8,11 @@ export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 export const API_TIMEOUT = 30000; // 30 seconds
 export const CHAT_TIMEOUT = 120000; // 2 minutes for agent chat/review
 
+// vapai-studio integration. UX gate only — the backend independently returns 424
+// when the integration is unconfigured. Hide the "Send to vapai-studio" button
+// unless this is explicitly enabled.
+export const VAPAI_ENABLED = import.meta.env.VITE_VAPAI_ENABLED === 'true';
+
 // Authentication
 export const AUTH_TOKEN_KEY = 'auth_token';
 export const TOKEN_EXPIRY_BUFFER = 5 * 60 * 1000; // 5 minutes before expiry

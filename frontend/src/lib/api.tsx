@@ -10,6 +10,7 @@ import {
   Show, ShowCreate, BibleResponse, BibleUpdate,
   ApiKey, ApiKeyCreate, ApiKeyCreateResponse,
   RegenerateSceneRequest, RegenerateSceneResponse, KeepSceneVersionRequest,
+  SendToVapaiResponse,
 } from '../types';
 import type { AuthResponse, LoginRequest, RegisterRequest, UserUpdate, User } from '../types';
 import type { YoloEvent } from '../types/template';
@@ -161,6 +162,22 @@ export const api = {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to delete project');
+  },
+
+  // Push the project's completed screenplay to vapai-studio. Uses the longer
+  // CHAT_TIMEOUT because the MCP round-trip (+ Drive push on vapai's side) can
+  // exceed the default request timeout.
+  async sendToVapai(projectId: string): Promise<SendToVapaiResponse> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/projects/${projectId}/send-to-vapai`,
+      { method: 'POST', headers: getHeaders() },
+      CHAT_TIMEOUT,
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to send to vapai-studio' }));
+      throw new Error(err.detail || 'Failed to send to vapai-studio');
+    }
+    return response.json();
   },
 
   // Sections

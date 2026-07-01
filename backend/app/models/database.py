@@ -175,6 +175,11 @@ class Project(Base):
     show_id = Column(UUID(as_uuid=True), ForeignKey("shows.id", ondelete="CASCADE"), nullable=True, index=True)
     episode_number = Column(Integer, nullable=True)
 
+    # vapai-studio push linkage. Set on first "Send to vapai-studio"; on re-send we
+    # create only a new script under this existing project/episode (idempotency).
+    vapai_project_id = Column(String(64), nullable=True)
+    vapai_episode_id = Column(String(64), nullable=True)
+
     sections = sa_relationship("Section", back_populates="project", cascade="all, delete-orphan")
     phase_data = sa_relationship("PhaseData", back_populates="project", cascade="all, delete-orphan")
     breakdown_elements = sa_relationship("BreakdownElement", back_populates="project",
