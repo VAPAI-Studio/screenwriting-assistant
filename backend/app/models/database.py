@@ -108,6 +108,10 @@ class Show(Base):
     # Continuity mode (v10.0 -- Phase 67). VARCHAR not PG Enum (D-03); default 'anthology' (D-01).
     continuity_mode = Column(String(20), nullable=False, default="anthology", server_default="anthology")
 
+    # vapai-studio push linkage. Set on first "Send series to vapai-studio"; the
+    # series maps to a vapai project (type="series"). Re-send reuses it.
+    vapai_project_id = Column(String(64), nullable=True)
+
 
 class SectionType(str, enum.Enum):
     INCITING_INCIDENT = "inciting_incident"

@@ -7,9 +7,10 @@ matches vapai's own MCP_API_KEY). This avoids needing a per-user Supabase JWT
 service-to-service — vapai resolves the owning user from its own DEFAULT_USER_ID
 (or the user_id we pass to create_project).
 
-Only screenplay ingestion is done here: create_project -> create_episode ->
-create_script. The breakdown (scene/shot extraction) is intentionally NOT
-triggered; the user runs it inside vapai-studio.
+Two entry points: send_screenplay (one episode) and send_series (a whole show
+as a vapai type="series" project). Only ingestion is done here (project ->
+episode -> script, plus the series bible); the breakdown (scene/shot extraction)
+is intentionally NOT triggered — the user runs it inside vapai-studio.
 """
 
 import json
@@ -26,6 +27,32 @@ logger = logging.getLogger(__name__)
 # Pinned MCP protocol version for the initialize handshake. vapai's FastMCP
 # negotiates this; keeping it explicit makes the handshake reproducible.
 _MCP_PROTOCOL_VERSION = "2025-06-18"
+
+
+class _Session:
+    """A live MCP session over one httpx client: carries the negotiated session id
+    (may be None in stateless mode) and hands out monotonically increasing
+    JSON-RPC request ids so a burst of calls never collides on id."""
+
+    def __init__(self, client: httpx.AsyncClient, session_id: Optional[str]):
+        self.client = client
+        self.session_id = session_id
+        self._next_id = 2  # id 1 was the initialize request
+
+    async def post(self, method: str, params: Dict[str, Any]) -> httpx.Response:
+        headers = {"Mcp-Session-Id": self.session_id} if self.session_id else {}
+        request_id = self._next_id
+        self._next_id += 1
+        return await self.client.post(
+            settings.VAPAI_MCP_URL,
+            headers=headers,
+            json={
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "method": method,
+                "params": params,
+            },
+        )
 
 
 class VapaiService:
@@ -104,50 +131,58 @@ class VapaiService:
 
         raise VapaiServiceException(f"could not read tool result from: {result}")
 
+    async def _open_session(self, client: httpx.AsyncClient) -> "_Session":
+        """Run the MCP initialize handshake and return a session object that
+        carries the (possibly None) session id and an incrementing request-id
+        counter. Shared by send_screenplay and send_series."""
+        init_resp = await client.post(
+            settings.VAPAI_MCP_URL,
+            json={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": _MCP_PROTOCOL_VERSION,
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "screenwriting-assistant",
+                        "version": "1.0.0",
+                    },
+                },
+            },
+        )
+        self._parse_response(init_resp)  # raises on error
+        session_id = init_resp.headers.get("mcp-session-id")
+
+        # notifications/initialized (fire-and-forget notification).
+        notify_headers = {"Mcp-Session-Id": session_id} if session_id else {}
+        await client.post(
+            settings.VAPAI_MCP_URL,
+            headers=notify_headers,
+            json={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        )
+        return _Session(client=client, session_id=session_id)
+
     async def _call_tool(
         self,
-        client: httpx.AsyncClient,
-        session_id: Optional[str],
-        request_id: int,
+        session: "_Session",
         name: str,
         arguments: Dict[str, Any],
     ) -> Dict[str, Any]:
-        headers = {"Mcp-Session-Id": session_id} if session_id else {}
-        response = await client.post(
-            settings.VAPAI_MCP_URL,
-            headers=headers,
-            json={
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "method": "tools/call",
-                "params": {"name": name, "arguments": arguments},
-            },
-        )
+        response = await session.post("tools/call", {"name": name, "arguments": arguments})
         message = self._parse_response(response)
         return self._extract_tool_result(message)
 
     async def _call_tool_list(
         self,
-        client: httpx.AsyncClient,
-        session_id: Optional[str],
-        request_id: int,
+        session: "_Session",
         name: str,
         arguments: Dict[str, Any],
     ) -> list:
         """Like _call_tool but for tools that return a LIST (e.g. list_episodes).
         FastMCP puts the array in result.structuredContent.result, or one JSON
         object per result.content[].text."""
-        headers = {"Mcp-Session-Id": session_id} if session_id else {}
-        response = await client.post(
-            settings.VAPAI_MCP_URL,
-            headers=headers,
-            json={
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "method": "tools/call",
-                "params": {"name": name, "arguments": arguments},
-            },
-        )
+        response = await session.post("tools/call", {"name": name, "arguments": arguments})
         message = self._parse_response(response)
         result = message.get("result") or {}
 
@@ -202,37 +237,9 @@ class VapaiService:
                 timeout=settings.VAPAI_TIMEOUT_SECONDS,
                 headers=auth_headers,
             ) as client:
-                # 1. initialize handshake — capture the session id header.
-                init_resp = await client.post(
-                    settings.VAPAI_MCP_URL,
-                    json={
-                        "jsonrpc": "2.0",
-                        "id": 1,
-                        "method": "initialize",
-                        "params": {
-                            "protocolVersion": _MCP_PROTOCOL_VERSION,
-                            "capabilities": {},
-                            "clientInfo": {
-                                "name": "screenwriting-assistant",
-                                "version": "1.0.0",
-                            },
-                        },
-                    },
-                )
-                self._parse_response(init_resp)  # raises on error
-                session_id = init_resp.headers.get("mcp-session-id")
+                session = await self._open_session(client)
 
-                # 2. notifications/initialized (fire-and-forget notification).
-                init_notify_headers = (
-                    {"Mcp-Session-Id": session_id} if session_id else {}
-                )
-                await client.post(
-                    settings.VAPAI_MCP_URL,
-                    headers=init_notify_headers,
-                    json={"jsonrpc": "2.0", "method": "notifications/initialized"},
-                )
-
-                # 3. Create project + episode (unless re-sending under existing ones).
+                # Create project + episode (unless re-sending under existing ones).
                 if existing_project_id and existing_episode_id:
                     vapai_project_id = existing_project_id
                     vapai_episode_id = existing_episode_id
@@ -244,9 +251,7 @@ class VapaiService:
                     }
                     if settings.VAPAI_DEFAULT_USER_ID:
                         project_args["user_id"] = settings.VAPAI_DEFAULT_USER_ID
-                    project = await self._call_tool(
-                        client, session_id, 2, "create_project", project_args
-                    )
+                    project = await self._call_tool(session, "create_project", project_args)
                     vapai_project_id = str(project["id"])
 
                     # vapai auto-creates Episode 1 when a project is created, and
@@ -254,8 +259,7 @@ class VapaiService:
                     # collides. Reuse the existing episode (prefer the one matching
                     # episode_number, else the first); only create if none exist.
                     episodes = await self._call_tool_list(
-                        client, session_id, 3, "list_episodes",
-                        {"project_id": vapai_project_id},
+                        session, "list_episodes", {"project_id": vapai_project_id},
                     )
                     existing = next(
                         (e for e in episodes if e.get("number") == episode_number),
@@ -265,9 +269,7 @@ class VapaiService:
                         vapai_episode_id = str(existing["id"])
                     else:
                         episode = await self._call_tool(
-                            client,
-                            session_id,
-                            4,
+                            session,
                             "create_episode",
                             {
                                 "project_id": vapai_project_id,
@@ -277,11 +279,9 @@ class VapaiService:
                         )
                         vapai_episode_id = str(episode["id"])
 
-                # 4. Create the script with the screenplay text (Fountain).
+                # Create the script with the screenplay text (Fountain).
                 script = await self._call_tool(
-                    client,
-                    session_id,
-                    4,
+                    session,
                     "create_script",
                     {
                         "project_id": vapai_project_id,
@@ -311,6 +311,142 @@ class VapaiService:
             "vapai_episode_id": vapai_episode_id,
             "vapai_script_id": vapai_script_id,
             "deep_link": deep_link,
+        }
+
+    async def send_series(
+        self,
+        *,
+        series_title: str,
+        bible_text: str,
+        episodes: list,
+        existing_project_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Push a whole series to vapai-studio as one project (type="series").
+
+        episodes: list of dicts with keys:
+          - episode_number: int
+          - title: str
+          - fountain_text: str  (may be empty)
+          - vapai_episode_id: str | None  (set on re-send)
+
+        Creates/reuses the series project (+ its bible), then for each episode
+        reuses or creates the matching vapai episode (by number, reusing the
+        auto-created Episode 1) and attaches a script when the screenplay is
+        non-empty. All done over a SINGLE MCP connection.
+
+        Returns {vapai_project_id, deep_link, episodes:[{episode_number,
+        vapai_episode_id, vapai_script_id|None, screenplay_empty}]}.
+        Raises VapaiServiceException (424 unconfigured, 502 downstream failure).
+        """
+        self._require_config()
+
+        auth_headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        }
+        if settings.VAPAI_MCP_API_KEY:
+            auth_headers["Authorization"] = f"Bearer {settings.VAPAI_MCP_API_KEY}"
+
+        results: list = []
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.VAPAI_TIMEOUT_SECONDS,
+                headers=auth_headers,
+            ) as client:
+                session = await self._open_session(client)
+
+                # 1. Series project (reuse on re-send, else create as type="series").
+                if existing_project_id:
+                    vapai_project_id = existing_project_id
+                else:
+                    project_args: Dict[str, Any] = {
+                        "name": series_title,
+                        "type": "series",
+                        "description": "Imported from screenwriting-assistant",
+                    }
+                    if settings.VAPAI_DEFAULT_USER_ID:
+                        project_args["user_id"] = settings.VAPAI_DEFAULT_USER_ID
+                    project = await self._call_tool(session, "create_project", project_args)
+                    vapai_project_id = str(project["id"])
+
+                # 2. Bible (series-level metadata) — only when we have content.
+                if bible_text.strip():
+                    await self._call_tool(
+                        session,
+                        "update_project",
+                        {"project_id": vapai_project_id, "bible": bible_text},
+                    )
+
+                # 3. Episodes. List once, then reuse-or-create by number. The vapai
+                #    project auto-creates Episode 1, so the first episode reuses it.
+                vapai_episodes = await self._call_tool_list(
+                    session, "list_episodes", {"project_id": vapai_project_id},
+                )
+                by_number = {e.get("number"): e for e in vapai_episodes}
+
+                for ep in episodes:
+                    number = ep["episode_number"]
+                    ep_title = ep["title"]
+                    text = ep.get("fountain_text") or ""
+
+                    vapai_episode_id = ep.get("vapai_episode_id")
+                    if not vapai_episode_id:
+                        match = by_number.get(number)
+                        if match:
+                            vapai_episode_id = str(match["id"])
+                        else:
+                            created = await self._call_tool(
+                                session,
+                                "create_episode",
+                                {
+                                    "project_id": vapai_project_id,
+                                    "number": number,
+                                    "title": ep_title,
+                                },
+                            )
+                            vapai_episode_id = str(created["id"])
+                            by_number[number] = created
+
+                    vapai_script_id: Optional[str] = None
+                    screenplay_empty = not text.strip()
+                    if not screenplay_empty:
+                        script = await self._call_tool(
+                            session,
+                            "create_script",
+                            {
+                                "project_id": vapai_project_id,
+                                "episode_id": vapai_episode_id,
+                                "content": text,
+                                "title": ep_title,
+                                "source": "manual",
+                            },
+                        )
+                        vapai_script_id = str(script["id"])
+
+                    results.append({
+                        "episode_number": number,
+                        "vapai_episode_id": vapai_episode_id,
+                        "vapai_script_id": vapai_script_id,
+                        "screenplay_empty": screenplay_empty,
+                    })
+
+        except VapaiServiceException:
+            raise
+        except httpx.HTTPError as exc:
+            logger.error("vapai-studio series push failed (transport): %s", exc)
+            raise VapaiServiceException(f"could not reach vapai-studio: {exc}")
+        except Exception as exc:  # noqa: BLE001 — surface anything else as 502
+            logger.error("vapai-studio series push failed: %s", exc)
+            raise VapaiServiceException(str(exc))
+
+        deep_link: Optional[str] = None
+        if settings.VAPAI_WEB_URL:
+            deep_link = f"{settings.VAPAI_WEB_URL.rstrip('/')}/projects/{vapai_project_id}"
+
+        return {
+            "vapai_project_id": vapai_project_id,
+            "deep_link": deep_link,
+            "episodes": results,
         }
 
 

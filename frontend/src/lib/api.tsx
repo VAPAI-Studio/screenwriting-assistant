@@ -10,7 +10,7 @@ import {
   Show, ShowCreate, BibleResponse, BibleUpdate,
   ApiKey, ApiKeyCreate, ApiKeyCreateResponse,
   RegenerateSceneRequest, RegenerateSceneResponse, KeepSceneVersionRequest,
-  SendToVapaiResponse,
+  SendToVapaiResponse, SendSeriesToVapaiResponse,
 } from '../types';
 import type { AuthResponse, LoginRequest, RegisterRequest, UserUpdate, User } from '../types';
 import type { YoloEvent } from '../types/template';
@@ -176,6 +176,21 @@ export const api = {
     if (!response.ok) {
       const err = await response.json().catch(() => ({ detail: 'Failed to send to vapai-studio' }));
       throw new Error(err.detail || 'Failed to send to vapai-studio');
+    }
+    return response.json();
+  },
+
+  // Push a whole series (show + all episodes) to vapai-studio. Longer timeout
+  // than a single episode — one MCP round-trip per episode.
+  async sendSeriesToVapai(showId: string): Promise<SendSeriesToVapaiResponse> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/shows/${showId}/send-to-vapai`,
+      { method: 'POST', headers: getHeaders() },
+      CHAT_TIMEOUT,
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to send series to vapai-studio' }));
+      throw new Error(err.detail || 'Failed to send series to vapai-studio');
     }
     return response.json();
   },
