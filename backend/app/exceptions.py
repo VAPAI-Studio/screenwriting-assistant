@@ -81,6 +81,18 @@ class OpenAIException(ExternalServiceException):
     def __init__(self, detail: str):
         super().__init__(service="OpenAI", detail=detail)
 
+class VapaiServiceException(AppException):
+    """vapai-studio push failed.
+
+    status_code 502 (default) = transport/handshake/tool error talking to vapai's
+    MCP endpoint (bad gateway). 424 (Failed Dependency) = the integration is not
+    configured (VAPAI_MCP_URL / VAPAI_MCP_API_KEY unset)."""
+    def __init__(self, detail: str, status_code: int = status.HTTP_502_BAD_GATEWAY):
+        super().__init__(
+            status_code=status_code,
+            detail=f"vapai-studio: {detail}"
+        )
+
 class DatabaseException(AppException):
     """Database error exception"""
     def __init__(self, detail: str):

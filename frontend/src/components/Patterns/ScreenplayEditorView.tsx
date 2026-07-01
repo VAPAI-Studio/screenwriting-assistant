@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FileText, Pencil, Check, X, Sparkles } from 'lucide-react';
+import { FileText, Pencil, Check, X, Sparkles, Send, ExternalLink } from 'lucide-react';
 import { api } from '../../lib/api';
-import { QUERY_KEYS } from '../../lib/constants';
+import { QUERY_KEYS, VAPAI_ENABLED } from '../../lib/constants';
+import type { SendToVapaiResponse } from '../../types';
 import type { SubsectionConfig, TemplateConfig, PhaseDataResponse } from '../../types/template';
 import { SceneCompareModal } from './SceneCompareModal';
 
@@ -239,6 +240,12 @@ export function ScreenplayEditorView({
 
   const handleSave = () => saveMutation.mutate(splitToScreenplays(editText, screenplays));
 
+  // Push the completed screenplay to vapai-studio. Feedback is shown inline via an
+  // alert banner below the toolbar (the app has no toast system).
+  const sendToVapaiMutation = useMutation<SendToVapaiResponse, Error>({
+    mutationFn: () => api.sendToVapai(projectId),
+  });
+
   const handleDiscard = () => {
     setEditText(fullDocument);
     setHasChanges(false);
@@ -325,15 +332,56 @@ export function ScreenplayEditorView({
               </button>
             </>
           ) : (
-            <button
-              onClick={startEditing}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-foreground/80 bg-muted/40 border border-border/40 rounded-lg hover:bg-muted/70 hover:text-foreground transition-colors"
-            >
-              <Pencil className="h-3.5 w-3.5" /> Edit
-            </button>
+            <>
+              {VAPAI_ENABLED && (
+                <button
+                  onClick={() => sendToVapaiMutation.mutate()}
+                  disabled={screenplays.length === 0 || sendToVapaiMutation.isPending}
+                  title="Enviar este guión a vapai-studio para producción"
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-foreground/80 bg-muted/40 border border-border/40 rounded-lg hover:bg-muted/70 hover:text-foreground transition-colors disabled:opacity-40"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  {sendToVapaiMutation.isPending ? 'Enviando…' : 'Enviar a vapai-studio'}
+                </button>
+              )}
+              <button
+                onClick={startEditing}
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-foreground/80 bg-muted/40 border border-border/40 rounded-lg hover:bg-muted/70 hover:text-foreground transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" /> Edit
+              </button>
+            </>
           )}
         </div>
       </div>
+
+      {/* ── vapai-studio send feedback (inline; app has no toast) ── */}
+      {sendToVapaiMutation.isSuccess && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 px-6 py-2 text-xs bg-emerald-500/10 border-b border-emerald-500/20 text-emerald-300"
+        >
+          <span>Guión enviado a vapai-studio.</span>
+          {sendToVapaiMutation.data.deep_link && (
+            <a
+              href={sendToVapaiMutation.data.deep_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 font-medium underline hover:no-underline"
+            >
+              Abrir en vapai <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      )}
+      {sendToVapaiMutation.isError && (
+        <div
+          role="alert"
+          className="px-6 py-2 text-xs bg-red-500/10 border-b border-red-500/20 text-red-300"
+        >
+          No se pudo enviar a vapai-studio: {sendToVapaiMutation.error.message}
+        </div>
+      )}
 
       {/* ── Content ── */}
       {isEditing ? (

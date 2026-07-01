@@ -10,7 +10,8 @@ from ..dependencies import get_db, get_current_user
 from ...utils import validate_project_title, validate_framework
 from ...exceptions import NotFoundException, ValidationException
 from ...templates import get_template, get_template_subsections
-from ...services.template_ai_service import template_ai_service
+from ...services.template_ai_service import template_ai_service, _read_episode_text_by_index
+from ...services.vapai_service import vapai_service
 
 router = APIRouter()
 
@@ -188,6 +189,52 @@ async def generate_episode_summary(
     db.commit()
 
     return {"status": "success", "episode_summary_stale": False}
+
+@router.post("/{project_id}/send-to-vapai")
+async def send_to_vapai(
+    project_id: UUID,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Push this project's completed screenplay into vapai-studio.
+
+    Creates a project + episode + script over there (breakdown is NOT triggered —
+    the user runs it inside vapai). Owner-scoped: a project not owned by the caller
+    returns 404. Returns 400 if there is no screenplay text yet, 424 if the
+    integration is unconfigured, 502 on a downstream vapai failure.
+
+    Idempotency: the returned vapai project/episode ids are persisted on the Project
+    row so a re-send adds a new script under the same vapai project/episode instead
+    of creating a duplicate project (this endpoint owns the commit).
+    """
+    project = db.query(database.Project).filter(
+        database.Project.id == str(project_id),
+        database.Project.owner_id == str(current_user.id),
+    ).first()
+
+    if not project:
+        raise NotFoundException(resource="Project", identifier=str(project_id))
+
+    text = _read_episode_text_by_index(db, project_id)
+    if not text.strip():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No screenplay content to send. Write or generate the screenplay first.",
+        )
+
+    result = await vapai_service.send_screenplay(
+        title=project.title,
+        fountain_text=text,
+        existing_project_id=project.vapai_project_id,
+        existing_episode_id=project.vapai_episode_id,
+        episode_number=project.episode_number or 1,
+    )
+
+    project.vapai_project_id = result["vapai_project_id"]
+    project.vapai_episode_id = result["vapai_episode_id"]
+    db.commit()
+
+    return result
 
 @router.patch("/{project_id}", response_model=schemas.Project)
 async def update_project(

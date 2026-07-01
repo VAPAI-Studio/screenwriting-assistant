@@ -472,3 +472,271 @@ class TestScreenplayWriteSave:
             .count()
         )
         assert rows == 0
+
+
+def _add_screenplay_content(db_session, project_id, *, content="INT. ROOM - DAY\n\nAction.", episode_index=0):
+    """Insert one ScreenplayContent row so _read_episode_text_by_index returns text."""
+    import uuid as _uuid
+    from app.models.database import ScreenplayContent
+
+    row = ScreenplayContent(
+        id=str(_uuid.uuid4()),
+        project_id=project_id,
+        content=content,
+        formatted_content={"episode_index": episode_index, "title": "INT. ROOM - DAY"},
+    )
+    db_session.add(row)
+    db_session.commit()
+
+
+class TestSendToVapai:
+    """POST /api/projects/{id}/send-to-vapai — push screenplay to vapai-studio.
+
+    vapai_service.send_screenplay is always mocked at its boundary (AsyncMock);
+    no live HTTP is made in tests."""
+
+    def test_send_empty_screenplay_returns_400(self, client, db_session, mock_auth_headers):
+        from unittest.mock import AsyncMock, patch
+
+        project_id = _make_project(db_session)  # no ScreenplayContent rows
+
+        with patch(
+            "app.api.endpoints.projects.vapai_service.send_screenplay",
+            new_callable=AsyncMock,
+        ) as mock_send:
+            response = client.post(
+                f"/api/projects/{project_id}/send-to-vapai",
+                headers=mock_auth_headers,
+            )
+
+        assert response.status_code == 400, response.text
+        mock_send.assert_not_called()
+
+    def test_send_happy_path_persists_ids(self, client, db_session, mock_auth_headers):
+        from unittest.mock import AsyncMock, patch
+        from app.models.database import Project
+
+        project_id = _make_project(db_session)
+        _add_screenplay_content(db_session, project_id)
+
+        fake_result = {
+            "vapai_project_id": "vp-123",
+            "vapai_episode_id": "ve-456",
+            "vapai_script_id": "vs-789",
+            "deep_link": "http://vapai.local/projects/vp-123",
+        }
+
+        with patch(
+            "app.api.endpoints.projects.vapai_service.send_screenplay",
+            new_callable=AsyncMock,
+            return_value=fake_result,
+        ) as mock_send:
+            response = client.post(
+                f"/api/projects/{project_id}/send-to-vapai",
+                headers=mock_auth_headers,
+            )
+
+        assert response.status_code == 200, response.text
+        assert response.json() == fake_result
+        mock_send.assert_awaited_once()
+
+        # Linkage persisted for idempotent re-send.
+        project = db_session.query(Project).filter(Project.id == project_id).first()
+        assert project.vapai_project_id == "vp-123"
+        assert project.vapai_episode_id == "ve-456"
+
+    def test_send_cross_user_returns_404(self, client, db_session, mock_auth_headers):
+        import uuid as _uuid
+        from unittest.mock import AsyncMock, patch
+        from app.models.database import Project
+
+        # Project owned by a different user.
+        other_id = str(_uuid.uuid4())
+        other = Project(
+            id=other_id,
+            owner_id=str(_uuid.uuid4()),
+            title="Someone Else's Film",
+        )
+        db_session.add(other)
+        db_session.commit()
+
+        with patch(
+            "app.api.endpoints.projects.vapai_service.send_screenplay",
+            new_callable=AsyncMock,
+        ) as mock_send:
+            response = client.post(
+                f"/api/projects/{other_id}/send-to-vapai",
+                headers=mock_auth_headers,
+            )
+
+        assert response.status_code == 404, response.text
+        mock_send.assert_not_called()
+
+    def test_send_downstream_failure_returns_502(self, client, db_session, mock_auth_headers):
+        from unittest.mock import AsyncMock, patch
+        from app.exceptions import VapaiServiceException
+
+        project_id = _make_project(db_session)
+        _add_screenplay_content(db_session, project_id)
+
+        with patch(
+            "app.api.endpoints.projects.vapai_service.send_screenplay",
+            new_callable=AsyncMock,
+            side_effect=VapaiServiceException("could not reach vapai-studio"),
+        ):
+            response = client.post(
+                f"/api/projects/{project_id}/send-to-vapai",
+                headers=mock_auth_headers,
+            )
+
+        assert response.status_code == 502, response.text
+
+
+def _make_show(db_session, **bible):
+    """Create an owned Show and return its id (str)."""
+    import uuid as _uuid
+    from app.models.database import Show
+
+    show_id = str(_uuid.uuid4())
+    show = Show(
+        id=show_id,
+        owner_id=MOCK_USER_ID,
+        title="Test Series",
+        description="",
+        continuity_mode="connected",
+        bible_characters=bible.get("bible_characters", ""),
+        bible_world_setting=bible.get("bible_world_setting", ""),
+        bible_season_arc=bible.get("bible_season_arc", ""),
+        bible_tone_style=bible.get("bible_tone_style", ""),
+    )
+    db_session.add(show)
+    db_session.commit()
+    return show_id
+
+
+def _make_episode(db_session, show_id, number, *, owner_id=MOCK_USER_ID, with_screenplay=False):
+    """Create an episode Project under a show; optionally with a screenplay row."""
+    import uuid as _uuid
+    from app.models.database import Project
+
+    project_id = str(_uuid.uuid4())
+    db_session.add(Project(
+        id=project_id,
+        owner_id=owner_id,
+        title=f"Episode {number}",
+        show_id=show_id,
+        episode_number=number,
+    ))
+    db_session.commit()
+    if with_screenplay:
+        _add_screenplay_content(db_session, project_id)
+    return project_id
+
+
+class TestSendSeriesToVapai:
+    """POST /api/shows/{id}/send-to-vapai — push a whole series to vapai-studio.
+
+    vapai_service.send_series is always mocked (AsyncMock); no live HTTP."""
+
+    def test_send_cross_user_returns_404(self, client, db_session, mock_auth_headers):
+        import uuid as _uuid
+        from unittest.mock import AsyncMock, patch
+        from app.models.database import Show
+
+        other_id = str(_uuid.uuid4())
+        db_session.add(Show(
+            id=other_id, owner_id=str(_uuid.uuid4()),
+            title="Not Yours", description="", continuity_mode="anthology",
+        ))
+        db_session.commit()
+
+        with patch(
+            "app.api.endpoints.shows.vapai_service.send_series",
+            new_callable=AsyncMock,
+        ) as mock_send:
+            response = client.post(
+                f"/api/shows/{other_id}/send-to-vapai", headers=mock_auth_headers,
+            )
+        assert response.status_code == 404, response.text
+        mock_send.assert_not_called()
+
+    def test_send_no_episodes_returns_400(self, client, db_session, mock_auth_headers):
+        from unittest.mock import AsyncMock, patch
+
+        show_id = _make_show(db_session)  # no episodes
+
+        with patch(
+            "app.api.endpoints.shows.vapai_service.send_series",
+            new_callable=AsyncMock,
+        ) as mock_send:
+            response = client.post(
+                f"/api/shows/{show_id}/send-to-vapai", headers=mock_auth_headers,
+            )
+        assert response.status_code == 400, response.text
+        mock_send.assert_not_called()
+
+    def test_send_happy_path_persists_ids(self, client, db_session, mock_auth_headers):
+        from unittest.mock import AsyncMock, patch
+        from app.models.database import Show, Project
+
+        show_id = _make_show(db_session, bible_characters="MARIA — the lead")
+        ep1 = _make_episode(db_session, show_id, 1, with_screenplay=True)
+        ep2 = _make_episode(db_session, show_id, 2, with_screenplay=False)
+
+        fake_result = {
+            "vapai_project_id": "vp-series",
+            "deep_link": "http://vapai.local/projects/vp-series",
+            "episodes": [
+                {"episode_number": 1, "vapai_episode_id": "ve-1",
+                 "vapai_script_id": "vs-1", "screenplay_empty": False},
+                {"episode_number": 2, "vapai_episode_id": "ve-2",
+                 "vapai_script_id": None, "screenplay_empty": True},
+            ],
+        }
+
+        with patch(
+            "app.api.endpoints.shows.vapai_service.send_series",
+            new_callable=AsyncMock,
+            return_value=fake_result,
+        ) as mock_send:
+            response = client.post(
+                f"/api/shows/{show_id}/send-to-vapai", headers=mock_auth_headers,
+            )
+
+        assert response.status_code == 200, response.text
+        assert response.json() == fake_result
+
+        # send_series called with both episodes; ep1 has text, ep2 is empty; bible passed.
+        mock_send.assert_awaited_once()
+        kwargs = mock_send.await_args.kwargs
+        assert kwargs["series_title"] == "Test Series"
+        assert "MARIA" in kwargs["bible_text"]
+        eps = {e["episode_number"]: e for e in kwargs["episodes"]}
+        assert eps[1]["fountain_text"].strip() != ""
+        assert eps[2]["fountain_text"].strip() == ""
+
+        # Linkage persisted: show + each episode Project.
+        show = db_session.query(Show).filter(Show.id == show_id).first()
+        assert show.vapai_project_id == "vp-series"
+        p1 = db_session.query(Project).filter(Project.id == ep1).first()
+        p2 = db_session.query(Project).filter(Project.id == ep2).first()
+        assert p1.vapai_episode_id == "ve-1"
+        assert p2.vapai_episode_id == "ve-2"
+        assert p1.vapai_project_id == "vp-series"
+
+    def test_send_downstream_failure_returns_502(self, client, db_session, mock_auth_headers):
+        from unittest.mock import AsyncMock, patch
+        from app.exceptions import VapaiServiceException
+
+        show_id = _make_show(db_session)
+        _make_episode(db_session, show_id, 1, with_screenplay=True)
+
+        with patch(
+            "app.api.endpoints.shows.vapai_service.send_series",
+            new_callable=AsyncMock,
+            side_effect=VapaiServiceException("could not reach vapai-studio"),
+        ):
+            response = client.post(
+                f"/api/shows/{show_id}/send-to-vapai", headers=mock_auth_headers,
+            )
+        assert response.status_code == 502, response.text

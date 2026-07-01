@@ -581,3 +581,21 @@ export interface KeepSceneVersionRequest {
   title: string;
   content: string;
 }
+
+export interface SendToVapaiResponse {
+  vapai_project_id: string;
+  vapai_episode_id: string;
+  vapai_script_id: string;
+  deep_link: string | null;
+}
+
+export interface SendSeriesToVapaiResponse {
+  vapai_project_id: string;
+  deep_link: string | null;
+  episodes: {
+    episode_number: number;
+    vapai_episode_id: string;
+    vapai_script_id: string | null;
+    screenplay_empty: boolean;
+  }[];
+}
