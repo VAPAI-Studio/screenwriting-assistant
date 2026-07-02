@@ -27,9 +27,21 @@ appear inside later scene prompts' continuity block, so they are ambiguous.
 
 import asyncio
 
+import pytest
 from unittest.mock import patch, AsyncMock
 
+from app.config import settings
 from app.services.template_ai_service import template_ai_service
+
+
+@pytest.fixture(autouse=True)
+def _disable_phase3_loop(monkeypatch):
+    """These tests exercise the continuity mechanics of _generate_scripts, which
+    is orthogonal to the Phase 3 critique/rewrite/polish loop. That loop adds
+    extra chat_completion calls (critique/polish) that would inflate the mock's
+    synopsis-call counting, so disable it here — the loop has its own suite."""
+    monkeypatch.setattr(settings, "SCREENPLAY_CRITIQUE_ENABLED", False)
+    monkeypatch.setattr(settings, "SCREENPLAY_POLISH_ENABLED", False)
 
 
 # Markers the continuity block injects into a later scene prompt. Their ABSENCE
@@ -83,10 +95,18 @@ class _MockChat:
         user_msg = next(
             (m["content"] for m in messages if m.get("role") == "user"), ""
         )
+        # Prompt caching (Phase 1) split the scene prompt into a stable system
+        # prefix and a volatile user tail (continuity + this scene's task).
+        # Record the FULL prompt so anchor assertions see both halves; route
+        # scene-vs-synopsis by the user tail where SCENE_MARKER lives.
+        full_prompt = "\n".join(
+            (m["content"] if isinstance(m["content"], str) else str(m["content"]))
+            for m in messages
+        )
         if SCENE_MARKER in user_msg:
             # Scene-writing call (native output, json_mode=False).
             idx = self._scene_idx
-            self.scene_prompts.append(user_msg)
+            self.scene_prompts.append(full_prompt)
             self.scene_json_modes.append(kwargs.get("json_mode", False))
             self._scene_idx += 1
             if self.fail_scene_index is not None and idx == self.fail_scene_index:

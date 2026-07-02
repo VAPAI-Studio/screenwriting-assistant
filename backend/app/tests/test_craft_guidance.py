@@ -89,9 +89,18 @@ class _MockChat:
         user_msg = next(
             (m["content"] for m in messages if m.get("role") == "user"), ""
         )
+        # Prompt caching (Phase 1) split the scene prompt into a stable system
+        # prefix (craft/layout/characters/outline) and a volatile user tail
+        # (continuity + this scene's task). Record the FULL prompt (all system
+        # blocks + the user tail) so anchor assertions see both halves; route
+        # scene-vs-synopsis by the user tail where SCENE_MARKER lives.
+        full_prompt = "\n".join(
+            (m["content"] if isinstance(m["content"], str) else str(m["content"]))
+            for m in messages
+        )
         if SCENE_MARKER in user_msg:
             idx = self._scene_idx
-            self.scene_prompts.append(user_msg)
+            self.scene_prompts.append(full_prompt)
             self._scene_idx += 1
             content = self.scene_contents[idx]
             return _scene_writer(content, title=f"Scene {idx + 1}")
@@ -210,6 +219,42 @@ def test_craft_always_on_no_continuity_regression():
     assert CRAFT_HEADER in prompt
     assert SYNOPSIS_MARKER not in prompt
     assert PREV_SCENE_MARKER not in prompt
+
+
+def test_phase2_tone_and_antigeneric_anchors_present():
+    """Phase 2: the scene prompt carries the tone/identity block and the
+    anti-generic guardrails (guards against a future edit silently dropping
+    the identity guidance that fights 'generic AI screenplay' output)."""
+    mock = _MockChat(scene_contents=["SCENE ONE TEXT"])
+    with patch(
+        "app.services.template_ai_service.chat_completion",
+        new_callable=AsyncMock,
+        side_effect=mock,
+    ):
+        _run(_make_config(1))
+
+    prompt = mock.scene_prompts[0]
+    lower = prompt.lower()
+    # Tone/identity block header.
+    assert "## Tone and Identity" in prompt
+    # An anti-generic guardrail anchor.
+    assert "golden-hour" in lower or "generic ai-written screenplays" in lower
+
+
+def test_phase2_scene_must_turn_and_escalation_anchors_present():
+    """Phase 2: the craft block requires each scene to turn (value flip) and
+    to escalate conflict via changing tactics."""
+    mock = _MockChat(scene_contents=["SCENE ONE TEXT"])
+    with patch(
+        "app.services.template_ai_service.chat_completion",
+        new_callable=AsyncMock,
+        side_effect=mock,
+    ):
+        _run(_make_config(1))
+
+    lower = mock.scene_prompts[0].lower()
+    assert "every scene must turn" in lower
+    assert "escalation" in lower
 
 
 def test_craft_block_present_in_generate_scripts_source():
