@@ -89,12 +89,20 @@ class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         if request.headers.get("content-length"):
             content_length = int(request.headers["content-length"])
-            if content_length > self.max_size:
+            # Book uploads are allowed up to MAX_BOOK_SIZE_MB (the endpoint
+            # re-validates the exact file size); everything else keeps the
+            # general cap. Without this, any book over max_size 413s here
+            # before books.upload_book ever sees it.
+            limit = self.max_size
+            if request.url.path == "/api/books/upload":
+                from .config import settings
+                limit = max(limit, (settings.MAX_BOOK_SIZE_MB + 2) * 1024 * 1024)
+            if content_length > limit:
                 return Response(
                     content="Request body too large",
                     status_code=413
                 )
-        
+
         return await call_next(request)
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

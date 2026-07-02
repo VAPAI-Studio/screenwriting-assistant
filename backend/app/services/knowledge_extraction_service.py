@@ -7,15 +7,26 @@ from .ai_provider import chat_completion
 
 logger = logging.getLogger(__name__)
 
-# Section types for relevance scoring
-SECTION_TYPES = [
-    "INCITING_INCIDENT",
-    "PLOT_POINT_1",
-    "MIDPOINT",
-    "PLOT_POINT_2",
-    "CLIMAX",
-    "RESOLUTION",
-]
+# Story beats for relevance scoring, grouped by format. Consumers look up
+# section_relevance[key] with a 0 default, so adding keys here is backward
+# compatible with concepts extracted before the key existed — but concepts
+# already in the DB won't have the new keys until their book is reprocessed.
+SECTION_TYPES = {
+    # Feature / three-act
+    "INCITING_INCIDENT": "feature/short: the event that disrupts the status quo and sets the story in motion",
+    "PLOT_POINT_1": "feature/short: end of act one — the protagonist commits to the journey",
+    "MIDPOINT": "feature/short: midpoint reversal, revelation, or stakes escalation",
+    "PLOT_POINT_2": "feature/short: end of act two — lowest point before the final push",
+    "CLIMAX": "feature/short: the final confrontation where the central conflict resolves",
+    "RESOLUTION": "feature/short: aftermath and new equilibrium",
+    # Sketch comedy
+    "PREMISE": "sketch: the comedic premise — the one unusual thing the sketch is about",
+    "GAME": "sketch: the game of the scene — the repeatable comedic pattern",
+    "ESCALATION": "sketch: heightening the game beat by beat",
+    "BLOW": "sketch: the ending — final heightening, button, or twist that gets out of the scene",
+    # Series
+    "COLD_OPEN": "series: teaser/cold open that hooks the episode before the main story",
+}
 
 
 class KnowledgeExtractionService:
@@ -72,7 +83,7 @@ Return a JSON object with:
       "name": "Short concept name (e.g., 'The Gap', 'Story Values', 'Beat Sheet')",
       "definition": "Clear 2-4 sentence definition of this concept as taught by the author",
       "page_range": "Approximate page range if identifiable, otherwise null",
-      "tags": ["categorization tags — use any relevant from: structure, character, conflict, dialogue, scene_design, pacing, theme, short_film, genre, motivation, emotional_arc, visual_storytelling, subtext, tone"],
+      "tags": ["categorization tags — use any relevant from: structure, character, conflict, dialogue, scene_design, pacing, theme, genre, motivation, emotional_arc, visual_storytelling, subtext, tone, comedy — plus format tags (tag which format(s) the concept applies to): short_film, sketch, series, feature"],
       "quality_score": 0.0
     }
   ]
@@ -101,13 +112,17 @@ Chapter text:
 
     async def analyze_concept(self, concept_name: str, concept_definition: str, chapter_text: str, book_title: str) -> Dict:
         """Stage 2: Deep analysis of a single concept — examples, questions, section relevance."""
-        section_types_str = ", ".join(SECTION_TYPES)
+        beats_glossary = "\n".join(f"- {key}: {desc}" for key, desc in SECTION_TYPES.items())
+        relevance_json = ",\n".join(f'    "{key}": 0.0 to 1.0' for key in SECTION_TYPES)
 
         system_prompt = f"""You are a screenwriting knowledge analyst. Given a concept from a screenwriting book, extract:
 
 1. Film/screenplay examples the author uses to illustrate this concept
 2. Actionable questions a writer could use to evaluate their own screenplay against this concept
-3. How relevant this concept is to each section type of a screenplay: {section_types_str}
+3. How relevant this concept is to each story beat listed below
+
+Story beats (grouped by format):
+{beats_glossary}
 
 Return a JSON object with:
 {{
@@ -122,16 +137,12 @@ Return a JSON object with:
     "Question a writer should ask about their screenplay to check if they're applying this concept correctly"
   ],
   "section_relevance": {{
-    "INCITING_INCIDENT": 0.0 to 1.0,
-    "PLOT_POINT_1": 0.0 to 1.0,
-    "MIDPOINT": 0.0 to 1.0,
-    "PLOT_POINT_2": 0.0 to 1.0,
-    "CLIMAX": 0.0 to 1.0,
-    "RESOLUTION": 0.0 to 1.0
+{relevance_json}
   }}
 }}
 
-For section_relevance, score how relevant this concept is when analyzing each section type (0.0 = not relevant, 1.0 = critically important).
+For section_relevance, score how relevant this concept is when analyzing each beat (0.0 = not relevant, 1.0 = critically important).
+Score 0.0 for beats of formats the concept does not address — e.g., a sketch-comedy "game" concept scores 0.0 on feature beats, and a feature-structure concept scores 0.0 on sketch beats. Concepts that genuinely apply across formats (character, dialogue, conflict) may score on beats of several formats.
 Generate 3-6 actionable questions. Be specific and practical."""
 
         user_prompt = f"""Book: "{book_title}"

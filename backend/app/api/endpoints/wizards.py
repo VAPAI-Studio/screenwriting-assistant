@@ -7,8 +7,10 @@ from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from uuid import UUID
 
+from ...config import settings
 from ...models import schemas, database
 from ..dependencies import get_db, get_current_user
+from ...services import doctrine_service
 from ...services.template_ai_service import template_ai_service
 from ...db import SessionLocal
 from ...services.agent_review_middleware import agent_review_middleware
@@ -81,6 +83,14 @@ async def _run_wizard_background(
         db.commit()
 
         project_context = _get_project_context(db, project, bible_context=bible_context)
+
+        # Craft doctrine (books Phase 2): format-tagged book concepts for the
+        # critique/rewrite/polish loop. Failure or empty library → no doctrine,
+        # generation proceeds unchanged.
+        if settings.DOCTRINE_IN_GENERATION and wizard_type == "script_writer_wizard":
+            config["_doctrine_cards"] = doctrine_service.build_doctrine_cards(
+                owner_id, template_id, db
+            )
 
         result = await template_ai_service.wizard_generate(
             wizard_type=wizard_type,

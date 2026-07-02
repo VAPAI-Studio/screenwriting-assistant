@@ -6,6 +6,7 @@ from typing import Dict, List, Optional
 
 from ..config import settings
 from ..templates import get_template
+from . import doctrine_service
 from .ai_provider import chat_completion, chat_completion_stream
 
 logger = logging.getLogger(__name__)
@@ -345,6 +346,7 @@ Return only the synopsis prose."""
         ep: Dict,
         prev_scene_text: str,
         project_context: str,
+        doctrine: str = "",
     ) -> Optional[Dict]:
         """Score ONE written scene against the 5-axis quality rubric.
 
@@ -368,7 +370,7 @@ Return only the synopsis prose."""
 {prev_block}## The scene as written
 {scene_text}
 
-## Rubric — score each axis from 1 (poor) to 5 (excellent)
+{doctrine}## Rubric — score each axis from 1 (poor) to 5 (excellent)
 - subtext: dialogue implies wants/emotion indirectly; nothing is on-the-nose. (1 = characters announce feelings/goals; 5 = meaning lives beneath the words.)
 - scene_turn: the value at stake flips between the top and the end of the scene. (1 = static, nothing changes; 5 = a clear, earned turn.)
 - escalation: opposed wants pursued through changing tactics; pressure rises. (1 = repetitive/flat; 5 = genuine escalation.)
@@ -422,6 +424,7 @@ Return ONLY a JSON object of exactly this shape:
         project_context: str,
         character_block: str,
         prev_scene_text: str,
+        doctrine: str = "",
     ) -> Optional[str]:
         """Rewrite ONE scene addressing the critique's weak axes.
 
@@ -451,7 +454,7 @@ Return ONLY a JSON object of exactly this shape:
 {prev_block}## Current draft (scene {i + 1} of {total})
 {scene_text}
 
-## Fix these weaknesses (from the story editor)
+{doctrine}## Fix these weaknesses (from the story editor)
 {fix_lines}
 
 Keep the same plot events, characters, and place in the sequence. Preserve strict industry-standard screenplay layout (scene heading on its own line, ALL-CAPS character cues, parentheticals on their own line, blank lines between elements). Keep subtext beneath the dialogue — never have a character state a feeling or goal outright.
@@ -482,6 +485,7 @@ Then, beneath it, the full rewritten screenplay body."""
         self,
         screenplays: List[Dict],
         project_context: str,
+        doctrine: str = "",
     ) -> List[Dict]:
         """Whole-screenplay polish pass — the only step that reads the full
         script end to end. Reviews cross-scene transitions, cumulative pacing,
@@ -510,7 +514,7 @@ Then, beneath it, the full rewritten screenplay body."""
 ## Project context
 {project_context}
 
-## Full screenplay
+{doctrine}## Full screenplay
 {full_script}
 
 Only retouch scenes that genuinely need it — leave strong scenes alone. For each scene you change, return its episode_index (0-based, matching the SCENE number minus 1) and the full revised screenplay body (native plain text, strict layout, no TITLE line, no code fences).
@@ -845,6 +849,12 @@ Do not restate these labels in the screenplay; dramatize them.
         threshold = getattr(settings, "SCREENPLAY_CRITIQUE_THRESHOLD", 4)
         rubric_scores = []  # per-scene critique metadata for _meta (Phase 3)
 
+        # Craft doctrine (books Phase 2): format-tagged book concepts fetched by
+        # the wizard endpoint and stowed in config. Empty list → every block
+        # renders "" and the prompts are byte-identical to the pre-doctrine path.
+        doctrine_cards = config.get("_doctrine_cards") or []
+        critique_doctrine = doctrine_service.critique_block(doctrine_cards)
+
         screenplays = []
         for i, ep in enumerate(episodes):
             summary = ep.get("summary", f"Scene {i + 1}")
@@ -871,7 +881,8 @@ Do not restate these labels in the screenplay; dramatize them.
             # continuity advances so the improved text feeds later scenes.
             if critique_enabled and "error" not in scene:
                 critique = await self._critique_scene(
-                    scene["content"], ep, prev_scene_text, project_context
+                    scene["content"], ep, prev_scene_text, project_context,
+                    doctrine=critique_doctrine,
                 )
                 if critique is not None:
                     weak = self._weak_axes(critique, threshold)
@@ -888,6 +899,7 @@ Do not restate these labels in the screenplay; dramatize them.
                             project_context=project_context,
                             character_block=character_block,
                             prev_scene_text=prev_scene_text,
+                            doctrine=doctrine_service.rewrite_block(doctrine_cards, weak),
                         )
                         if rewritten:
                             scene = dict(scene)
@@ -909,7 +921,10 @@ Do not restate these labels in the screenplay; dramatize them.
         # full script end to end (cross-scene transitions, cumulative pacing,
         # setup/payoff, voice drift). Gated; returns the list unchanged on failure.
         if getattr(settings, "SCREENPLAY_POLISH_ENABLED", False):
-            screenplays = await self._polish_screenplay(screenplays, project_context)
+            screenplays = await self._polish_screenplay(
+                screenplays, project_context,
+                doctrine=doctrine_service.polish_block(doctrine_cards),
+            )
 
         result = {"screenplays": screenplays, "synopsis": synopsis}
         if rubric_scores:

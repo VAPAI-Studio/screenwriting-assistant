@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     SCREENPLAY_CRITIQUE_ENABLED: bool = True
     SCREENPLAY_CRITIQUE_THRESHOLD: int = 4   # rewrite a scene if any axis scores < this (1-5)
     SCREENPLAY_POLISH_ENABLED: bool = True
+
+    # Craft doctrine (books roadmap Phase 2): inject the format's book concepts
+    # into the critique/rewrite/polish loop. Kill-switch for A/B and prod.
+    DOCTRINE_IN_GENERATION: bool = True
+    DOCTRINE_MAX_CONCEPTS: int = 8
+    DOCTRINE_MAX_CHARS: int = 6000   # ~1500 tokens; doctrine must never crowd out the scene
     
     # Caching
     CACHE_TTL: int = 900  # 15 minutes
