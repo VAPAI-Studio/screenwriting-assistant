@@ -331,6 +331,237 @@ Return only the synopsis prose."""
             logger.error(f"Synopsis update error: {e}")
             return prev_synopsis
 
+    # ------------------------------------------------------------------
+    # Phase 3 — per-scene critique + targeted rewrite, and a whole-script
+    # polish pass. The rubric axes are aligned to the three quality symptoms
+    # the loop targets: flat/on-the-nose dialogue, weak structure/pacing, and
+    # generic/identity-less output.
+    # ------------------------------------------------------------------
+    RUBRIC_AXES = ("subtext", "scene_turn", "escalation", "voice_distinction", "tone_identity")
+
+    async def _critique_scene(
+        self,
+        scene_text: str,
+        ep: Dict,
+        prev_scene_text: str,
+        project_context: str,
+    ) -> Optional[Dict]:
+        """Score ONE written scene against the 5-axis quality rubric.
+
+        Returns a dict {axis: int(1-5), ..., "notes": {axis: "actionable note"}}
+        or None on any failure (caller treats None as "skip rewrite" — the
+        critique pass must never abort or degrade generation).
+        """
+        prev_block = (
+            f"## Previous scene (for continuity/voice comparison):\n{prev_scene_text}\n\n"
+            if prev_scene_text
+            else ""
+        )
+        prompt = f"""You are a demanding story editor scoring a single screenplay scene against a fixed rubric. Be strict and specific — reward only what is actually on the page.
+
+## Project context (for tone/identity reference)
+{project_context}
+
+## Scene intent (what this scene is supposed to do)
+{json.dumps(ep, indent=2)}
+
+{prev_block}## The scene as written
+{scene_text}
+
+## Rubric — score each axis from 1 (poor) to 5 (excellent)
+- subtext: dialogue implies wants/emotion indirectly; nothing is on-the-nose. (1 = characters announce feelings/goals; 5 = meaning lives beneath the words.)
+- scene_turn: the value at stake flips between the top and the end of the scene. (1 = static, nothing changes; 5 = a clear, earned turn.)
+- escalation: opposed wants pursued through changing tactics; pressure rises. (1 = repetitive/flat; 5 = genuine escalation.)
+- voice_distinction: each character's lines are attributable without the cue. (1 = interchangeable voices; 5 = distinct, consistent voices.)
+- tone_identity: the scene commits to the story's tone/genre and avoids generic AI clichés. (1 = generic/cliché; 5 = specific and identity-true.)
+
+For each axis give an integer 1-5 and a SHORT actionable note (one sentence) on the single most important fix. If the axis is already strong, the note may say so.
+
+Return ONLY a JSON object of exactly this shape:
+{{"subtext": 3, "scene_turn": 3, "escalation": 3, "voice_distinction": 3, "tone_identity": 3, "notes": {{"subtext": "...", "scene_turn": "...", "escalation": "...", "voice_distinction": "...", "tone_identity": "..."}}}}"""
+
+        try:
+            text = await chat_completion(
+                messages=[
+                    {"role": "system", "content": "You are a rigorous screenplay story editor. Return only valid JSON matching the requested shape."},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=1500,
+                json_mode=True,
+                effort="medium",
+            )
+            data = json.loads(text)
+            # Validate shape: every axis must be an int 1-5.
+            for axis in self.RUBRIC_AXES:
+                val = data.get(axis)
+                if not isinstance(val, int) or not (1 <= val <= 5):
+                    logger.warning(f"Critique missing/invalid axis '{axis}': {val!r}")
+                    return None
+            if not isinstance(data.get("notes"), dict):
+                data["notes"] = {}
+            return data
+        except Exception as e:
+            logger.error(f"Scene critique error: {e}")
+            return None
+
+    def _weak_axes(self, critique: Dict, threshold: int) -> List[str]:
+        """Axes scoring below threshold, worst first."""
+        scored = [(axis, critique.get(axis, 5)) for axis in self.RUBRIC_AXES]
+        weak = [(axis, val) for axis, val in scored if isinstance(val, int) and val < threshold]
+        weak.sort(key=lambda t: t[1])
+        return [axis for axis, _ in weak]
+
+    async def _rewrite_scene(
+        self,
+        scene_text: str,
+        critique: Dict,
+        weak_axes: List[str],
+        ep: Dict,
+        i: int,
+        total: int,
+        project_context: str,
+        character_block: str,
+        prev_scene_text: str,
+    ) -> Optional[str]:
+        """Rewrite ONE scene addressing the critique's weak axes.
+
+        Returns the rewritten screenplay body (title line already stripped) or
+        None on failure (caller keeps the original scene).
+        """
+        summary = ep.get("summary", f"Scene {i + 1}")
+        notes = critique.get("notes", {}) if isinstance(critique.get("notes"), dict) else {}
+        fix_lines = "\n".join(
+            f"- {axis} (scored {critique.get(axis)}): {notes.get(axis, 'strengthen this dimension')}"
+            for axis in weak_axes
+        )
+        prev_block = (
+            f"## Previous scene (match its tone, voice, and continuity):\n{prev_scene_text}\n\n"
+            if prev_scene_text
+            else ""
+        )
+        prompt = f"""You are an expert screenwriter revising one scene of a screenplay. A story editor scored the current draft and flagged specific weaknesses. Rewrite the WHOLE scene to fix them — do not patch a line here and there; deliver a stronger full scene that keeps the same story events and continuity.
+
+## Project context
+{project_context}
+{character_block}
+
+## Scene intent
+{json.dumps(ep, indent=2)}
+
+{prev_block}## Current draft (scene {i + 1} of {total})
+{scene_text}
+
+## Fix these weaknesses (from the story editor)
+{fix_lines}
+
+Keep the same plot events, characters, and place in the sequence. Preserve strict industry-standard screenplay layout (scene heading on its own line, ALL-CAPS character cues, parentheticals on their own line, blank lines between elements). Keep subtext beneath the dialogue — never have a character state a feeling or goal outright.
+
+Output the screenplay NATIVELY as plain text (NOT JSON, no markdown code fences).
+The FIRST line MUST be exactly:
+TITLE: <a short title for this scene>
+Then, beneath it, the full rewritten screenplay body."""
+
+        try:
+            text = await chat_completion(
+                messages=[
+                    {"role": "system", "content": "You are an expert screenwriter who lays out scenes in industry-standard screenplay format. Return the screenplay as native plain text only — no JSON, no markdown code fences."},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=8000,
+                json_mode=False,
+                thinking=True,
+                effort="high",
+            )
+            parsed = self._parse_native_scene(text, summary, i)
+            return parsed["content"]
+        except Exception as e:
+            logger.error(f"Scene rewrite error (scene {i + 1}): {e}")
+            return None
+
+    async def _polish_screenplay(
+        self,
+        screenplays: List[Dict],
+        project_context: str,
+    ) -> List[Dict]:
+        """Whole-screenplay polish pass — the only step that reads the full
+        script end to end. Reviews cross-scene transitions, cumulative pacing,
+        setup/payoff, and voice consistency, and returns REPLACEMENT bodies only
+        for the scenes it chose to retouch (keyed by episode_index).
+
+        Returns the possibly-updated screenplays list. On any failure the
+        original list is returned unchanged (polish never aborts a run).
+        """
+        # Only successfully-generated scenes are eligible (skip failure dicts).
+        good = [s for s in screenplays if "error" not in s and s.get("content")]
+        if len(good) < 2:
+            return screenplays  # nothing cross-scene to polish
+
+        full_script = "\n\n".join(
+            f"=== SCENE {s['episode_index'] + 1}: {s.get('title', '')} ===\n{s['content']}"
+            for s in sorted(good, key=lambda s: s["episode_index"])
+        )
+        prompt = f"""You are a script editor doing a final polish pass over a COMPLETE screenplay. You can see every scene at once — something no single-scene pass can. Look for problems that only show up across the whole script:
+- weak or repetitive transitions between scenes;
+- cumulative pacing (does tension build across the script, or sag in the middle?);
+- setups with no payoff, or payoffs with no setup;
+- a character whose voice drifts or contradicts across scenes;
+- repeated images, lines, or beats that should vary.
+
+## Project context
+{project_context}
+
+## Full screenplay
+{full_script}
+
+Only retouch scenes that genuinely need it — leave strong scenes alone. For each scene you change, return its episode_index (0-based, matching the SCENE number minus 1) and the full revised screenplay body (native plain text, strict layout, no TITLE line, no code fences).
+
+Return ONLY a JSON object of this shape:
+{{"revisions": [{{"episode_index": 0, "content": "INT. ..."}}]}}
+If nothing needs changing, return {{"revisions": []}}."""
+
+        try:
+            text = await chat_completion(
+                messages=[
+                    {"role": "system", "content": "You are a rigorous script editor. Return only valid JSON matching the requested shape."},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=16000,
+                json_mode=True,
+                effort="high",
+            )
+            data = json.loads(text)
+            revisions = data.get("revisions", [])
+            if not isinstance(revisions, list):
+                return screenplays
+
+            by_index = {}
+            for rev in revisions:
+                if not isinstance(rev, dict):
+                    continue
+                idx = rev.get("episode_index")
+                content = rev.get("content")
+                if isinstance(idx, int) and isinstance(content, str) and content.strip():
+                    by_index[idx] = content.strip()
+
+            if not by_index:
+                return screenplays
+
+            polished = []
+            for s in screenplays:
+                new_content = by_index.get(s.get("episode_index"))
+                if new_content is not None and "error" not in s:
+                    updated = dict(s)
+                    updated["content"] = new_content
+                    updated["polished"] = True
+                    polished.append(updated)
+                else:
+                    polished.append(s)
+            logger.info(f"Polish pass revised {len(by_index)} scene(s)")
+            return polished
+        except Exception as e:
+            logger.error(f"Screenplay polish error: {e}")
+            return screenplays
+
     async def summarize_episode(self, db, project) -> str:
         """Produce a BOUNDED prose continuity summary of an episode's screenplay.
 
@@ -422,16 +653,18 @@ Return only the summary prose."""
             f"""{character_section}
 
 ## Character Voice
-Give each named character a DISTINCT, CONSISTENT voice — distinct vocabulary, rhythm, formality, and verbal tics — so that two characters in the same scene never sound interchangeable. Where a character has no explicit voice cues, establish a voice for them and keep it consistent with how they have already spoken in earlier scenes (visible via the previous-scene text and the running synopsis above)."""
+Give each named character a DISTINCT, CONSISTENT voice — distinct vocabulary, rhythm, formality, and verbal tics — so that two characters in the same scene never sound interchangeable. Where a character has no explicit voice cues, establish a voice for them and keep it consistent with how they have already spoken in earlier scenes (visible via the previous-scene text and the running synopsis above).
+
+Before writing, derive a quick voice profile for each character in this scene from the fields above — their register (formal vs. slang), sentence length and rhythm, a verbal tic or two, and the subject they deflect away from. Then hold to it. The test: a reader should be able to tell who is speaking from the line alone, with the character cue removed. Never let two characters phrase things the same way."""
             if character_section
             else ""
         )
 
         # The "## Screenwriting Craft" block below is UNCONDITIONAL (Phase 48,
         # D-48-04): it appears in EVERY scene prompt — first/single scene and
-        # the no-characters path — so it is a plain literal in this f-string,
-        # NOT wrapped in any if/else guard, and is added equally to both the
-        # empty- and absent-characters paths (byte-identical contract holds).
+        # the no-characters path — so it is a plain literal, NOT wrapped in any
+        # if/else guard, and is added equally to both the empty- and
+        # absent-characters paths (byte-identical contract holds).
         # The anchor substrings the tests assert (test_craft_guidance.py):
         #   "## Screenwriting Craft", "on-the-nose" (and "subtext"),
         #   "economical", "show, don't tell",
@@ -439,7 +672,16 @@ Give each named character a DISTINCT, CONSISTENT voice — distinct vocabulary, 
         # COLLISION GUARD: the craft text must contain NONE of "Story so far",
         # "Previous scene", "distinct, consistent voice", "## Characters",
         # "## Character Voice" (asserted ABSENT by continuity/voice suites).
-        prompt = f"""You are an expert screenwriter.
+        #
+        # PROMPT CACHING (Phase 1): the prompt is split into a STABLE PREFIX
+        # (invariant across every scene of a run — project context, characters,
+        # outline, craft + layout rules) carried in the system message, and a
+        # VOLATILE TAIL (continuity + this scene's task/data) carried in the
+        # user message. The stable prefix is marked cacheable (cache_system) so
+        # scenes 2..N read it from cache instead of reprocessing ~5-15KB each.
+        # The full prompt text (prefix + tail) still contains every anchor
+        # substring the tests assert — only WHERE each lives changed.
+        stable_prefix = f"""You are an expert screenwriter.
 
 ## Project Context
 {project_context}
@@ -450,29 +692,32 @@ Give each named character a DISTINCT, CONSISTENT voice — distinct vocabulary, 
 ## Full scene outline (for pacing context):
 {scene_outline}
 
-{continuity_block}## YOUR TASK: Write scene {i + 1} of {total}
-Scene summary: "{summary}"
-
-## Full scene data:
-{json.dumps(ep, indent=2)}
-
-{f'Custom guidance: {guidance}' if guidance else ''}
-
 ## Screenwriting Craft
-Apply these craft principles to THIS scene (distinct from the layout rules below):
-- Subtext: characters pursue their wants indirectly — imply intention and emotion rather than declaring them; avoid on-the-nose dialogue that states feelings or goals outright.
+Apply these craft principles to EACH scene (distinct from the layout rules below):
+- Subtext: characters pursue their wants indirectly, so what they SAY rarely equals what they MEAN. Never let a character announce a feeling or a goal outright — that is on-the-nose dialogue and it is banned. Instead use concrete techniques: answer a question with a different question; deflect or change the subject; say the opposite of what is felt; leave a sentence unfinished; let a mundane surface topic (an object, a chore, an errand) carry the real conflict underneath. The emotion should be legible from behavior and evasion, not stated.
 - Action economy: keep action lines lean and economical — present tense, concrete verbs, no filler or stage-direction padding.
-- Show, don't tell: reveal character and emotion through visible behavior and action, with no internal or unfilmable description (no "she feels…", "he realizes…", "remembers that…").
+- Show, don't tell: reveal character and emotion through visible behavior and action, with no internal or unfilmable description (no "she feels…", "he realizes…", "remembers that…"). If an emotion matters, externalize it — a gesture, a look, what a character does with their hands or with a nearby object.
+- Every scene must turn: the dramatic value at stake (safe/threatened, trust/betrayal, hope/despair, winning/losing) must flip between the top of the scene and its end. If nothing changes, it is not a scene — find the turn. Enter the scene as late as possible and leave the moment its turn lands; cut the throat-clearing at both ends.
+- Conflict and escalation: give the characters present opposed wants and let them pursue those wants through changing tactics — a character who fails with one approach tries a different one, raising the pressure rather than repeating the beat.
 - Pacing and white space: vary the rhythm — break dense action into shorter beats and let white space carry tension; never wall-of-text.
 
-Write a proper screenplay for THIS scene using strict industry-standard layout:
+## Tone and Identity
+This screenplay has a specific identity — read the genre, tone, and (for series) the bible's tone-and-style notes from the Project Context above, and commit to them. Every scene should feel like it belongs to THIS story and no other: let the tone shape word choice, the kind of imagery, the density of the prose, and the pace of the dialogue. Prefer concrete, specific, sensory detail rooted in this world over generic coverage.
+
+Avoid the tells of generic AI-written screenplays. In particular:
+- No stock atmosphere clichés: golden-hour light, rain on a window as a mood-setter, a single tear rolling down a cheek, a held breath, a heartbeat pounding — unless the story genuinely earns the specific image.
+- No expository dialogue that exists only to inform the audience ("As you know…", characters explaining shared history to each other, on-the-nose recaps).
+- No placeholder specificity: name locations and objects concretely instead of "a nondescript room" / "a generic office"; give props and settings texture particular to this world.
+- No summarizing narration in the action lines — stay in the concrete present of what the camera sees and hears.
+
+Write a proper screenplay for each scene using strict industry-standard layout:
 - The scene heading (INT./EXT. LOCATION - TIME) is on its OWN line.
 - Action lines are present-tense, visual, and describe only what can be seen or heard.
 - Character cues are in ALL CAPS on their own line above the dialogue.
 - Parentheticals (wrylies) go on their OWN line beneath the character cue.
 - Dialogue sits beneath the character cue (and any parenthetical).
 - Put a BLANK LINE between distinct elements (heading, action, each dialogue block).
-- Pace this scene for its role in the overall {runtime_target or 'short film'} runtime.
+- Pace each scene for its role in the overall {runtime_target or 'short film'} runtime.
 - Distribute the total runtime naturally across scenes — not all scenes need equal screen time.
 
 Output the screenplay NATIVELY as plain text (NOT JSON, no markdown code fences).
@@ -480,60 +725,40 @@ The FIRST line MUST be exactly:
 TITLE: <a short title for this scene>
 Then, beneath it, write the full screenplay body using the layout rules above."""
 
+        volatile_task = f"""{continuity_block}## YOUR TASK: Write scene {i + 1} of {total}
+Scene summary: "{summary}"
+
+## Full scene data:
+{json.dumps(ep, indent=2)}
+
+## How to use the scene data
+Treat the fields above as the dramatic engine of this scene, not as notes to transcribe:
+- goal: what the point-of-view character is actively trying to get in this scene — every beat should serve or obstruct it.
+- subtext: the real emotional current under the dialogue — keep it beneath the surface; do NOT have anyone say it aloud.
+- turning_point / crisis / climax: the scene must build to and pass through its turn — the value at stake flips here; make that shift land through action and behavior.
+- fallout: the immediate cost or consequence the turn leaves behind.
+- push_forward: end the scene on a beat that opens a question or pressure the next scene must answer — a hook, not a tidy resolution.
+Do not restate these labels in the screenplay; dramatize them.
+
+{f'Custom guidance: {guidance}' if guidance else ''}"""
+
         try:
             logger.info(f"Generating script for scene {i + 1}/{total}: {summary}")
             text = await chat_completion(
                 messages=[
                     {"role": "system", "content": "You are an expert screenwriter who lays out scenes in industry-standard screenplay format. Return the screenplay as native plain text only — no JSON, no markdown code fences."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": stable_prefix},
+                    {"role": "user", "content": volatile_task}
                 ],
                 temperature=0.7,
-                max_tokens=4000,
+                max_tokens=8000,
                 json_mode=False,
+                thinking=True,
+                effort="high",
+                cache_system=True,
             )
 
-            # Native parse (D-46-01). The provider does NOT strip code fences
-            # in native mode (fence-stripping is json_mode-gated, ai_provider.py),
-            # so tolerate a stray leading/trailing fence ourselves. Never run
-            # json.loads on the scene result.
-            text = (text or "").strip()
-            if text.startswith("```"):
-                lines = text.split("\n")
-                # Drop the opening fence line (```/```text).
-                lines = lines[1:]
-                # Drop a trailing closing fence line if present.
-                if lines and lines[-1].strip() == "```":
-                    lines = lines[:-1]
-                text = "\n".join(lines).strip()
-
-            # Split a leading `TITLE:` line (case-insensitive, optional
-            # whitespace) off the top; the rest is the screenplay body.
-            title = ""
-            content = text
-            split_title_line = False
-            first_nl = text.find("\n")
-            first_line = text if first_nl == -1 else text[:first_nl]
-            if first_line.strip().lower().startswith("title:"):
-                split_title_line = True
-                title = first_line.split(":", 1)[1].strip()
-                rest = "" if first_nl == -1 else text[first_nl + 1:]
-                content = rest.lstrip("\n")
-
-            # Never fail a scene over a missing/empty title — fall back to the
-            # scene summary (D-46-01), mirroring the empty-fallback idiom.
-            # Only re-glue the full text into content when no TITLE line was
-            # split off; if a TITLE: line was present but blank, keep the body
-            # we already separated (don't re-inject the literal "TITLE:" line).
-            if not title:
-                title = summary
-                if not split_title_line:
-                    content = text
-
-            return {
-                "title": title,
-                "content": content,
-                "episode_index": i,
-            }
+            return self._parse_native_scene(text, summary, i)
         except Exception as e:
             logger.error(f"Script generation error for scene {i + 1}: {e}")
             return {
@@ -542,6 +767,54 @@ Then, beneath it, write the full screenplay body using the layout rules above.""
                 "content": f"[Generation failed: {str(e)}]",
                 "error": str(e),
             }
+
+    def _parse_native_scene(self, text: str, summary: str, i: int) -> Dict:
+        """Parse a native plain-text screenplay response into
+        {title, content, episode_index} (D-46-01).
+
+        Shared by _generate_one_scene and _rewrite_scene so both handle a stray
+        code fence and an optional leading `TITLE:` line identically. The
+        provider does NOT strip code fences in native mode (fence-stripping is
+        json_mode-gated in ai_provider.py), so tolerate a stray leading/trailing
+        fence here. Never run json.loads on a scene result.
+        """
+        text = (text or "").strip()
+        if text.startswith("```"):
+            lines = text.split("\n")
+            # Drop the opening fence line (```/```text).
+            lines = lines[1:]
+            # Drop a trailing closing fence line if present.
+            if lines and lines[-1].strip() == "```":
+                lines = lines[:-1]
+            text = "\n".join(lines).strip()
+
+        # Split a leading `TITLE:` line (case-insensitive, optional whitespace)
+        # off the top; the rest is the screenplay body.
+        title = ""
+        content = text
+        split_title_line = False
+        first_nl = text.find("\n")
+        first_line = text if first_nl == -1 else text[:first_nl]
+        if first_line.strip().lower().startswith("title:"):
+            split_title_line = True
+            title = first_line.split(":", 1)[1].strip()
+            rest = "" if first_nl == -1 else text[first_nl + 1:]
+            content = rest.lstrip("\n")
+
+        # Never fail a scene over a missing/empty title — fall back to the scene
+        # summary (D-46-01). Only re-glue the full text into content when no
+        # TITLE line was split off; if a TITLE: line was present but blank, keep
+        # the body we already separated (don't re-inject the literal "TITLE:").
+        if not title:
+            title = summary
+            if not split_title_line:
+                content = text
+
+        return {
+            "title": title,
+            "content": content,
+            "episode_index": i,
+        }
 
     async def _generate_scripts(self, config: Dict, project_context: str, template: Dict) -> Dict:
         episodes = config.get("episodes", [])
@@ -568,6 +841,10 @@ Then, beneath it, write the full screenplay body using the layout rules above.""
         synopsis = ""
         prev_scene_text = ""
 
+        critique_enabled = getattr(settings, "SCREENPLAY_CRITIQUE_ENABLED", False)
+        threshold = getattr(settings, "SCREENPLAY_CRITIQUE_THRESHOLD", 4)
+        rubric_scores = []  # per-scene critique metadata for _meta (Phase 3)
+
         screenplays = []
         for i, ep in enumerate(episodes):
             summary = ep.get("summary", f"Scene {i + 1}")
@@ -587,6 +864,38 @@ Then, beneath it, write the full screenplay body using the layout rules above.""
                 synopsis=synopsis,
                 prev_scene_text=prev_scene_text,
             )
+
+            # Phase 3: critique the fresh scene and, if any rubric axis is weak,
+            # rewrite it once. Gated behind the flag; any critique/rewrite failure
+            # leaves the original scene untouched (never aborts a run). Runs BEFORE
+            # continuity advances so the improved text feeds later scenes.
+            if critique_enabled and "error" not in scene:
+                critique = await self._critique_scene(
+                    scene["content"], ep, prev_scene_text, project_context
+                )
+                if critique is not None:
+                    weak = self._weak_axes(critique, threshold)
+                    entry = {"episode_index": i, "scores": {a: critique.get(a) for a in self.RUBRIC_AXES}}
+                    if weak:
+                        character_block = self._build_character_section(characters)
+                        rewritten = await self._rewrite_scene(
+                            scene_text=scene["content"],
+                            critique=critique,
+                            weak_axes=weak,
+                            ep=ep,
+                            i=i,
+                            total=len(episodes),
+                            project_context=project_context,
+                            character_block=character_block,
+                            prev_scene_text=prev_scene_text,
+                        )
+                        if rewritten:
+                            scene = dict(scene)
+                            scene["content"] = rewritten
+                            scene["rewritten"] = True
+                            entry["rewrote_axes"] = weak
+                    rubric_scores.append(entry)
+
             screenplays.append(scene)
 
             # Advance continuity state ONLY on success — a failed scene must
@@ -596,7 +905,16 @@ Then, beneath it, write the full screenplay body using the layout rules above.""
                 prev_scene_text = scene["content"]
                 synopsis = await self._update_synopsis(synopsis, prev_scene_text, summary)
 
-        return {"screenplays": screenplays, "synopsis": synopsis}
+        # Phase 3: whole-screenplay polish pass — the only step that reads the
+        # full script end to end (cross-scene transitions, cumulative pacing,
+        # setup/payoff, voice drift). Gated; returns the list unchanged on failure.
+        if getattr(settings, "SCREENPLAY_POLISH_ENABLED", False):
+            screenplays = await self._polish_screenplay(screenplays, project_context)
+
+        result = {"screenplays": screenplays, "synopsis": synopsis}
+        if rubric_scores:
+            result["rubric_scores"] = rubric_scores
+        return result
 
     async def regenerate_single_scene(
         self,

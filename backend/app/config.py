@@ -21,7 +21,7 @@ class Settings(BaseSettings):
 
     # Anthropic
     ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
+    ANTHROPIC_MODEL: str = "claude-opus-4-8"
     
     # Security
     SECRET_KEY: str = "your-secret-key-replace-in-production"
@@ -32,6 +32,13 @@ class Settings(BaseSettings):
     # Rate limiting
     MAX_TOKENS: int = 4000
     MAX_SECTION_LENGTH: int = 1500
+
+    # Screenplay quality loop (Phase 3): per-scene critique+rewrite and a final
+    # whole-screenplay polish pass. Trades ~3x generation tokens for quality;
+    # set SCREENPLAY_CRITIQUE_ENABLED=false to fall back to single-pass generation.
+    SCREENPLAY_CRITIQUE_ENABLED: bool = True
+    SCREENPLAY_CRITIQUE_THRESHOLD: int = 4   # rewrite a scene if any axis scores < this (1-5)
+    SCREENPLAY_POLISH_ENABLED: bool = True
     
     # Caching
     CACHE_TTL: int = 900  # 15 minutes

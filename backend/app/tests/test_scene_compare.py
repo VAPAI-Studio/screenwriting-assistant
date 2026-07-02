@@ -65,8 +65,16 @@ class _MockChat:
         user_msg = next(
             (m["content"] for m in messages if m.get("role") == "user"), ""
         )
+        # Prompt caching (Phase 1) split the scene prompt into a stable system
+        # prefix (craft/layout/characters) and a volatile user tail (continuity
+        # + this scene's task). Record the FULL prompt so anchor assertions see
+        # both halves; route by the user tail where SCENE_MARKER lives.
+        full_prompt = "\n".join(
+            (m["content"] if isinstance(m["content"], str) else str(m["content"]))
+            for m in messages
+        )
         if SCENE_MARKER in user_msg:
-            self.scene_prompts.append(user_msg)
+            self.scene_prompts.append(full_prompt)
             self.scene_json_modes.append(kwargs.get("json_mode", False))
             return _scene_writer(self.scene_text, title=self.title)
         # synopsis-update branch (should NOT be hit by regenerate_single_scene)

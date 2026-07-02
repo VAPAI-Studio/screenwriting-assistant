@@ -89,6 +89,11 @@ async def _run_wizard_background(
             template_id=template_id,
         )
 
+        # Phase 3: capture the critique/rewrite rubric scores BEFORE the review
+        # middleware potentially replaces `result` with a schema-shaped merge
+        # output (which drops non-schema keys like rubric_scores).
+        rubric_scores = result.get("rubric_scores") if isinstance(result, dict) else None
+
         review_result = await agent_review_middleware.review_step_output(
             phase=phase,
             subsection_key=wizard_type,
@@ -104,6 +109,11 @@ async def _run_wizard_background(
             result["_meta"] = {}
         result["_meta"]["agents_consulted"] = review_result["agents_consulted"]
         result["_meta"]["review_applied"] = review_result["review_applied"]
+        # Phase 3: surface per-scene rubric scores (critique/rewrite loop) so the
+        # frontend can show quality metrics. Present only for script_writer_wizard
+        # runs with the critique loop enabled.
+        if rubric_scores:
+            result["_meta"]["rubric_scores"] = rubric_scores
 
         wizard_run.result = result
         wizard_run.status = "completed"
