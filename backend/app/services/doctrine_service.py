@@ -60,7 +60,11 @@ def build_doctrine_cards(
 ) -> List[Dict]:
     """Select the format's top concepts as JSON-serializable doctrine cards.
 
-    Ordered by: has actionable questions first, then quality_score. Only
+    Ordered by: has actionable questions first, then quality_score, with
+    c.name as a deterministic tiebreak (quality scores cluster at 0.9/0.95,
+    so without it the deck varied per physical row order — the local and
+    Railway DBs returned different cards from the same data). A per-book cap
+    (DOCTRINE_MAX_PER_BOOK) keeps one book from dominating the deck. Only
     concepts from COMPLETED books in the global library carrying the format
     tag. Each card: {name, definition, questions, tags, source, quote?}.
     Returns [] on any failure or when the library has nothing for this format.
@@ -73,18 +77,36 @@ def build_doctrine_cards(
     try:
         rows = db.execute(
             sql_text("""
-                SELECT c.name, c.definition, c.actionable_questions, c.tags,
-                       b.title AS book_title, b.author AS book_author
-                FROM concepts c
-                JOIN books b ON c.book_id = b.id
-                WHERE b.status = 'completed'
-                  AND c.tags ? :format_tag
-                  AND (c.quality_score IS NULL OR c.quality_score >= 0.5)
-                ORDER BY (jsonb_array_length(COALESCE(c.actionable_questions, '[]'::jsonb)) > 0) DESC,
-                         c.quality_score DESC NULLS LAST
+                SELECT name, definition, actionable_questions, tags,
+                       book_title, book_author
+                FROM (
+                    SELECT c.name, c.definition, c.actionable_questions, c.tags,
+                           c.quality_score,
+                           b.title AS book_title, b.author AS book_author,
+                           (jsonb_array_length(COALESCE(c.actionable_questions, '[]'::jsonb)) > 0) AS has_questions,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY c.book_id
+                               ORDER BY (jsonb_array_length(COALESCE(c.actionable_questions, '[]'::jsonb)) > 0) DESC,
+                                        c.quality_score DESC NULLS LAST,
+                                        c.name
+                           ) AS book_rank
+                    FROM concepts c
+                    JOIN books b ON c.book_id = b.id
+                    WHERE b.status = 'completed'
+                      AND c.tags ? :format_tag
+                      AND (c.quality_score IS NULL OR c.quality_score >= 0.5)
+                ) ranked
+                WHERE book_rank <= :per_book
+                ORDER BY has_questions DESC,
+                         quality_score DESC NULLS LAST,
+                         name
                 LIMIT :top_k
             """),
-            {"format_tag": format_tag, "top_k": max_concepts},
+            {
+                "format_tag": format_tag,
+                "top_k": max_concepts,
+                "per_book": settings.DOCTRINE_MAX_PER_BOOK,
+            },
         ).fetchall()
 
         cards = []

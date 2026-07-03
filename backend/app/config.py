@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     DOCTRINE_IN_GENERATION: bool = True
     DOCTRINE_MAX_CONCEPTS: int = 8
     DOCTRINE_MAX_CHARS: int = 6000   # ~1500 tokens; doctrine must never crowd out the scene
+    DOCTRINE_MAX_PER_BOOK: int = 2   # diversity cap: no single book may dominate the card deck
     
     # Caching
     CACHE_TTL: int = 900  # 15 minutes
