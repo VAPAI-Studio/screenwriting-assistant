@@ -67,7 +67,10 @@ def main():
         dist = ", ".join(f"{r[0]}:{r[1]}" for r in rows) or "SIN TAGS DE FORMATO"
         dominant = rows[0][0] if rows else None
 
-        expected = next((v for k, v in EXPECTED_FORMAT.items() if k in b.title), "?")
+        # longest key first so "Save the Cat! Writes for TV" doesn't match "Save the Cat!"
+        expected = next(
+            (v for k, v in sorted(EXPECTED_FORMAT.items(), key=lambda kv: -len(kv[0]))
+             if k in b.title), "?")
         ok = "✔" if (expected in (None, "?") or dominant == expected) else "✘"
         if ok == "✘":
             problems.append(f"{b.title}: formato dominante {dominant}, esperado {expected}")
