@@ -1,5 +1,6 @@
 {
   "id": "short_movie",
+  "format": "short_film",
   "name": "Short Movie",
   "description": "Template for 5-10 minute short films ideal for YouTube / Vimeo etc.",
   "icon": "film",

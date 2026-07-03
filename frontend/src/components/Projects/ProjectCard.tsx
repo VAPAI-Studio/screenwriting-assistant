@@ -4,10 +4,14 @@ import { FRAMEWORK_LABELS } from '../../lib/section-config';
 
 const TEMPLATE_NAMES: Record<string, string> = {
   short_movie: 'Short Movie',
+  sketch: 'Sketch',
+  episode: 'Series Episode',
 };
 
 const TEMPLATE_COLORS: Record<string, string> = {
   short_movie: 'from-amber-500/20 to-orange-500/20 border-amber-500/20',
+  sketch: 'from-fuchsia-500/20 to-pink-500/20 border-fuchsia-500/20',
+  episode: 'from-sky-500/20 to-indigo-500/20 border-sky-500/20',
 };
 
 const PHASE_COLORS: Record<string, string> = {

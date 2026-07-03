@@ -1,0 +1,505 @@
+{
+  "id": "sketch",
+  "format": "sketch",
+  "name": "Sketch",
+  "description": "Template for 1-5 minute comedy sketches — premise, game of the scene, escalation, blow.",
+  "icon": "laugh",
+  "phases": [
+    {
+      "id": "idea",
+      "name": "Idea",
+      "order": 0,
+      "subsections": [
+        {
+          "key": "idea_wizard",
+          "name": "Idea Wizard",
+          "description": "Not sure what your sketch is about yet? Use the Idea Wizard to find the ONE unusual thing your sketch explores and the game it plays.",
+          "ui_pattern": "wizard_with_chat",
+          "fields": [
+            {
+              "key": "genre",
+              "label": "Comedy Style",
+              "type": "text",
+              "placeholder": "e.g., Absurdist, Satire, Character piece, Parody..."
+            },
+            {
+              "key": "initial_idea",
+              "label": "Initial Idea",
+              "type": "textarea",
+              "placeholder": "Describe the funny idea — what's the ONE unusual thing? (e.g., a hostage negotiator who takes everything literally)"
+            },
+            {
+              "key": "runtime_target",
+              "label": "Target Runtime",
+              "type": "text",
+              "placeholder": "e.g., 2 minutes, 4 minutes"
+            },
+            {
+              "key": "tone",
+              "label": "Tone",
+              "type": "text",
+              "placeholder": "e.g., Deadpan, Manic, Dry, Grounded-absurd..."
+            }
+          ],
+          "sidebar_chat": true,
+          "chat_system_prompt": "You are an expert sketch-comedy development partner trained in the UCB tradition. Help the user find and sharpen their sketch premise. Every sketch needs exactly ONE unusual thing (the premise) and a repeatable comedic pattern (the game). Push for specificity: who is the voice of reason, what is the first laugh, how does the game heighten? Kill premises with two unrelated weird things — one game per sketch."
+        },
+        {
+          "key": "import_project",
+          "name": "Import Sketch",
+          "description": "Bring an existing sketch to seed beats, scenes, and the screenplay editor. Paste or upload it, optionally include guidance, and we will align beats and scenes for you.",
+          "ui_pattern": "import_wizard",
+          "fields": [
+            {
+              "key": "screenplay_text",
+              "label": "Paste Sketch",
+              "type": "textarea",
+              "placeholder": "Paste your sketch here..."
+            },
+            {
+              "key": "guidance",
+              "label": "Guidance (Optional)",
+              "type": "textarea",
+              "placeholder": "Any specific guidance for how to align beats and scenes..."
+            }
+          ],
+          "ai_actions": [
+            {
+              "key": "align",
+              "label": "Align Beats, Scenes & Screenplay",
+              "prompt_template": "import_and_align"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "story",
+      "name": "Story",
+      "order": 1,
+      "subsections": [
+        {
+          "key": "core",
+          "name": "Core",
+          "description": "Lock the comedic engine of your sketch. A sketch is not a short film: it explores ONE unusual thing through a repeatable game. If you can't state the premise and the game in one line each, the sketch isn't ready.",
+          "ui_pattern": "card_grid",
+          "grid_columns": 3,
+          "sidebar_chat": true,
+          "cards": [
+            {
+              "key": "premise",
+              "label": "Premise (The Unusual Thing)",
+              "type": "textarea",
+              "placeholder": "The ONE thing in this world that is absurd, exaggerated or wrong. Everything else stays normal."
+            },
+            {
+              "key": "game",
+              "label": "Game of the Scene",
+              "type": "textarea",
+              "placeholder": "The repeatable comedic pattern. 'Every time X happens, Y responds by...' If it can't repeat, it's not a game."
+            },
+            {
+              "key": "base_reality",
+              "label": "Base Reality",
+              "type": "textarea",
+              "placeholder": "The grounded, recognizable situation BEFORE the unusual thing appears. The more normal, the funnier the break."
+            },
+            {
+              "key": "voice_of_reason",
+              "label": "Voice of Reason",
+              "type": "textarea",
+              "placeholder": "Who reacts the way a normal person would? The audience surrogate who notices the weird."
+            },
+            {
+              "key": "why_today",
+              "label": "Why Today?",
+              "type": "textarea",
+              "placeholder": "Why is this scene happening NOW? What kicks the unusual thing into motion today of all days?"
+            },
+            {
+              "key": "heightening_logic",
+              "label": "Heightening Logic",
+              "type": "textarea",
+              "placeholder": "The internal rule that makes each escalation bigger but still consistent. Absurdity must escalate along ONE axis."
+            },
+            {
+              "key": "stakes",
+              "label": "Stakes",
+              "type": "textarea",
+              "placeholder": "What does the straight character stand to lose if the weirdness continues? Small stakes played big."
+            },
+            {
+              "key": "target",
+              "label": "Comedic Target",
+              "type": "textarea",
+              "placeholder": "If satirical: who or what is this really about? (Optional but sharpens every choice.)"
+            },
+            {
+              "key": "unique_element",
+              "label": "Unique Element",
+              "type": "textarea",
+              "placeholder": "The image, prop, catchphrase or world rule that makes this sketch unmistakably yours."
+            }
+          ]
+        },
+        {
+          "key": "characters",
+          "name": "Characters",
+          "description": "Sketch characters are functions of the game: someone embodies the unusual thing, someone reacts to it. Two or three characters is almost always enough — every extra body dilutes the game.",
+          "ui_pattern": "repeatable_cards",
+          "card_groups": [
+            {
+              "key": "protagonist",
+              "label": "Absurd Character (embodies the unusual thing)",
+              "item_type": "protagonist",
+              "min_items": 1,
+              "max_items": 2,
+              "fields": [
+                {
+                  "key": "name",
+                  "label": "Name",
+                  "type": "text"
+                },
+                {
+                  "key": "core_trait",
+                  "label": "The Unusual Behavior",
+                  "type": "textarea",
+                  "placeholder": "The specific, committed way they embody the premise. They never think they're weird."
+                },
+                {
+                  "key": "fatal_flaw",
+                  "label": "Blind Spot",
+                  "type": "textarea",
+                  "placeholder": "What they can never see about themselves — the engine of the game."
+                },
+                {
+                  "key": "want_vs_need",
+                  "label": "What They Want",
+                  "type": "textarea",
+                  "placeholder": "The mundane goal they pursue with total sincerity despite the absurdity."
+                },
+                {
+                  "key": "dialogue_style",
+                  "label": "Dialogue Style",
+                  "type": "textarea",
+                  "placeholder": "How they speak — rhythm, vocabulary, verbal habits. Commit to the bit."
+                }
+              ]
+            },
+            {
+              "key": "antagonist",
+              "label": "Straight Character / Voice of Reason",
+              "item_type": "antagonist",
+              "min_items": 1,
+              "max_items": 2,
+              "fields": [
+                {
+                  "key": "name",
+                  "label": "Name",
+                  "type": "text"
+                },
+                {
+                  "key": "core_trait",
+                  "label": "Core Trait",
+                  "type": "textarea",
+                  "placeholder": "Grounded, reasonable, with a normal goal the weirdness keeps blocking."
+                },
+                {
+                  "key": "fatal_flaw",
+                  "label": "Why They Stay",
+                  "type": "textarea",
+                  "placeholder": "The reason they can't just leave the scene — obligation, politeness, desperation."
+                },
+                {
+                  "key": "want_vs_need",
+                  "label": "What They Want",
+                  "type": "textarea",
+                  "placeholder": "The simple thing they came here to do."
+                },
+                {
+                  "key": "dialogue_style",
+                  "label": "Dialogue Style",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "key": "supporting",
+              "label": "Supporting Characters",
+              "item_type": "supporting",
+              "min_items": 0,
+              "max_items": 3,
+              "fields": [
+                {
+                  "key": "name",
+                  "label": "Name",
+                  "type": "text"
+                },
+                {
+                  "key": "role",
+                  "label": "Function in the Game",
+                  "type": "textarea",
+                  "placeholder": "How they feed the game: escalate it, validate the absurd character, or raise stakes."
+                },
+                {
+                  "key": "dialogue_style",
+                  "label": "Dialogue Style",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "key": "story",
+          "name": "Beats",
+          "description": "Map the sketch structure: establish a believable base reality, land the first laugh, name the game, then heighten it in escalating beats along one axis — and get out at the peak. No third-act redemption, no lesson: the blow ends the sketch the moment the game can't go higher.",
+          "ui_pattern": "card_grid",
+          "grid_columns": 3,
+          "sidebar_chat": true,
+          "linked_cards_source": "story.core",
+          "cards": [
+            {
+              "key": "cold_open",
+              "label": "Base Reality (Open)",
+              "type": "textarea",
+              "placeholder": "Ground us fast in a recognizable situation. Who, where, and the normal goal — in seconds, not minutes."
+            },
+            {
+              "key": "unusual_thing",
+              "label": "First Laugh (The Unusual Thing Appears)",
+              "type": "textarea",
+              "placeholder": "The premise lands for the first time. The earlier the first laugh, the better the sketch."
+            },
+            {
+              "key": "game_established",
+              "label": "Game Established",
+              "type": "textarea",
+              "placeholder": "The pattern repeats and the audience learns the rules: 'oh, THIS is what this scene is.'"
+            },
+            {
+              "key": "escalation_1",
+              "label": "Heightening 1",
+              "type": "textarea",
+              "placeholder": "Same game, bigger. Raise intensity, scope or cost while staying consistent with the heightening logic."
+            },
+            {
+              "key": "escalation_2",
+              "label": "Heightening 2",
+              "type": "textarea",
+              "placeholder": "Bigger again. The straight character's resistance peaks; the absurd character doubles down."
+            },
+            {
+              "key": "twist_revelation",
+              "label": "Break / Twist (optional)",
+              "type": "textarea",
+              "placeholder": "A reframe that recharges the game right before the end: a reveal, a flip of who's weird, a new victim."
+            },
+            {
+              "key": "blow",
+              "label": "The Blow (Out)",
+              "type": "textarea",
+              "placeholder": "The last, biggest beat of the game — then CUT. Get out at the peak laugh; never linger to explain."
+            },
+            {
+              "key": "button",
+              "label": "Button / Tag (optional)",
+              "type": "textarea",
+              "placeholder": "One final quick beat after the blow — a single extra laugh, five seconds max."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scenes",
+      "name": "Scenes",
+      "order": 2,
+      "subsections": [
+        {
+          "key": "scene_wizard",
+          "name": "Scene Wizard",
+          "description": "Most sketches are ONE scene playing one game. Use multiple scenes only for cutaway or escalating-location formats. The Scene Wizard builds your scene list from the beats.",
+          "ui_pattern": "wizard",
+          "wizard_config": {
+            "item_label": "Scene",
+            "item_label_plural": "Scenes",
+            "default_count": "1",
+            "count_selector": true,
+            "count_options": [
+              {
+                "value": "1",
+                "label": "1 scene (classic sketch)"
+              },
+              {
+                "value": "2-3",
+                "label": "2–3 scenes (cutaways / location jumps)"
+              },
+              {
+                "value": "auto",
+                "label": "Let AI decide"
+              }
+            ],
+            "readiness_checks": [
+              {
+                "source": "story.core",
+                "label": "Comedic Engine",
+                "count_fields": [
+                  "premise",
+                  "game",
+                  "base_reality",
+                  "voice_of_reason",
+                  "why_today",
+                  "heightening_logic",
+                  "stakes",
+                  "target",
+                  "unique_element"
+                ]
+              },
+              {
+                "source": "story.characters",
+                "label": "Characters",
+                "count_items": true,
+                "item_groups": [
+                  "protagonist",
+                  "antagonist",
+                  "supporting"
+                ]
+              },
+              {
+                "source": "story.story",
+                "label": "Sketch Beats",
+                "count_fields": [
+                  "cold_open",
+                  "unusual_thing",
+                  "game_established",
+                  "escalation_1",
+                  "escalation_2",
+                  "twist_revelation",
+                  "blow",
+                  "button"
+                ]
+              }
+            ],
+            "guidance_default": "Construct scenes for a comedy sketch. Default to ONE scene that plays a single game from base reality to blow. If multiple scenes, each must heighten the SAME game — never introduce a second unrelated weird thing. Front-load the first laugh, escalate along one axis, and end at the peak beat with no resolution or moral.",
+            "beat_mapping_strategy": "Map the sketch beats in order: base reality, first laugh, game established, heightenings, optional break, blow, optional button. In a one-scene sketch all beats live in that scene as an escalation ladder. In multi-scene sketches, each scene owns one or two rungs of the ladder.",
+            "import_from_screenplay": true,
+            "custom_guidance": true,
+            "generate_button": "Generate Scene List"
+          }
+        },
+        {
+          "key": "scene_list",
+          "name": "Scene List",
+          "description": "Organize your sketch scenes.",
+          "ui_pattern": "ordered_list",
+          "list_config": {
+            "item_type": "scene",
+            "section_label": "SKETCH SCENES",
+            "sortable": true,
+            "addable": true,
+            "deletable": true,
+            "expandable": false,
+            "analyze_button": true,
+            "sidebar_chat": true,
+            "display_field": "summary"
+          }
+        },
+        {
+          "key": "scene_detail",
+          "name": "Individual Scenes",
+          "description": "Craft the scene as an escalation ladder. In a sketch, the 'turning point' is a heightening of the game, the 'climax' is the blow, and the 'fallout' is the button. Everything serves the game — cut any line that doesn't feed it.",
+          "ui_pattern": "individual_editor",
+          "editor_config": {
+            "item_type": "scene",
+            "navigator": true,
+            "layout": "two_column",
+            "fields": [
+              {
+                "key": "summary",
+                "label": "Summary",
+                "type": "textarea",
+                "full_width": true
+              },
+              {
+                "key": "arena",
+                "label": "Arena",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "The grounded location. One arena per sketch unless the format IS the location jump."
+              },
+              {
+                "key": "inciting_incident",
+                "label": "First Laugh",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "Where the unusual thing first lands in this scene."
+              },
+              {
+                "key": "goal",
+                "label": "Straight Character's Goal",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "The simple thing they're trying to accomplish while the game blocks them."
+              },
+              {
+                "key": "subtext",
+                "label": "Subtext",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "What the characters won't say: the politeness, denial or desperation that keeps them in the scene."
+              },
+              {
+                "key": "turning_point",
+                "label": "Heightening",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "The beat where the game jumps a level."
+              },
+              {
+                "key": "crisis",
+                "label": "Peak Resistance",
+                "type": "textarea",
+                "column": "right",
+                "placeholder": "The straight character's last attempt to restore normality."
+              },
+              {
+                "key": "climax",
+                "label": "The Blow",
+                "type": "textarea",
+                "column": "right",
+                "placeholder": "The biggest beat of the game — the out."
+              },
+              {
+                "key": "fallout",
+                "label": "Button / Tag",
+                "type": "textarea",
+                "column": "right",
+                "placeholder": "Optional single extra laugh after the blow."
+              },
+              {
+                "key": "push_forward",
+                "label": "Hand-off (multi-scene only)",
+                "type": "textarea",
+                "column": "right",
+                "placeholder": "How this scene tees up the next rung of the escalation ladder."
+              }
+            ],
+            "sidebar_chat": true,
+            "bottom_bar": {
+              "show_item_number": true,
+              "show_act_sequence": true,
+              "show_linked_beats": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "write",
+      "name": "Write",
+      "order": 3,
+      "$ref": "shared/write_phase.json"
+    }
+  ]
+}

@@ -23,9 +23,9 @@ from ..config import settings
 
 logger = logging.getLogger(__name__)
 
-# Template -> concept format tag. Until templates carry an explicit `format`
-# field (Phase 3), this mapping is the routing key from a project's template to
-# the book concepts extracted with that tag.
+# Legacy template -> concept format tag mapping. Since Phase 3 templates carry
+# an explicit `format` field (read first by format_tag_for_template); this dict
+# remains only as a fallback for template configs without one.
 TEMPLATE_FORMAT_TAGS = {
     "short_movie": "short_film",
 }
@@ -42,6 +42,14 @@ AXIS_TAGS = {
 
 
 def format_tag_for_template(template_id: str) -> Optional[str]:
+    """Concept format tag for a template: its JSON `format` field, else legacy map."""
+    try:
+        from ..templates import get_template
+        fmt = get_template(template_id).get("format")
+        if fmt:
+            return fmt
+    except Exception:
+        pass  # unknown/broken template config -> fall through to the legacy map
     return TEMPLATE_FORMAT_TAGS.get(template_id)
 
 

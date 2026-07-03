@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..models.database import Agent, AgentPipelineMap, AgentType
-from ..templates import get_template
+from ..templates import get_template, list_templates
 from .ai_provider import chat_completion
 
 logger = logging.getLogger(__name__)
@@ -108,7 +108,7 @@ class PipelineComposer:
             db.commit()
             return []
 
-        # 3. Discover wizard targets from template
+        # 3. Discover wizard targets across all templates
         targets = self._get_wizard_targets()
 
         # 4. Check cache
@@ -154,21 +154,31 @@ class PipelineComposer:
         )
         return created
 
-    def _get_wizard_targets(self, template_id: str = "short_movie") -> List[Dict]:
-        """Extract generation-capable subsections from template.
+    def _get_wizard_targets(self) -> List[Dict]:
+        """Extract generation-capable subsections across ALL templates (Phase 3).
 
-        Filters for subsections with ui_pattern containing 'wizard',
-        but explicitly excludes import_project (utility step, not creative).
+        Mappings are keyed by (phase, subsection_key), not by template, so the
+        target list is the union over every template config, deduped on that
+        key (first template wins the name/description). Filters for
+        subsections with ui_pattern containing 'wizard', but explicitly
+        excludes import_project (utility step, not creative).
 
         Returns:
             List of dicts with phase, subsection_key, name, description
         """
-        template = get_template(template_id)
         targets = []
-        for phase in template.get("phases", []):
-            for sub in phase.get("subsections", []):
-                ui_pattern = sub.get("ui_pattern", "")
-                if "wizard" in ui_pattern and sub["key"] != "import_project":
+        seen = set()
+        for meta in list_templates():
+            template = get_template(meta["id"])
+            for phase in template.get("phases", []):
+                for sub in phase.get("subsections", []):
+                    ui_pattern = sub.get("ui_pattern", "")
+                    if "wizard" not in ui_pattern or sub["key"] == "import_project":
+                        continue
+                    key = (phase["id"], sub["key"])
+                    if key in seen:
+                        continue
+                    seen.add(key)
                     targets.append(
                         {
                             "phase": phase["id"],

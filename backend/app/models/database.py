@@ -132,7 +132,11 @@ class Framework(str, enum.Enum):
 
 
 class TemplateType(str, enum.Enum):
+    # Each value must have a matching backend/app/templates/{value}.json and a
+    # value in the Postgres template_type enum (migrations/delta/015 + init_db).
     SHORT_MOVIE = "short_movie"
+    SKETCH = "sketch"
+    EPISODE = "episode"
 
 
 class PhaseType(str, enum.Enum):

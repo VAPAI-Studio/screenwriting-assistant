@@ -51,6 +51,7 @@ def list_templates() -> List[dict]:
             "name": config["name"],
             "description": config["description"],
             "icon": config.get("icon", "file-text"),
+            "format": config.get("format"),
         })
     return templates
 

@@ -1,6 +1,6 @@
 // frontend/src/types/template.ts
 
-export type TemplateType = 'short_movie';
+export type TemplateType = 'short_movie' | 'sketch' | 'episode';
 export type PhaseType = 'idea' | 'story' | 'scenes' | 'write';
 
 export type UIPattern =

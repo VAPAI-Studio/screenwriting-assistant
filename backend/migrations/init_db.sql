@@ -33,7 +33,7 @@ DO $$ BEGIN CREATE TYPE relationship_type AS ENUM (
 DO $$ BEGIN CREATE TYPE agent_type AS ENUM ('book_based','tag_based','orchestrator');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
-DO $$ BEGIN CREATE TYPE template_type AS ENUM ('short_movie');
+DO $$ BEGIN CREATE TYPE template_type AS ENUM ('short_movie', 'sketch', 'episode');
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN CREATE TYPE phase_type AS ENUM ('idea','story','scenes','write');
