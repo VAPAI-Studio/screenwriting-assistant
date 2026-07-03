@@ -11,7 +11,7 @@ from ...models.schemas import PipelineMapEntry, PipelineMapResponse
 from ...services.agent_templates import AGENT_TEMPLATES
 from ...services.pipeline_composer import pipeline_composer
 from ...services.rag_service import rag_service
-from ..dependencies import get_db, get_current_user
+from ..dependencies import get_db, get_current_user, require_admin
 
 logger = logging.getLogger(__name__)
 
@@ -53,14 +53,8 @@ async def list_agents(
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List all agents (user-owned + defaults)."""
-    agents = (
-        db.query(Agent)
-        .filter(
-            (Agent.owner_id == current_user.id) | (Agent.is_default == True)
-        )
-        .all()
-    )
+    """List all agents in the global library (Phase 1.5: no owner filter)."""
+    agents = db.query(Agent).all()
     return [
         {
             "id": str(a.id),
@@ -84,10 +78,10 @@ async def list_agents(
 async def create_agent(
     agent_data: schemas.AgentCreate,
     background_tasks: BackgroundTasks,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Create a custom agent."""
+    """Create a custom agent (admin-only)."""
     agent = Agent(
         owner_id=current_user.id,
         name=agent_data.name,
@@ -121,8 +115,8 @@ async def get_all_concept_tags(
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Return all unique concept tags from the user's processed books."""
-    tags = rag_service.get_all_tags(owner_id=current_user.id, db=db)
+    """Return all unique concept tags from the library's processed books."""
+    tags = rag_service.get_all_tags(db=db)
     return {"tags": tags}
 
 
@@ -150,15 +144,11 @@ async def update_agent(
     agent_id: UUID,
     agent_data: schemas.AgentUpdate,
     background_tasks: BackgroundTasks,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Update an agent's properties."""
-    agent = (
-        db.query(Agent)
-        .filter(Agent.id == str(agent_id), Agent.owner_id == str(current_user.id))
-        .first()
-    )
+    """Update an agent's properties (admin-only; agents are global)."""
+    agent = db.query(Agent).filter(Agent.id == str(agent_id)).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -177,15 +167,11 @@ async def update_agent(
 async def delete_agent(
     agent_id: UUID,
     background_tasks: BackgroundTasks,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Delete an agent."""
-    agent = (
-        db.query(Agent)
-        .filter(Agent.id == str(agent_id), Agent.owner_id == str(current_user.id))
-        .first()
-    )
+    """Delete an agent (admin-only; agents are global)."""
+    agent = db.query(Agent).filter(Agent.id == str(agent_id)).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
@@ -199,23 +185,15 @@ async def delete_agent(
 async def link_book_to_agent(
     agent_id: UUID,
     book_id: UUID,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Link a book to an agent for RAG retrieval."""
-    agent = (
-        db.query(Agent)
-        .filter(Agent.id == agent_id, Agent.owner_id == current_user.id)
-        .first()
-    )
+    """Link a book to an agent for RAG retrieval (admin-only; library is global)."""
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
 
-    book = (
-        db.query(Book)
-        .filter(Book.id == book_id, Book.owner_id == current_user.id)
-        .first()
-    )
+    book = db.query(Book).filter(Book.id == book_id).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
@@ -236,10 +214,10 @@ async def link_book_to_agent(
 async def unlink_book_from_agent(
     agent_id: UUID,
     book_id: UUID,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Unlink a book from an agent."""
+    """Unlink a book from an agent (admin-only)."""
     link = (
         db.query(AgentBook)
         .filter(AgentBook.agent_id == agent_id, AgentBook.book_id == book_id)
@@ -253,10 +231,10 @@ async def unlink_book_from_agent(
 
 @router.post("/seed-defaults")
 async def seed_default_agents(
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Seed default agent templates (idempotent)."""
+    """Seed default agent templates (idempotent, admin-only)."""
     created = 0
     for template in AGENT_TEMPLATES:
         existing = (

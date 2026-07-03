@@ -7,7 +7,7 @@ A still-unanswered question is never replaced. Answers are persisted and fed bac
 into the project context (see socratic_answers_context).
 
 Reuses, no new infra:
-- rag_service.semantic_search (owner-scoped) -> book concepts + chunks
+- rag_service.semantic_search (global library) -> book concepts + chunks
 - the project-context builder from the wizards endpoint -> the script summary
 - chat_completion -> the question itself
 """
@@ -129,16 +129,15 @@ def socratic_answers_context(db: Session, project_id) -> Optional[str]:
 
 
 async def generate_question(
-    db: Session, project: database.Project, owner_id, script_context: str
+    db: Session, project: database.Project, script_context: str
 ) -> database.SocraticQuestion:
     """Generate, persist and return a new hard question grounded in books + script."""
-    # 1. RAG over the user's loaded books, keyed on the current script.
+    # 1. RAG over the global book library, keyed on the current script.
     book_block = ""
     try:
         rag = await rag_service.semantic_search(
             query_text=script_context[:4000] or project.title,
-            owner_id=owner_id,
-            tags_filter=[],  # no tag filter -> all of the user's books
+            tags_filter=[],  # no tag filter -> the whole library
             db=db,
             top_k_concepts=TOP_K_CONCEPTS,
             top_k_chunks=TOP_K_CHUNKS,

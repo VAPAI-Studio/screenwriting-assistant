@@ -165,7 +165,6 @@ class RAGService:
         self,
         query_text: str,
         agent_id: Optional[UUID] = None,
-        owner_id: Optional[UUID] = None,
         tags_filter: Optional[List[str]] = None,
         db: Session = None,
         top_k_concepts: int = 5,
@@ -173,29 +172,27 @@ class RAGService:
     ) -> Dict:
         """Mode 2: Semantic search across concepts and chunks for chat follow-ups.
 
-        Routes to tag-based path when owner_id + tags_filter are provided,
-        otherwise uses agent_id → AgentBook path (existing behavior).
+        Routes to tag-based path when tags_filter is provided, otherwise uses
+        agent_id → AgentBook path. The library is global (Phase 1.5): tag-based
+        search spans every book regardless of who uploaded it.
         """
         query_embedding = await embedding_service.embed_text(query_text)
 
-        if tags_filter is not None and owner_id is not None:
-            # TAG_BASED path: search across all user's books filtered by tags
+        if tags_filter is not None:
+            # TAG_BASED path: search across the global library filtered by tags
             concept_results = db.execute(
                 sql_text("""
                     SELECT c.id, c.name, c.definition, c.chapter_source, c.page_range,
                            c.examples, c.actionable_questions, c.tags,
                            1 - (c.embedding <=> CAST(:embedding AS vector)) as similarity
                     FROM concepts c
-                    JOIN books b ON c.book_id = b.id
-                    WHERE b.owner_id = :owner_id
-                      AND c.tags ?| :tags
+                    WHERE c.tags ?| :tags
                       AND c.embedding IS NOT NULL
                     ORDER BY c.embedding <=> CAST(:embedding AS vector)
                     LIMIT :top_k
                 """),
                 {
                     "embedding": str(query_embedding),
-                    "owner_id": str(owner_id),
                     "tags": tags_filter,
                     "top_k": top_k_concepts,
                 },
@@ -208,15 +205,13 @@ class RAGService:
                            1 - (bc.embedding <=> CAST(:embedding AS vector)) as similarity
                     FROM book_chunks bc
                     JOIN books b ON bc.book_id = b.id
-                    WHERE b.owner_id = :owner_id
-                      AND bc.embedding IS NOT NULL
+                    WHERE bc.embedding IS NOT NULL
                       AND bc.is_deleted IS NOT TRUE
                     ORDER BY bc.embedding <=> CAST(:embedding AS vector)
                     LIMIT :top_k
                 """),
                 {
                     "embedding": str(query_embedding),
-                    "owner_id": str(owner_id),
                     "top_k": top_k_chunks,
                 },
             )
@@ -300,12 +295,11 @@ class RAGService:
     def get_concepts_by_tags(
         self,
         tags: List[str],
-        owner_id: UUID,
         db: Session,
         top_k: int = None,
         quality_threshold: float = 0.5,
     ) -> List[Dict]:
-        """Get concepts from all user's books that match any of the given tags."""
+        """Get concepts from the global library that match any of the given tags."""
         top_k = top_k or settings.MAX_CONCEPTS_PER_REVIEW
 
         result = db.execute(
@@ -314,15 +308,12 @@ class RAGService:
                        c.examples, c.actionable_questions, c.section_relevance,
                        c.tags, c.quality_score
                 FROM concepts c
-                JOIN books b ON c.book_id = b.id
-                WHERE b.owner_id = :owner_id
-                  AND c.tags ?| :tags
+                WHERE c.tags ?| :tags
                   AND (c.quality_score IS NULL OR c.quality_score >= :threshold)
                 ORDER BY c.quality_score DESC NULLS LAST
                 LIMIT :top_k
             """),
             {
-                "owner_id": str(owner_id),
                 "tags": tags,
                 "threshold": quality_threshold,
                 "top_k": top_k,
@@ -346,18 +337,16 @@ class RAGService:
 
         return concepts
 
-    def get_all_tags(self, owner_id: UUID, db: Session) -> List[str]:
-        """Return all unique concept tags from the user's processed books."""
+    def get_all_tags(self, db: Session) -> List[str]:
+        """Return all unique concept tags from the library's processed books."""
         result = db.execute(
             sql_text("""
                 SELECT DISTINCT jsonb_array_elements_text(c.tags) as tag
                 FROM concepts c
                 JOIN books b ON c.book_id = b.id
-                WHERE b.owner_id = :owner_id
-                  AND b.status = 'completed'
+                WHERE b.status = 'completed'
                 ORDER BY tag
             """),
-            {"owner_id": str(owner_id)},
         )
         return [row.tag for row in result]
 

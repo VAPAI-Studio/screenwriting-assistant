@@ -13,7 +13,7 @@ from uuid import UUID
 import tiktoken
 import logging
 
-from app.api.dependencies import get_current_user, get_db
+from app.api.dependencies import get_current_user, get_db, require_admin
 from app.models import schemas
 from app.models.database import Book, Snippet
 from app.services.embedding_service import embedding_service
@@ -58,10 +58,7 @@ async def list_snippets(
     """List snippets for a book. Includes concept_names for display (BROW-03).
     Returns book_status so frontend can show processing banner without extra API call (BROW-05).
     """
-    book = db.query(Book).filter(
-        Book.id == str(book_id),
-        Book.owner_id == str(current_user.id),
-    ).first()
+    book = db.query(Book).filter(Book.id == str(book_id)).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
 
@@ -91,17 +88,15 @@ async def list_snippets(
 async def edit_snippet(
     snippet_id: UUID,
     body: schemas.SnippetEdit,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Edit snippet content. Embeds BEFORE DB mutation — embed failure rolls back atomically."""
+    """Edit snippet content (admin-only). Embeds BEFORE DB mutation — embed failure rolls back atomically."""
     snippet = (
         db.query(Snippet)
-        .join(Book, Book.id == Snippet.book_id)
         .filter(
             Snippet.id == str(snippet_id),
             Snippet.is_deleted.isnot(True),
-            Book.owner_id == str(current_user.id),
         )
         .first()
     )
@@ -123,17 +118,15 @@ async def edit_snippet(
 @router.delete("/{snippet_id}", status_code=204)
 async def delete_snippet(
     snippet_id: UUID,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Soft-delete a snippet. Excluded from all future list results."""
+    """Soft-delete a snippet (admin-only). Excluded from all future list results."""
     snippet = (
         db.query(Snippet)
-        .join(Book, Book.id == Snippet.book_id)
         .filter(
             Snippet.id == str(snippet_id),
             Snippet.is_deleted.isnot(True),
-            Book.owner_id == str(current_user.id),
         )
         .first()
     )

@@ -84,9 +84,7 @@ async def get_current_question(
     extra = "\n\n".join(b for b in (bible, answers_block) if b) or None
     script_context = _get_project_context(db, project, bible_context=extra)
 
-    q = await socratic_service.generate_question(
-        db, project, current_user.id, script_context
-    )
+    q = await socratic_service.generate_question(db, project, script_context)
     return {"status": "new", "question": _serialize(q)}
 
 

@@ -28,13 +28,12 @@ async def create_chat_session(
     db: Session = Depends(get_db),
 ):
     """Create a new chat session with an agent for a project."""
-    # Validate agent exists and is accessible
+    # Validate agent exists and is active (agents are global — Phase 1.5)
     agent = (
         db.query(Agent)
         .filter(
             Agent.id == data.agent_id,
             Agent.is_active == True,
-            (Agent.owner_id == current_user.id) | (Agent.is_default == True),
         )
         .first()
     )

@@ -7,10 +7,20 @@ from sqlalchemy.orm import Session
 from ...models import schemas
 from ...models.database import Book, BookStatus, Concept
 from ...services.book_processing_service import book_processing_service
-from ..dependencies import get_db, get_current_user
+from ..dependencies import get_db, get_current_user, require_admin
 from ...config import settings
 
+# Phase 1.5 (global library): every authenticated user reads the same book
+# library; mutations (upload/pause/resume/retry/delete) are admin-only via
+# require_admin. Lookups are therefore NOT owner-filtered anywhere here.
 router = APIRouter()
+
+
+def _get_book_or_404(book_id: UUID, db: Session) -> Book:
+    book = db.query(Book).filter(Book.id == book_id).first()
+    if not book:
+        raise HTTPException(status_code=404, detail="Book not found")
+    return book
 
 ACTIVE_PROCESSING_STATUSES = {
     BookStatus.PENDING,
@@ -47,10 +57,10 @@ async def upload_book(
     file: UploadFile = File(...),
     title: str = Form(...),
     author: str = Form(None),
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Upload a book for processing."""
+    """Upload a book for processing (admin-only)."""
     # Validate file type
     ext = file.filename.rsplit(".", 1)[-1].lower() if file.filename else ""
     if ext not in ("pdf", "epub", "txt"):
@@ -98,30 +108,19 @@ async def list_books(
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """List all books for the current user."""
-    books = (
-        db.query(Book)
-        .filter(Book.owner_id == current_user.id)
-        .order_by(Book.uploaded_at.desc())
-        .all()
-    )
+    """List all books in the global library."""
+    books = db.query(Book).order_by(Book.uploaded_at.desc()).all()
     return [_book_dict(b) for b in books]
 
 
 @router.post("/{book_id}/pause")
 async def pause_book(
     book_id: UUID,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Stop an actively processing book. It can be resumed later."""
-    book = (
-        db.query(Book)
-        .filter(Book.id == book_id, Book.owner_id == current_user.id)
-        .first()
-    )
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
+    """Stop an actively processing book (admin-only). It can be resumed later."""
+    book = _get_book_or_404(book_id, db)
 
     if book.status not in ACTIVE_PROCESSING_STATUSES:
         raise HTTPException(status_code=400, detail="Book is not currently being processed")
@@ -140,26 +139,22 @@ async def pause_book(
 async def resume_book(
     book_id: UUID,
     background_tasks: BackgroundTasks,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Resume processing a paused book from its last checkpoint."""
-    book = (
-        db.query(Book)
-        .filter(Book.id == book_id, Book.owner_id == current_user.id)
-        .first()
-    )
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
+    """Resume processing a paused book from its last checkpoint (admin-only)."""
+    book = _get_book_or_404(book_id, db)
 
     if book.status != BookStatus.PAUSED:
         raise HTTPException(status_code=400, detail="Book is not paused")
 
-    # Pass IDs only — the background task creates its own DB session
+    # Pass IDs only — the background task creates its own DB session.
+    # The file lives under the UPLOADER's dir, which may differ from the
+    # acting admin now that the library is global.
     background_tasks.add_task(
         book_processing_service.resume_book,
         str(book_id),
-        str(current_user.id),
+        str(book.owner_id),
     )
     return {"message": "Resuming..."}
 
@@ -168,17 +163,11 @@ async def resume_book(
 async def retry_book(
     book_id: UUID,
     background_tasks: BackgroundTasks,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Delete all extracted data and reprocess the book from scratch."""
-    book = (
-        db.query(Book)
-        .filter(Book.id == book_id, Book.owner_id == current_user.id)
-        .first()
-    )
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
+    """Delete all extracted data and reprocess the book from scratch (admin-only)."""
+    book = _get_book_or_404(book_id, db)
 
     if book.status not in {BookStatus.FAILED, BookStatus.PAUSED}:
         raise HTTPException(status_code=400, detail="Book must be failed or paused to retry")
@@ -186,7 +175,7 @@ async def retry_book(
     background_tasks.add_task(
         book_processing_service.retry_book,
         str(book_id),
-        str(current_user.id),
+        str(book.owner_id),
     )
     return {"message": "Retrying from scratch..."}
 
@@ -198,13 +187,7 @@ async def get_book(
     db: Session = Depends(get_db),
 ):
     """Get book details including processing status."""
-    book = (
-        db.query(Book)
-        .filter(Book.id == book_id, Book.owner_id == current_user.id)
-        .first()
-    )
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
+    book = _get_book_or_404(book_id, db)
     return _book_dict(book)
 
 
@@ -215,13 +198,7 @@ async def get_book_concepts(
     db: Session = Depends(get_db),
 ):
     """List extracted concepts for a book."""
-    book = (
-        db.query(Book)
-        .filter(Book.id == book_id, Book.owner_id == current_user.id)
-        .first()
-    )
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
+    _get_book_or_404(book_id, db)
 
     concepts = (
         db.query(Concept)
@@ -248,20 +225,14 @@ async def get_book_concepts(
 @router.delete("/{book_id}")
 async def delete_book(
     book_id: UUID,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Delete a book and all its chunks/concepts."""
-    book = (
-        db.query(Book)
-        .filter(Book.id == book_id, Book.owner_id == current_user.id)
-        .first()
-    )
-    if not book:
-        raise HTTPException(status_code=404, detail="Book not found")
+    """Delete a book and all its chunks/concepts (admin-only)."""
+    book = _get_book_or_404(book_id, db)
 
-    # Delete file from disk
-    file_path = os.path.join(settings.UPLOAD_DIR, str(current_user.id), book.filename)
+    # Delete file from disk — stored under the UPLOADER's dir, not the admin's
+    file_path = os.path.join(settings.UPLOAD_DIR, str(book.owner_id), book.filename)
     if os.path.exists(file_path):
         os.remove(file_path)
 

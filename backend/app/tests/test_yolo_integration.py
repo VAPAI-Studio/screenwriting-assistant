@@ -21,6 +21,16 @@ from app.models.database import Agent, AgentPipelineMap, AgentType
 from app.services.agent_review_middleware import agent_review_middleware
 
 
+@pytest.fixture(autouse=True)
+def _purge_pipeline_maps(db_session):
+    """Phase 1.5: _lookup_mapped_agents is global (no owner filter), so
+    committed mappings leaked by other test files would pollute counts here.
+    Purge them before each test."""
+    db_session.query(AgentPipelineMap).delete()
+    db_session.commit()
+    yield
+
+
 @pytest.fixture
 def owner_id():
     return str(uuid.uuid4())
@@ -103,7 +113,7 @@ def test_max_agents_per_step_limits_lookup(db_session, owner_id, make_agent):
     with patch.object(settings, "MAX_AGENTS_PER_PIPELINE_STEP", 2), \
          patch.object(settings, "AGENT_RELEVANCE_THRESHOLD", 0.0):
         result = agent_review_middleware._lookup_mapped_agents(
-            owner_id, "idea", "idea_wizard", db_session
+            "idea", "idea_wizard", db_session
         )
 
     assert len(result) == 2
@@ -130,7 +140,7 @@ def test_relevance_threshold_filters_agents(db_session, owner_id, make_agent):
     with patch.object(settings, "AGENT_RELEVANCE_THRESHOLD", 0.3), \
          patch.object(settings, "MAX_AGENTS_PER_PIPELINE_STEP", 10):
         result = agent_review_middleware._lookup_mapped_agents(
-            owner_id, "idea", "idea_wizard", db_session
+            "idea", "idea_wizard", db_session
         )
 
     assert len(result) == 2
@@ -162,7 +172,7 @@ def test_gating_combined(db_session, owner_id, make_agent):
     with patch.object(settings, "AGENT_RELEVANCE_THRESHOLD", 0.3), \
          patch.object(settings, "MAX_AGENTS_PER_PIPELINE_STEP", 2):
         result = agent_review_middleware._lookup_mapped_agents(
-            owner_id, "idea", "idea_wizard", db_session
+            "idea", "idea_wizard", db_session
         )
 
     assert len(result) == 2

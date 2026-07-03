@@ -289,7 +289,6 @@ Available {item_label} fields — populate ALL of them:
             if agent.agent_type == AgentType.TAG_BASED:
                 concepts = rag_service.get_concepts_by_tags(
                     tags=agent.tags_filter or [],
-                    owner_id=project.owner_id,
                     db=db,
                 )
                 # Filter and sort by section relevance
@@ -391,7 +390,6 @@ Available {item_label} fields — populate ALL of them:
     ) -> Dict:
         """Conversational follow-up — routes by agent_type."""
         agent = session.agent
-        owner_id = session.user_id
 
         if agent.agent_type == AgentType.ORCHESTRATOR:
             return await self._orchestrate(session, user_message, db, session_factory=session_factory)
@@ -399,7 +397,6 @@ Available {item_label} fields — populate ALL of them:
         if agent.agent_type == AgentType.TAG_BASED:
             search_results = await rag_service.semantic_search(
                 query_text=user_message,
-                owner_id=owner_id,
                 tags_filter=agent.tags_filter or [],
                 db=db,
             )
@@ -534,7 +531,6 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
     ) -> Dict:
         """Prepare context for streaming chat. Saves user msg, returns streaming params."""
         agent = session.agent
-        owner_id = session.user_id
 
         if agent.agent_type == AgentType.ORCHESTRATOR:
             return await self._orchestrate_stream_prepare(session, user_message, db, field_context=field_context, session_factory=session_factory)
@@ -542,7 +538,6 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
         if agent.agent_type == AgentType.TAG_BASED:
             search_results = await rag_service.semantic_search(
                 query_text=user_message,
-                owner_id=owner_id,
                 tags_filter=agent.tags_filter or [],
                 db=db,
             )
@@ -658,12 +653,12 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
     ) -> Dict:
         """Prepare orchestrator context for streaming."""
         orchestrator = session.agent
-        owner_id = session.user_id
 
+        # Global agent library (Phase 1.5): every active specialist is available
+        # to every user, regardless of who created it.
         specialist_agents = (
             db.query(Agent)
             .filter(
-                (Agent.owner_id == owner_id) | (Agent.is_default == True),
                 Agent.is_active == True,
                 Agent.agent_type.in_([AgentType.BOOK_BASED, AgentType.TAG_BASED]),
             )
@@ -678,18 +673,17 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
             selected = await self._select_relevant_agents(
                 user_message=user_message,
                 agents=specialist_agents,
-                owner_id=owner_id,
                 db=db,
             )
 
             if session_factory:
                 tasks = [
-                    self._get_specialist_context_with_session(agent, user_message, owner_id, session_factory)
+                    self._get_specialist_context_with_session(agent, user_message, session_factory)
                     for agent in selected
                 ]
             else:
                 tasks = [
-                    self._get_specialist_context(agent, user_message, owner_id, db)
+                    self._get_specialist_context(agent, user_message, db)
                     for agent in selected
                 ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -858,13 +852,13 @@ For this query, you drew from the knowledge of: {consulted_names}.
     ) -> Dict:
         """Route query to relevant specialist agents, aggregate with attribution."""
         orchestrator = session.agent
-        owner_id = session.user_id
 
         # Fetch all active specialist agents for this user
+        # Global agent library (Phase 1.5): every active specialist is available
+        # to every user, regardless of who created it.
         specialist_agents = (
             db.query(Agent)
             .filter(
-                (Agent.owner_id == owner_id) | (Agent.is_default == True),
                 Agent.is_active == True,
                 Agent.agent_type.in_([AgentType.BOOK_BASED, AgentType.TAG_BASED]),
             )
@@ -879,18 +873,17 @@ For this query, you drew from the knowledge of: {consulted_names}.
             selected = await self._select_relevant_agents(
                 user_message=user_message,
                 agents=specialist_agents,
-                owner_id=owner_id,
                 db=db,
             )
 
             if session_factory:
                 tasks = [
-                    self._get_specialist_context_with_session(agent, user_message, owner_id, session_factory)
+                    self._get_specialist_context_with_session(agent, user_message, session_factory)
                     for agent in selected
                 ]
             else:
                 tasks = [
-                    self._get_specialist_context(agent, user_message, owner_id, db)
+                    self._get_specialist_context(agent, user_message, db)
                     for agent in selected
                 ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -981,14 +974,12 @@ For this query, you drew from the knowledge of: {consulted_names}.
         self,
         agent: Agent,
         query_text: str,
-        owner_id,
         db: Session,
     ) -> Dict:
         """Get relevant concepts + chunks from a single specialist agent."""
         if agent.agent_type == AgentType.TAG_BASED:
             return await rag_service.semantic_search(
                 query_text=query_text,
-                owner_id=owner_id,
                 tags_filter=agent.tags_filter or [],
                 db=db,
                 top_k_concepts=4,
@@ -1006,7 +997,6 @@ For this query, you drew from the knowledge of: {consulted_names}.
         self,
         user_message: str,
         agents: List[Agent],
-        owner_id,
         db: Session,
         max_agents: int = 3,
     ) -> List[Agent]:
@@ -1019,7 +1009,7 @@ For this query, you drew from the knowledge of: {consulted_names}.
             for agent in agents:
                 try:
                     if agent.agent_type == AgentType.TAG_BASED:
-                        score = await self._score_agent_tag_based(agent, query_embedding, owner_id, db)
+                        score = await self._score_agent_tag_based(agent, query_embedding, db)
                     else:
                         score = await self._score_agent_book_based(agent, query_embedding, db)
                     scored.append((agent, score))
@@ -1047,7 +1037,7 @@ For this query, you drew from the knowledge of: {consulted_names}.
         ).fetchone()
         return float(result.max_sim or 0.0)
 
-    async def _score_agent_tag_based(self, agent: Agent, query_embedding, owner_id, db: Session) -> float:
+    async def _score_agent_tag_based(self, agent: Agent, query_embedding, db: Session) -> float:
         """Score a tag-based agent's relevance by max concept similarity within its tags."""
         from sqlalchemy import text as sql_text
         if not agent.tags_filter:
@@ -1056,14 +1046,11 @@ For this query, you drew from the knowledge of: {consulted_names}.
             sql_text("""
                 SELECT MAX(1 - (c.embedding <=> :embedding::vector)) as max_sim
                 FROM concepts c
-                JOIN books b ON c.book_id = b.id
-                WHERE b.owner_id = :owner_id
-                  AND c.tags ?| :tags
+                WHERE c.tags ?| :tags
                   AND c.embedding IS NOT NULL
             """),
             {
                 "embedding": str(query_embedding),
-                "owner_id": str(owner_id),
                 "tags": agent.tags_filter,
             },
         ).fetchone()
@@ -1091,13 +1078,12 @@ For this query, you drew from the knowledge of: {consulted_names}.
         self,
         agent: Agent,
         query_text: str,
-        owner_id,
         session_factory: SessionFactory,
     ) -> Dict:
         """Per-task session wrapper for _get_specialist_context."""
         db = session_factory()
         try:
-            return await self._get_specialist_context(agent, query_text, owner_id, db)
+            return await self._get_specialist_context(agent, query_text, db)
         finally:
             db.close()
 

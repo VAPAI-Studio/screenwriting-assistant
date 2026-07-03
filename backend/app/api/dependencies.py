@@ -156,3 +156,28 @@ async def get_current_user(
 ) -> schemas.User:
     """Get current authenticated user (JWT or API key) — thin REST wrapper over authenticate_token."""
     return authenticate_token(credentials.credentials, db)
+
+
+async def require_admin(
+    current_user: schemas.User = Depends(get_current_user),
+) -> schemas.User:
+    """Gate for library writes (books/agents/snippets — Phase 1.5).
+
+    The library is global-read; only ADMIN_EMAILS may mutate it. With no
+    ADMIN_EMAILS configured, writes stay open in development (mock auth has no
+    real email) and are refused in production.
+    """
+    admins = settings.admin_email_set
+    if not admins:
+        if settings.ENVIRONMENT == "development":
+            return current_user
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Library writes are admin-only and no ADMIN_EMAILS is configured",
+        )
+    if (current_user.email or "").strip().lower() in admins:
+        return current_user
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Library writes are restricted to admins",
+    )

@@ -15,6 +15,16 @@ from app.models.database import Agent, AgentPipelineMap, AgentType
 from app.services.agent_review_middleware import agent_review_middleware
 
 
+@pytest.fixture(autouse=True)
+def _purge_pipeline_maps(db_session):
+    """Phase 1.5: _lookup_mapped_agents is global (no owner filter), so
+    committed mappings leaked by other test files would pollute counts here.
+    Purge them before each test."""
+    db_session.query(AgentPipelineMap).delete()
+    db_session.commit()
+    yield
+
+
 @pytest.fixture
 def owner_id():
     return str(uuid.uuid4())

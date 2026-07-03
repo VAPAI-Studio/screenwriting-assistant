@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from ...models import schemas
 from ...models.database import Book, BookChunk
 from ...services.embedding_service import embedding_service
-from ..dependencies import get_db, get_current_user
+from ..dependencies import get_db, get_current_user, require_admin
 
 router = APIRouter()
 
@@ -40,14 +40,11 @@ def _chunk_to_dict(chunk: BookChunk) -> dict:
     }
 
 
-def _get_book_or_404(book_id: UUID, current_user: schemas.User, db: Session) -> Book:
-    # Use str() for owner_id comparison: SQLite stores UUIDs as strings (String(36)),
-    # and PostgreSQL also accepts string literals for uuid columns via implicit cast.
-    book = (
-        db.query(Book)
-        .filter(Book.id == str(book_id), Book.owner_id == str(current_user.id))
-        .first()
-    )
+def _get_book_or_404(book_id: UUID, db: Session) -> Book:
+    # Global library (Phase 1.5): no owner filter. Use str() for the id
+    # comparison: SQLite stores UUIDs as strings (String(36)), and PostgreSQL
+    # also accepts string literals for uuid columns via implicit cast.
+    book = db.query(Book).filter(Book.id == str(book_id)).first()
     if not book:
         raise HTTPException(status_code=404, detail="Book not found")
     return book
@@ -62,7 +59,7 @@ async def list_snippets(
     db: Session = Depends(get_db),
 ):
     """BROW-01: Paginated list of non-deleted chunks for a book."""
-    _get_book_or_404(book_id, current_user, db)
+    _get_book_or_404(book_id, db)
 
     base_query = (
         db.query(BookChunk)
@@ -87,11 +84,11 @@ async def edit_snippet(
     book_id: UUID,
     chunk_id: UUID,
     body: schemas.SnippetEdit,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """EDIT-01 + EDIT-02: Update content with atomic re-embedding."""
-    _get_book_or_404(book_id, current_user, db)
+    """EDIT-01 + EDIT-02: Update content with atomic re-embedding (admin-only)."""
+    _get_book_or_404(book_id, db)
 
     chunk = (
         db.query(BookChunk)
@@ -121,11 +118,11 @@ async def edit_snippet(
 async def delete_snippet(
     book_id: UUID,
     chunk_id: UUID,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """EDIT-04: Soft-delete a chunk."""
-    _get_book_or_404(book_id, current_user, db)
+    """EDIT-04: Soft-delete a chunk (admin-only)."""
+    _get_book_or_404(book_id, db)
 
     chunk = (
         db.query(BookChunk)
@@ -148,11 +145,11 @@ async def delete_snippet(
 async def create_snippet(
     book_id: UUID,
     body: schemas.SnippetCreate,
-    current_user: schemas.User = Depends(get_current_user),
+    current_user: schemas.User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """CUST-01 + CUST-03: Create a user-owned snippet with automatic embedding."""
-    _get_book_or_404(book_id, current_user, db)
+    """CUST-01 + CUST-03: Create a snippet with automatic embedding (admin-only)."""
+    _get_book_or_404(book_id, db)
 
     # Embed BEFORE any DB write — if this raises, nothing is committed
     new_embedding = await embedding_service.embed_text(body.content)

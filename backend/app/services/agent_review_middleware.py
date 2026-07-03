@@ -113,10 +113,12 @@ class AgentReviewMiddleware:
         None (default) keeps the merge path byte-identical to today (D5). It NEVER
         forces a review — zero-agent pass-through (REVW-04) is preserved (D3).
         """
-        # Lookup agents using a dedicated session
+        # Lookup agents using a dedicated session. The agent library is global
+        # (Phase 1.5): mappings apply to every user, so owner_id is kept only
+        # for API compatibility with existing callers.
         db = session_factory()
         try:
-            agents_data = self._lookup_mapped_agents(owner_id, phase, subsection_key, db)
+            agents_data = self._lookup_mapped_agents(phase, subsection_key, db)
         finally:
             db.close()
 
@@ -175,12 +177,14 @@ class AgentReviewMiddleware:
 
     def _lookup_mapped_agents(
         self,
-        owner_id: str,
         phase: str,
         subsection_key: str,
         db: Session,
     ) -> List[Dict[str, Any]]:
         """Query AgentPipelineMap for active agents mapped to this step.
+
+        Global (Phase 1.5): mappings are not owner-filtered — whoever composed
+        the pipeline, its agents review every user's runs.
 
         Applies relevance-score gating (AGENT_RELEVANCE_THRESHOLD) and
         count cap (MAX_AGENTS_PER_PIPELINE_STEP) at SQL query level to
@@ -189,7 +193,6 @@ class AgentReviewMiddleware:
         mappings = (
             db.query(AgentPipelineMap)
             .filter(
-                AgentPipelineMap.owner_id == str(owner_id),
                 AgentPipelineMap.phase == phase,
                 AgentPipelineMap.subsection_key == subsection_key,
                 AgentPipelineMap.confidence >= settings.AGENT_RELEVANCE_THRESHOLD,

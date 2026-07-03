@@ -79,4 +79,4 @@ class TestTemplateFormatTag:
     def test_unknown_template_returns_none_and_no_cards(self):
         assert doctrine_service.format_tag_for_template("unknown") is None
         # build_doctrine_cards must short-circuit (no DB hit) for unmapped templates
-        assert doctrine_service.build_doctrine_cards("owner", "unknown", db=None) == []
+        assert doctrine_service.build_doctrine_cards("unknown", db=None) == []

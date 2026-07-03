@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     
     # Security
     SECRET_KEY: str = "your-secret-key-replace-in-production"
+
+    # Library admin gate (books roadmap Phase 1.5). The book/agent/snippet
+    # library is GLOBAL — readable by every authenticated user — but writable
+    # only by the emails listed here (comma-separated). Empty list: writes stay
+    # open in development (mock auth) and are locked in production.
+    ADMIN_EMAILS: str = ""
     
     # CORS
     ALLOWED_ORIGINS: List[str] = ["http://localhost:4321", "http://localhost:3000"]
@@ -112,6 +118,11 @@ class Settings(BaseSettings):
     VAPAI_WEB_URL: str = ""            # e.g. http://localhost:3000 — base for deep link
     VAPAI_TIMEOUT_SECONDS: float = 30.0
     VAPAI_PROJECT_TYPE: str = "standalone"  # one of standalone/series/film/short
+
+    @property
+    def admin_email_set(self) -> set:
+        """Normalized (lowercased, trimmed) admin emails from ADMIN_EMAILS."""
+        return {e.strip().lower() for e in self.ADMIN_EMAILS.split(",") if e.strip()}
 
     @field_validator('AI_PROVIDER')
     def validate_ai_provider(cls, v):

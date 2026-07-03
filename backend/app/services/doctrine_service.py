@@ -46,7 +46,6 @@ def format_tag_for_template(template_id: str) -> Optional[str]:
 
 
 def build_doctrine_cards(
-    owner_id: str,
     template_id: str,
     db: Session,
     max_concepts: Optional[int] = None,
@@ -54,9 +53,9 @@ def build_doctrine_cards(
     """Select the format's top concepts as JSON-serializable doctrine cards.
 
     Ordered by: has actionable questions first, then quality_score. Only
-    concepts from the owner's COMPLETED books carrying the format tag. Each
-    card: {name, definition, questions, tags, source, quote?}. Returns [] on
-    any failure or when the library has nothing for this format.
+    concepts from COMPLETED books in the global library carrying the format
+    tag. Each card: {name, definition, questions, tags, source, quote?}.
+    Returns [] on any failure or when the library has nothing for this format.
     """
     format_tag = format_tag_for_template(template_id)
     if not format_tag:
@@ -70,15 +69,14 @@ def build_doctrine_cards(
                        b.title AS book_title, b.author AS book_author
                 FROM concepts c
                 JOIN books b ON c.book_id = b.id
-                WHERE b.owner_id = :owner_id
-                  AND b.status = 'completed'
+                WHERE b.status = 'completed'
                   AND c.tags ? :format_tag
                   AND (c.quality_score IS NULL OR c.quality_score >= 0.5)
                 ORDER BY (jsonb_array_length(COALESCE(c.actionable_questions, '[]'::jsonb)) > 0) DESC,
                          c.quality_score DESC NULLS LAST
                 LIMIT :top_k
             """),
-            {"owner_id": str(owner_id), "format_tag": format_tag, "top_k": max_concepts},
+            {"format_tag": format_tag, "top_k": max_concepts},
         ).fetchall()
 
         cards = []
@@ -93,14 +91,14 @@ def build_doctrine_cards(
                 "source": source,
             })
 
-        _attach_quotes(cards, owner_id, db)
+        _attach_quotes(cards, db)
         return cards
     except Exception as e:
         logger.warning(f"Doctrine lookup failed (tag={format_tag}): {e}")
         return []
 
 
-def _attach_quotes(cards: List[Dict], owner_id: str, db: Session) -> None:
+def _attach_quotes(cards: List[Dict], db: Session) -> None:
     """Attach a verbatim book snippet to up to 2 of the top cards (in place)."""
     if not cards:
         return
@@ -110,13 +108,11 @@ def _attach_quotes(cards: List[Dict], owner_id: str, db: Session) -> None:
             sql_text("""
                 SELECT s.content, s.concept_names
                 FROM snippets s
-                JOIN books b ON s.book_id = b.id
-                WHERE b.owner_id = :owner_id
-                  AND s.concept_names ?| :names
+                WHERE s.concept_names ?| :names
                   AND length(s.content) BETWEEN 200 AND 1200
                 LIMIT 6
             """),
-            {"owner_id": str(owner_id), "names": names},
+            {"names": names},
         ).fetchall()
 
         attached = 0

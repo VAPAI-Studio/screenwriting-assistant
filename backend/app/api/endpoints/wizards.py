@@ -89,7 +89,7 @@ async def _run_wizard_background(
         # generation proceeds unchanged.
         if settings.DOCTRINE_IN_GENERATION and wizard_type == "script_writer_wizard":
             config["_doctrine_cards"] = doctrine_service.build_doctrine_cards(
-                owner_id, template_id, db
+                template_id, db
             )
 
         result = await template_ai_service.wizard_generate(
