@@ -42,7 +42,10 @@ read -r -p "    Esto BORRA la biblioteca actual de Railway. ¿Continuar? [y/N] "
 psql "$RAILWAY_DATABASE_URL" -c "TRUNCATE books CASCADE;"
 
 echo "==> 4/4 Restaurando dump"
-psql "$RAILWAY_DATABASE_URL" -v ON_ERROR_STOP=1 -f "$DUMP" > /dev/null
+# Restore con el psql DEL CONTENEDOR: pg_dump moderno emite \restrict (fix de
+# CVE-2025-8714) que un psql de host más viejo no entiende y aborta a mitad de
+# camino — dejando Railway truncado y vacío. Mismo binario que dumpeó = seguro.
+docker exec -i "$LOCAL_CONTAINER" psql "$RAILWAY_DATABASE_URL" -v ON_ERROR_STOP=1 < "$DUMP" > /dev/null
 
 echo "==> Verificación final"
 psql "$RAILWAY_DATABASE_URL" -c "
