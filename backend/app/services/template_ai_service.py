@@ -606,6 +606,59 @@ Return only the summary prose."""
         )
         return (text or "").strip()
 
+    async def reconcile_slot_plan(
+        self, slot_plan: Dict, episode_title: str, episode_summary: str
+    ) -> Dict:
+        """Phase 4 (temporadas): propose updated slot-plan fields from the WRITTEN
+        episode's summary. The episode is the truth; the slot is the plan.
+
+        Returns {"title", "logline", "arc_function", "character_states",
+        "cliffhanger"} reflecting what actually happened. Preview only -- the
+        caller (seasons.py reconcile endpoint) never writes; the client applies
+        via PUT /slots/{id}. Raises on AI failure (endpoint surfaces a 5xx).
+        """
+        prompt = f"""A season map planned this episode as follows (the PLAN):
+{json.dumps(slot_plan, indent=2, ensure_ascii=False)}
+
+The episode was then written. This is a factual summary of the WRITTEN episode "{episode_title}":
+{episode_summary}
+
+## Task
+Update the plan to reflect what was actually written. Keep the plan's wording wherever it still holds; change only what diverged. Be concise — these are planning notes, not prose.
+
+Return a JSON object with exactly these keys:
+- "title": the episode's working title (keep the plan's title unless the written episode clearly renamed the story)
+- "logline": one or two sentences of what the episode is actually about now
+- "arc_function": the role this episode actually plays in the season arc
+- "character_states": object mapping character name -> their state at the END of the episode as written
+- "cliffhanger": the actual ending / out of the episode ("" if it resolves cleanly)"""
+
+        text = await chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are a precise story editor reconciling a season plan against a written episode. Return valid JSON only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            max_tokens=1000,
+            json_mode=True,
+        )
+        result = json.loads(text)
+        # Defensive shape: keep only the plan keys, coerce character_states to a dict.
+        proposal = {
+            "title": str(result.get("title", "") or ""),
+            "logline": str(result.get("logline", "") or ""),
+            "arc_function": str(result.get("arc_function", "") or ""),
+            "cliffhanger": str(result.get("cliffhanger", "") or ""),
+        }
+        states = result.get("character_states")
+        proposal["character_states"] = (
+            {str(k): str(v) for k, v in states.items()} if isinstance(states, dict) else {}
+        )
+        return proposal
+
     async def _generate_one_scene(
         self,
         ep: Dict,

@@ -12,6 +12,7 @@ from ...exceptions import NotFoundException, ValidationException
 from ...templates import get_template, get_template_subsections
 from ...services.template_ai_service import template_ai_service, _read_episode_text_by_index
 from ...services.vapai_service import vapai_service
+from ...utils.episode_summary import mark_linked_slot_plan_stale
 
 router = APIRouter()
 
@@ -186,6 +187,9 @@ async def generate_episode_summary(
 
     project.episode_summary = summary
     project.episode_summary_stale = False
+    # Phase 4 (temporadas): a fresh summary means the written episode may have
+    # diverged from its season-map slot plan — surface the reconcile badge.
+    mark_linked_slot_plan_stale(db, project.id)
     db.commit()
 
     return {"status": "success", "episode_summary_stale": False}

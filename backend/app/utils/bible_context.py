@@ -16,7 +16,7 @@ shows and `show_id=NULL` films are unchanged (bible-only / None).
 
 from typing import Optional
 from sqlalchemy.orm import Session
-from ..models.database import Project, Show
+from ..models.database import EpisodeSlot, Project, Season, Show
 from ..models.schemas import ContinuityMode
 
 
@@ -74,6 +74,43 @@ def _build_prior_episodes_block(db: Session, show: Show, project: Project) -> Op
     return "\n".join(lines)
 
 
+def _build_slot_block(db: Session, project: Project) -> Optional[str]:
+    """Phase 4 (temporadas): "this episode in the season map" block, or None.
+
+    When the project was born from an episode slot, its plan (logline, arc
+    function, character states at close, cliffhanger) is injected as GUIDANCE —
+    the plan steers generation but is never copied into phase_data, so the user
+    can diverge without fighting pre-pasted content.
+    """
+    slot = db.query(EpisodeSlot).filter(EpisodeSlot.project_id == str(project.id)).first()
+    if not slot:
+        return None
+
+    states = slot.character_states or {}
+    has_plan = any([
+        (slot.logline or "").strip(),
+        (slot.arc_function or "").strip(),
+        (slot.cliffhanger or "").strip(),
+        states,
+    ])
+    if not has_plan:
+        return None
+
+    lines = [f"\n### This Episode in the Season Map (slot {slot.slot_number})"]
+    lines.append("The season was planned ahead; use this plan as guidance for the episode.")
+    if (slot.logline or "").strip():
+        lines.append(f"**Logline:** {slot.logline.strip()}")
+    if (slot.arc_function or "").strip():
+        lines.append(f"**Function in the season arc:** {slot.arc_function.strip()}")
+    if states:
+        lines.append("**Character states at the end of this episode:**")
+        for name, state in states.items():
+            lines.append(f"- {name}: {state}")
+    if (slot.cliffhanger or "").strip():
+        lines.append(f"**Planned cliffhanger / out:** {slot.cliffhanger.strip()}")
+    return "\n".join(lines)
+
+
 def build_bible_context(db: Session, project: Project) -> Optional[str]:
     """Build bible context string for episode projects. Returns None for standalone films."""
     if not project.show_id:
@@ -91,13 +128,23 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
     if show.continuity_mode == ContinuityMode.CONNECTED.value:
         prior_block = _build_prior_episodes_block(db, show, project)
 
+    # Phase 4 (temporadas): a non-empty season arc_summary supersedes the show's
+    # bible_season_arc for this season's episodes; the slot plan is injected as
+    # its own block.
+    season_arc = show.bible_season_arc
+    if project.season_id:
+        season = db.query(Season).filter(Season.id == str(project.season_id)).first()
+        if season and (season.arc_summary or "").strip():
+            season_arc = season.arc_summary
+    slot_block = _build_slot_block(db, project)
+
     # Check if there's any actual bible content or duration
     has_bible_content = any([
         show.bible_characters, show.bible_world_setting,
-        show.bible_season_arc, show.bible_tone_style
+        season_arc, show.bible_tone_style
     ])
-    # Return None only when BOTH the bible is empty AND there are no priors.
-    if not has_bible_content and not show.episode_duration_minutes and not prior_block:
+    # Return None only when the bible is empty AND there is no slot plan or priors.
+    if not has_bible_content and not show.episode_duration_minutes and not prior_block and not slot_block:
         return None
 
     parts = []
@@ -113,11 +160,14 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
     if show.bible_world_setting:
         parts.append(f"\n### World & Setting\n{show.bible_world_setting}")
 
-    if show.bible_season_arc:
-        parts.append(f"\n### Season Arc\n{show.bible_season_arc}")
+    if season_arc:
+        parts.append(f"\n### Season Arc\n{season_arc}")
 
     if show.bible_tone_style:
         parts.append(f"\n### Tone & Style\n{show.bible_tone_style}")
+
+    if slot_block:
+        parts.append(slot_block)
 
     if prior_block:
         parts.append(prior_block)

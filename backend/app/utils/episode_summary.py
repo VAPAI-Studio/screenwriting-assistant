@@ -28,10 +28,25 @@ Design constraints (RESEARCH §Patterns 3 + Pitfalls 4 & 6):
 
 import logging
 
-from ..models.database import Project
+from ..models.database import EpisodeSlot, Project
 from ..services.template_ai_service import template_ai_service
 
 logger = logging.getLogger(__name__)
+
+
+def mark_linked_slot_plan_stale(db, project_id) -> None:
+    """Phase 4 (temporadas): flag the episode's slot plan as stale.
+
+    Called wherever an episode_summary is (re)generated — the summary is a fresh
+    snapshot of the WRITTEN episode, so the slot's plan may no longer match and
+    the season map shows a reconcile badge. No-op for unslotted episodes.
+    Caller-commits convention: this does NOT commit.
+    """
+    slot = db.query(EpisodeSlot).filter(
+        EpisodeSlot.project_id == str(project_id)
+    ).first()
+    if slot:
+        slot.plan_stale = True
 
 
 async def regenerate_stale_priors(db, show, project) -> None:
@@ -70,6 +85,7 @@ async def regenerate_stale_priors(db, show, project) -> None:
             if fresh:
                 prior.episode_summary = fresh
                 prior.episode_summary_stale = False
+                mark_linked_slot_plan_stale(db, prior.id)
             # If the summarizer returns "" (no source text), leave the existing
             # summary + flag untouched rather than clobbering with empty.
         except Exception as exc:  # noqa: BLE001 -- degrade gracefully, never abort generation

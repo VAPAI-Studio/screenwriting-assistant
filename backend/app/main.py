@@ -17,6 +17,7 @@ from .api.endpoints import media as media_ep
 from .api.endpoints import breakdown_chat as breakdown_chat_ep
 from .api.endpoints import storyboard as storyboard_ep
 from .api.endpoints import shows as shows_ep
+from .api.endpoints import seasons as seasons_ep
 from .api.endpoints import socratic as socratic_ep
 from .config import settings
 from .middleware import (
@@ -159,6 +160,8 @@ app.include_router(media_ep.router, prefix="/api/media", tags=["media"])
 app.include_router(breakdown_chat_ep.router, prefix="/api/breakdown-chat", tags=["breakdown-chat"])
 app.include_router(storyboard_ep.router, prefix="/api/storyboard", tags=["storyboard"])
 app.include_router(shows_ep.router, prefix="/api/shows", tags=["shows"])
+# Bare /api prefix: season routes nest two ways (/shows/{id}/seasons, /seasons/{id}, /slots/{id}).
+app.include_router(seasons_ep.router, prefix="/api", tags=["seasons"])
 app.include_router(socratic_ep.router, prefix="/api/projects", tags=["socratic"])
 
 # Serve uploaded media files
