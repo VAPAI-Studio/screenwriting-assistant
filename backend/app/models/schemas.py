@@ -485,15 +485,24 @@ class AIMessageResponse(BaseModel):
 
 
 class WizardRunRequest(BaseModel):
-    project_id: UUID
+    # Exactly one of project_id / season_id (Phase 4: season-scoped season_map_wizard).
+    project_id: Optional[UUID] = None
+    season_id: Optional[UUID] = None
     wizard_type: str = Field(..., max_length=50)
     phase: str
     config: Dict = Field(default_factory=dict)
 
+    @model_validator(mode="after")
+    def exactly_one_scope(self):
+        if bool(self.project_id) == bool(self.season_id):
+            raise ValueError("Provide exactly one of project_id or season_id")
+        return self
+
 
 class WizardRunResponse(BaseModel):
     id: UUID
-    project_id: UUID
+    project_id: Optional[UUID] = None
+    season_id: Optional[UUID] = None
     wizard_type: str
     phase: str
     status: str
@@ -998,6 +1007,94 @@ class EpisodeCreate(BaseModel):
         if not v.strip():
             raise ValueError("Title cannot be empty or just whitespace")
         return v.strip()
+
+
+# ============================================================
+# Season / Episode-slot Schemas (Phase 4 -- capa de temporada)
+# ============================================================
+
+class SeasonCreate(BaseModel):
+    number: Optional[int] = Field(None, ge=1)  # auto next-per-show when omitted
+    title: str = Field(default="", max_length=255)
+    arc_summary: str = Field(default="", max_length=50000)
+
+
+class SeasonUpdate(BaseModel):
+    title: Optional[str] = Field(None, max_length=255)
+    arc_summary: Optional[str] = Field(None, max_length=50000)
+    status: Optional[str] = Field(None, pattern="^(planning|active|complete)$")
+
+
+class SeasonResponse(BaseModel):
+    id: UUID
+    show_id: UUID
+    number: int
+    title: str = ""
+    arc_summary: str = ""
+    status: str = "planning"
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EpisodeSlotCreate(BaseModel):
+    slot_number: Optional[int] = Field(None, ge=1)  # auto next-per-season when omitted
+    title: str = Field(default="", max_length=255)
+    logline: str = Field(default="", max_length=10000)
+    arc_function: str = Field(default="", max_length=10000)
+    character_states: Dict[str, str] = Field(default_factory=dict)
+    cliffhanger: str = Field(default="", max_length=10000)
+    notes: str = Field(default="", max_length=10000)
+
+
+class EpisodeSlotUpdate(BaseModel):
+    slot_number: Optional[int] = Field(None, ge=1)
+    title: Optional[str] = Field(None, max_length=255)
+    logline: Optional[str] = Field(None, max_length=10000)
+    arc_function: Optional[str] = Field(None, max_length=10000)
+    character_states: Optional[Dict[str, str]] = None
+    cliffhanger: Optional[str] = Field(None, max_length=10000)
+    notes: Optional[str] = Field(None, max_length=10000)
+    plan_stale: Optional[bool] = None  # reconcile-accept clears it
+
+
+class EpisodeSlotResponse(BaseModel):
+    id: UUID
+    season_id: UUID
+    slot_number: int
+    title: str = ""
+    logline: str = ""
+    arc_function: str = ""
+    character_states: Dict[str, str] = Field(default_factory=dict)
+    cliffhanger: str = ""
+    notes: str = ""
+    project_id: Optional[UUID] = None
+    plan_stale: bool = False
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SeasonDetailResponse(SeasonResponse):
+    """Season plus its slots ordered by slot_number (GET /api/seasons/{id})."""
+    slots: List[EpisodeSlotResponse] = Field(default_factory=list)
+
+
+class SlotCreateEpisodeRequest(BaseModel):
+    """Body for POST /api/slots/{slot_id}/create-episode. Title defaults to the
+    slot's working title; template defaults to the series format."""
+    title: Optional[str] = Field(None, min_length=2, max_length=255)
+    template: TemplateType = TemplateType.EPISODE
+
+
+class SlotReconcileResponse(BaseModel):
+    """AI proposal for updating a stale slot plan from the written episode's
+    summary. Preview only -- nothing is written; the client applies via PUT slot."""
+    slot_id: UUID
+    episode_summary: str
+    proposal: Dict = Field(default_factory=dict)
 
 
 # ============================================================

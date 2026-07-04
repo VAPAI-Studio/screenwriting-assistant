@@ -113,6 +113,53 @@ class Show(Base):
     vapai_project_id = Column(String(64), nullable=True)
 
 
+class Season(Base):
+    """Season layer between Show (bible) and Project (episode) — Phase 4 (temporadas).
+
+    `arc_summary` is THIS season's arc; when non-empty it supersedes the show's
+    bible_season_arc in bible-context injection for the season's episodes.
+    """
+    __tablename__ = "seasons"
+    __table_args__ = (UniqueConstraint("show_id", "number", name="uq_seasons_show_number"),)
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    show_id = Column(UUID(as_uuid=True), ForeignKey("shows.id", ondelete="CASCADE"), nullable=False, index=True)
+    number = Column(Integer, nullable=False)
+    title = Column(String(255), default="")
+    arc_summary = Column(Text, default="")
+    # planning | active | complete — informative only, VARCHAR like continuity_mode (D-03).
+    status = Column(String(20), nullable=False, default="planning", server_default="planning")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    slots = sa_relationship("EpisodeSlot", back_populates="season", cascade="all, delete-orphan")
+
+
+class EpisodeSlot(Base):
+    """Planned episode inside a season map. The slot is the PLAN; once the linked
+    episode is written, the episode is the truth and `plan_stale` marks divergence
+    (set when the project's episode_summary is (re)generated; cleared on reconcile).
+    """
+    __tablename__ = "episode_slots"
+    __table_args__ = (UniqueConstraint("season_id", "slot_number", name="uq_episode_slots_season_slot"),)
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    season_id = Column(UUID(as_uuid=True), ForeignKey("seasons.id", ondelete="CASCADE"), nullable=False, index=True)
+    slot_number = Column(Integer, nullable=False)  # narrative order within the season
+    title = Column(String(255), default="")
+    logline = Column(Text, default="")
+    arc_function = Column(Text, default="")  # free text on purpose — formats name arc roles differently
+    character_states = Column(JSON, default=dict)  # {"Name": "state at end of episode"}
+    cliffhanger = Column(Text, default="")
+    notes = Column(Text, default="")
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, unique=True)
+    plan_stale = Column(Boolean, nullable=False, default=False, server_default="false")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    season = sa_relationship("Season", back_populates="slots")
+
+
 class SectionType(str, enum.Enum):
     INCITING_INCIDENT = "inciting_incident"
     PLOT_POINT_1 = "plot_point_1"
@@ -182,6 +229,8 @@ class Project(Base):
     # Episode linking (Phase 39, v4.2)
     show_id = Column(UUID(as_uuid=True), ForeignKey("shows.id", ondelete="CASCADE"), nullable=True, index=True)
     episode_number = Column(Integer, nullable=True)
+    # Season linking (Phase 4 temporadas). Legacy episodes keep NULL and behave as before.
+    season_id = Column(UUID(as_uuid=True), ForeignKey("seasons.id", ondelete="SET NULL"), nullable=True, index=True)
 
     # vapai-studio push linkage. Set on first "Send to vapai-studio"; on re-send we
     # create only a new script under this existing project/episode (idempotency).
@@ -320,7 +369,10 @@ class WizardRun(Base):
     __tablename__ = "wizard_runs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    # Exactly one of project_id / season_id is set. project_id became nullable in
+    # Phase 4 (temporadas) to support season-scoped runs (season_map_wizard).
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
+    season_id = Column(UUID(as_uuid=True), ForeignKey("seasons.id", ondelete="CASCADE"), nullable=True)
     wizard_type = Column(String(50), nullable=False)
     phase = Column(Enum(PhaseType, values_callable=lambda x: [e.value for e in x]), nullable=False)
     config = Column(JSON, default=dict)
