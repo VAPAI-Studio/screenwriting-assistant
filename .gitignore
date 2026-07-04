@@ -56,3 +56,7 @@ backend/uploads/
 
 # Stray backup files
 *.bak
+.vercel
+
+# Local-only test override (vapai integration manual testing)
+docker-compose.override.yml
