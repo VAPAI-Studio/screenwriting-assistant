@@ -63,12 +63,18 @@ FORMAT_AGENTS = [
     },
 ]
 
-# BOOK_BASED links: agent-name substring -> book-title substrings
+# BOOK_BASED links: agent-name substring -> exact book titles
 BOOK_LINKS = {
     "Snyder": ["Save the Cat!", "Save the Cat! Writes for TV"],
+    "Ackerman": [
+        "The Conflict Thesaurus Vol. 1", "The Conflict Thesaurus Vol. 2",
+        "The Emotion Thesaurus", "The Emotional Wound Thesaurus",
+        "The Negative Trait Thesaurus", "The Positive Trait Thesaurus",
+    ],
 }
 
-DELETE_AGENTS = ["McKee (Story)"]  # cáscara vacía; McKee no entra al RAG
+# McKee: no entra al RAG. Short film agent: reemplazado por el Doctor de cortos (TAG_BASED).
+DELETE_AGENTS = ["McKee (Story)", "Short film agent"]
 
 
 def main():
