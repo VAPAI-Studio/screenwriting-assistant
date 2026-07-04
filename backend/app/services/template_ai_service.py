@@ -659,6 +659,125 @@ Return a JSON object with exactly these keys:
         )
         return proposal
 
+    @staticmethod
+    def _coerce_slot_entry(entry: Dict) -> Optional[Dict]:
+        """Sanitize one AI-generated season-map slot to the EpisodeSlot plan shape.
+        Returns None when the entry has no usable slot_number."""
+        try:
+            slot_number = int(entry.get("slot_number"))
+        except (TypeError, ValueError):
+            return None
+        if slot_number < 1:
+            return None
+        states = entry.get("character_states")
+        return {
+            "slot_number": slot_number,
+            "title": str(entry.get("title", "") or ""),
+            "logline": str(entry.get("logline", "") or ""),
+            "arc_function": str(entry.get("arc_function", "") or ""),
+            "character_states": (
+                {str(k): str(v) for k, v in states.items()} if isinstance(states, dict) else {}
+            ),
+            "cliffhanger": str(entry.get("cliffhanger", "") or ""),
+        }
+
+    async def generate_season_map(self, config: Dict, show_context: str) -> Dict:
+        """Phase 4 (temporadas): generate a full season map — a season arc plus one
+        planned slot per episode ({title, logline, arc_function, character_states,
+        cliffhanger}).
+
+        `config["_locked_slots"]` carries slots whose episodes already exist: the
+        prompt plans AROUND them (they anchor the arc) and must NOT emit entries
+        for their slot numbers — the apply step refuses to touch linked slots
+        anyway, this just keeps the map coherent.
+        """
+        episode_count = int(config.get("episode_count") or 8)
+        premise = (config.get("premise") or "").strip()
+        guidance = (config.get("custom_guidance") or "").strip()
+        locked = config.get("_locked_slots") or []
+
+        # Craft doctrine (series-format canon), same gating pattern as the script
+        # writer: empty deck renders "" and the prompt is doctrine-free.
+        doctrine = ""
+        cards = config.get("_doctrine_cards") or []
+        body = doctrine_service.format_block(cards[:6])
+        if body:
+            doctrine = (
+                "## Craft doctrine (series canon — ground the season structure in it)\n\n"
+                + body + "\n\n"
+            )
+
+        locked_numbers = {s["slot_number"] for s in locked}
+        free_numbers = [n for n in range(1, episode_count + 1) if n not in locked_numbers]
+        locked_block = ""
+        if locked:
+            locked_lines = []
+            for s in locked:
+                line = f"- Slot {s['slot_number']}: {s.get('title') or 'Untitled'}"
+                if (s.get("logline") or "").strip():
+                    line += f" — {s['logline'].strip()}"
+                if (s.get("episode_summary") or "").strip():
+                    line += f"\n  What actually happens: {s['episode_summary'].strip()}"
+                locked_lines.append(line)
+            locked_block = f"""
+## Locked episodes (already written or in progress — plan AROUND them)
+These slots are fixed. Treat their content as canon anchoring the arc. Do NOT emit entries for these slot numbers.
+{chr(10).join(locked_lines)}
+"""
+
+        prompt = f"""You are an expert TV story editor mapping a season of episodes.
+
+## Series Context
+{show_context}
+
+{f'## Season Premise / Arc Direction{chr(10)}{premise}{chr(10)}' if premise else ''}{f'Custom guidance: {guidance}{chr(10)}' if guidance else ''}{locked_block}
+{doctrine}## Task
+Design the season as {episode_count} episodes. Plan ONLY these slot numbers: {free_numbers}.
+The season must build as a single arc: setups pay off, reversals land mid-season, character states evolve episode to episode, and each episode ends with a hook that pulls into the next (respect the show's continuity mode — an anthology hooks by promise of the next premise, a connected serial by open story tension).
+
+For EACH planned slot return:
+- "slot_number": the episode's position (from the list above)
+- "title": a working title
+- "logline": 1-2 sentences — the episode's story
+- "arc_function": the structural job this episode does in the season arc, named concretely (e.g. "plants the betrayal", "midpoint reversal — the ally defects", "penultimate escalation")
+- "character_states": object mapping each main character's name to their state at the END of this episode
+- "cliffhanger": the episode's out — what remains open pulling into the next episode ("" for a clean resolution, e.g. a finale)
+
+Also return "arc_summary": a paragraph describing the season's overall arc (where it starts, the midpoint turn, where it lands).
+
+Return a JSON object: {{"arc_summary": "...", "slots": [{{"slot_number": 1, "title": "...", "logline": "...", "arc_function": "...", "character_states": {{"Name": "state"}}, "cliffhanger": "..."}}]}}"""
+
+        text = await chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert TV story editor who designs season arcs. Return valid JSON only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.8,
+            max_tokens=4000,
+            json_mode=True,
+        )
+        result = json.loads(text)
+
+        slots = []
+        seen = set()
+        for entry in result.get("slots", []) or []:
+            coerced = self._coerce_slot_entry(entry if isinstance(entry, dict) else {})
+            # Drop entries for locked numbers or duplicates — apply never touches
+            # linked slots, but a clean result keeps the preview honest.
+            if not coerced or coerced["slot_number"] in locked_numbers or coerced["slot_number"] in seen:
+                continue
+            seen.add(coerced["slot_number"])
+            slots.append(coerced)
+        slots.sort(key=lambda s: s["slot_number"])
+
+        return {
+            "arc_summary": str(result.get("arc_summary", "") or ""),
+            "slots": slots,
+        }
+
     async def _generate_one_scene(
         self,
         ep: Dict,

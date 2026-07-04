@@ -18,9 +18,15 @@ from ...utils.bible_context import build_bible_context, _build_prior_episodes_bl
 from ...utils.episode_summary import regenerate_stale_priors
 from ...models.schemas import ContinuityMode
 from .phase_data import _mark_breakdown_stale, _mark_shotlist_stale
+from .seasons import _get_owned_season, _season_slots
+from .shows import _build_bible_text
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Phase 4 (temporadas): the one wizard_type that runs season-scoped
+# (WizardRun.season_id set, project_id NULL).
+SEASON_MAP_WIZARD = "season_map_wizard"
 
 
 def _get_project_context(db: Session, project: database.Project, bible_context: Optional[str] = None) -> str:
@@ -137,6 +143,110 @@ async def _run_wizard_background(
         db.close()
 
 
+async def _run_season_map_background(run_id, config: dict, show_context: str):
+    """Background task: generate the season map and update the WizardRun record.
+
+    No agent-review middleware here (v1): the pipeline map has no season step,
+    so the raw generation result is stored as-is.
+    """
+    db = SessionLocal()
+    wizard_run = None
+    try:
+        wizard_run = db.query(database.WizardRun).filter(
+            database.WizardRun.id == run_id
+        ).first()
+        wizard_run.status = "running"
+        db.commit()
+
+        # Craft doctrine: the season plans episodes of a series, so the deck is
+        # the series-format canon (same gating flag as the script writer).
+        if settings.DOCTRINE_IN_GENERATION:
+            config["_doctrine_cards"] = doctrine_service.build_doctrine_cards("episode", db)
+
+        result = await template_ai_service.generate_season_map(config, show_context)
+        wizard_run.result = result
+        wizard_run.status = "completed"
+    except Exception as e:
+        logger.error(f"Season map wizard background task failed: {e}")
+        if wizard_run:
+            wizard_run.status = "failed"
+            wizard_run.error_message = str(e)
+    finally:
+        db.commit()
+        db.close()
+
+
+def _build_season_wizard_context(db: Session, season, show) -> str:
+    """Series-level context string for the season map prompt: show + bible +
+    continuity mode + this season's identity and current arc, if any."""
+    parts = [f"**Show:** {show.title}"]
+    if (show.description or "").strip():
+        parts.append(show.description.strip())
+    parts.append(f"**Continuity mode:** {show.continuity_mode}")
+    if show.episode_duration_minutes:
+        parts.append(f"**Target episode duration:** {show.episode_duration_minutes} minutes")
+    bible_text = _build_bible_text(show)
+    if bible_text:
+        parts.append(bible_text)
+    parts.append(f"\n**Planning:** Season {season.number}" + (f" — {season.title}" if (season.title or "").strip() else ""))
+    if (season.arc_summary or "").strip():
+        parts.append(f"Current season arc notes:\n{season.arc_summary.strip()}")
+    return "\n".join(parts)
+
+
+def _start_season_map_run(
+    request: schemas.WizardRunRequest,
+    background_tasks: BackgroundTasks,
+    current_user: schemas.User,
+    db: Session,
+):
+    """Season-scoped branch of run_wizard (Phase 4). Locked slots (episodes
+    already linked) are passed to the prompt as canon anchors; their numbers
+    are never regenerated."""
+    if request.wizard_type != SEASON_MAP_WIZARD:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only {SEASON_MAP_WIZARD} runs season-scoped.",
+        )
+    season = _get_owned_season(db, request.season_id, current_user)
+    show = db.query(database.Show).filter(database.Show.id == str(season.show_id)).first()
+
+    config = dict(request.config)
+    locked = []
+    for slot in _season_slots(db, season.id):
+        if not slot.project_id:
+            continue
+        project = db.query(database.Project).filter(
+            database.Project.id == str(slot.project_id)
+        ).first()
+        locked.append({
+            "slot_number": slot.slot_number,
+            "title": slot.title or (project.title if project else ""),
+            "logline": slot.logline or "",
+            "episode_summary": (project.episode_summary or "").strip() if project else "",
+        })
+    config["_locked_slots"] = locked
+
+    wizard_run = database.WizardRun(
+        season_id=season.id,
+        wizard_type=request.wizard_type,
+        phase=request.phase,
+        config=request.config,
+        status="pending",
+    )
+    db.add(wizard_run)
+    db.commit()
+    db.refresh(wizard_run)
+
+    background_tasks.add_task(
+        _run_season_map_background,
+        run_id=wizard_run.id,
+        config=config,
+        show_context=_build_season_wizard_context(db, season, show),
+    )
+    return wizard_run
+
+
 @router.post("/run", response_model=schemas.WizardRunResponse)
 async def run_wizard(
     request: schemas.WizardRunRequest,
@@ -145,6 +255,16 @@ async def run_wizard(
     db: Session = Depends(get_db)
 ):
     """Start a wizard run. Returns immediately; generation runs in the background."""
+    # Phase 4 (temporadas): season-scoped runs take their own path; the schema
+    # validator guarantees exactly one of project_id / season_id is set.
+    if request.season_id:
+        return _start_season_map_run(request, background_tasks, current_user, db)
+    if request.wizard_type == SEASON_MAP_WIZARD:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{SEASON_MAP_WIZARD} requires season_id, not project_id.",
+        )
+
     project = db.query(database.Project).filter(
         database.Project.id == request.project_id,
         database.Project.owner_id == current_user.id
@@ -222,7 +342,11 @@ async def get_wizard_run(
     if not wizard_run:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wizard run not found")
 
-    # Verify ownership
+    # Verify ownership (season runs resolve owner through Season -> Show).
+    if wizard_run.season_id:
+        _get_owned_season(db, wizard_run.season_id, current_user)
+        return wizard_run
+
     project = db.query(database.Project).filter(
         database.Project.id == wizard_run.project_id,
         database.Project.owner_id == current_user.id
@@ -246,6 +370,11 @@ async def apply_wizard_results(
     if not wizard_run or wizard_run.status != "completed":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Wizard run not found or not completed")
 
+    # Phase 4 (temporadas): season map apply writes Season + slots.
+    if wizard_run.season_id:
+        season = _get_owned_season(db, wizard_run.season_id, current_user)
+        return apply_season_map_to_db(db, season, wizard_run.result or {})
+
     project = db.query(database.Project).filter(
         database.Project.id == wizard_run.project_id,
         database.Project.owner_id == current_user.id
@@ -256,6 +385,76 @@ async def apply_wizard_results(
     return apply_wizard_result_to_db(
         db, project, wizard_run.phase, wizard_run.wizard_type, wizard_run.result or {}
     )
+
+
+def apply_season_map_to_db(db: Session, season, result: dict) -> dict:
+    """Persist a season_map_wizard result: season.arc_summary + upsert slots.
+
+    HARD RULE: slots linked to an episode project are NEVER touched or deleted.
+    Re-running the wizard only rewrites/creates free slots; free slots whose
+    number is absent from the new map are removed (the re-run replaces the free
+    part of the map wholesale).
+    """
+    generated = result.get("slots", []) or []
+    if not generated:
+        return {"status": "success", "slots_written": 0, "message": "No slots to apply"}
+
+    arc_summary = str(result.get("arc_summary", "") or "").strip()
+    if arc_summary:
+        season.arc_summary = arc_summary
+
+    existing = {
+        s.slot_number: s
+        for s in db.query(database.EpisodeSlot)
+        .filter(database.EpisodeSlot.season_id == str(season.id))
+        .all()
+    }
+    linked_numbers = {n for n, s in existing.items() if s.project_id}
+
+    written = 0
+    generated_numbers = set()
+    for entry in generated:
+        try:
+            slot_number = int(entry.get("slot_number"))
+        except (TypeError, ValueError):
+            continue
+        if slot_number < 1 or slot_number in linked_numbers or slot_number in generated_numbers:
+            continue
+        generated_numbers.add(slot_number)
+
+        states = entry.get("character_states")
+        plan = {
+            "title": str(entry.get("title", "") or ""),
+            "logline": str(entry.get("logline", "") or ""),
+            "arc_function": str(entry.get("arc_function", "") or ""),
+            "character_states": (
+                {str(k): str(v) for k, v in states.items()} if isinstance(states, dict) else {}
+            ),
+            "cliffhanger": str(entry.get("cliffhanger", "") or ""),
+        }
+        slot = existing.get(slot_number)
+        if slot:
+            for field, value in plan.items():
+                setattr(slot, field, value)
+            slot.plan_stale = False
+        else:
+            db.add(database.EpisodeSlot(season_id=season.id, slot_number=slot_number, **plan))
+        written += 1
+
+    deleted = 0
+    for slot_number, slot in existing.items():
+        if slot.project_id or slot_number in generated_numbers:
+            continue
+        db.delete(slot)
+        deleted += 1
+
+    db.commit()
+    return {
+        "status": "success",
+        "slots_written": written,
+        "slots_locked": len(linked_numbers),
+        "slots_deleted": deleted,
+    }
 
 
 def apply_wizard_result_to_db(db: Session, project, phase: str, wizard_type: str, result: dict) -> dict:
