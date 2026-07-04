@@ -6,6 +6,7 @@ import { QUERY_KEYS, VAPAI_ENABLED } from '../../lib/constants';
 import type { SendSeriesToVapaiResponse } from '../../types';
 import { BibleEditor } from './BibleEditor';
 import { EpisodeList } from './EpisodeList';
+import { SeasonMap } from './SeasonMap';
 
 interface ShowDetailProps {
   showId: string;
@@ -130,6 +131,12 @@ export function ShowDetail({ showId }: ShowDetailProps) {
       <section className="mb-12">
         <h2 className="text-xl font-semibold text-foreground mb-4">Series Bible</h2>
         {bible && <BibleEditor key={showId} showId={showId} bible={bible} continuityMode={show.continuity_mode} />}
+      </section>
+
+      {/* Season Map (Phase 4 -- capa de temporada) */}
+      <section className="mb-12">
+        <h2 className="text-xl font-semibold text-foreground mb-4">Season Map</h2>
+        <SeasonMap showId={showId} bibleSeasonArc={bible?.bible_season_arc ?? ''} />
       </section>
 
       {/* Episode List */}

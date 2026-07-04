@@ -8,6 +8,7 @@ import {
   Snippet, SnippetListResponse, PipelineMapResponse,
   Shot, ShotCreate, ShotUpdate, AssetMedia, StoryboardFrame,
   Show, ShowCreate, BibleResponse, BibleUpdate,
+  Season, SeasonDetail, EpisodeSlot, EpisodeSlotUpdate, SlotReconcileResponse,
   ApiKey, ApiKeyCreate, ApiKeyCreateResponse,
   RegenerateSceneRequest, RegenerateSceneResponse, KeepSceneVersionRequest,
   SendToVapaiResponse, SendSeriesToVapaiResponse,
@@ -1381,6 +1382,118 @@ export const api = {
       }
     );
     if (!response.ok) throw new Error('Failed to create episode');
+    return response.json();
+  },
+
+  // ============================================================
+  // Seasons + episode slots (Phase 4 -- capa de temporada)
+  // ============================================================
+
+  async getSeasons(showId: string): Promise<Season[]> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/shows/${showId}/seasons`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch seasons');
+    return response.json();
+  },
+
+  async createSeason(showId: string, data: { number?: number; title?: string; arc_summary?: string } = {}): Promise<Season> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/shows/${showId}/seasons`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }
+    );
+    if (!response.ok) throw new Error('Failed to create season');
+    return response.json();
+  },
+
+  async getSeason(seasonId: string): Promise<SeasonDetail> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/seasons/${seasonId}`,
+      { headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to fetch season');
+    return response.json();
+  },
+
+  async updateSeason(seasonId: string, data: { title?: string; arc_summary?: string; status?: string }): Promise<Season> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/seasons/${seasonId}`,
+      { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }
+    );
+    if (!response.ok) throw new Error('Failed to update season');
+    return response.json();
+  },
+
+  async deleteSeason(seasonId: string): Promise<void> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/seasons/${seasonId}`,
+      { method: 'DELETE', headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to delete season');
+  },
+
+  async createSlot(seasonId: string, data: EpisodeSlotUpdate = {}): Promise<EpisodeSlot> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/seasons/${seasonId}/slots`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }
+    );
+    if (!response.ok) throw new Error('Failed to create slot');
+    return response.json();
+  },
+
+  async updateSlot(slotId: string, data: EpisodeSlotUpdate): Promise<EpisodeSlot> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/slots/${slotId}`,
+      { method: 'PUT', headers: getHeaders(), body: JSON.stringify(data) }
+    );
+    if (!response.ok) throw new Error('Failed to update slot');
+    return response.json();
+  },
+
+  async deleteSlot(slotId: string): Promise<void> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/slots/${slotId}`,
+      { method: 'DELETE', headers: getHeaders() }
+    );
+    if (!response.ok) throw new Error('Failed to delete slot');
+  },
+
+  async createEpisodeFromSlot(slotId: string, data: { title?: string; template?: string } = {}): Promise<Project> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/slots/${slotId}/create-episode`,
+      { method: 'POST', headers: getHeaders(), body: JSON.stringify(data) }
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to create episode from slot' }));
+      throw new Error(err.detail || 'Failed to create episode from slot');
+    }
+    return response.json();
+  },
+
+  // Synchronous LLM call (preview only) — CHAT_TIMEOUT like regenerate-scene.
+  async reconcileSlot(slotId: string): Promise<SlotReconcileResponse> {
+    const response = await fetchWithTimeout(
+      `${API_BASE_URL}/slots/${slotId}/reconcile`,
+      { method: 'POST', headers: getHeaders() },
+      CHAT_TIMEOUT,
+    );
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to reconcile slot' }));
+      throw new Error(err.detail || 'Failed to reconcile slot');
+    }
+    return response.json();
+  },
+
+  // Season map wizard: same run/poll/apply lifecycle as project wizards,
+  // scoped by season_id instead of project_id.
+  async runSeasonMapWizard(seasonId: string, config: Record<string, any>): Promise<WizardRunResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/wizards/run`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({ season_id: seasonId, wizard_type: 'season_map_wizard', phase: 'story', config }),
+    });
+    if (!response.ok) throw new Error('Failed to run season map wizard');
     return response.json();
   },
 

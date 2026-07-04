@@ -491,6 +491,82 @@ export interface BibleUpdate {
 }
 
 // ============================================================
+// Season layer (Phase 4 -- capa de temporada)
+// ============================================================
+
+export type SeasonStatus = 'planning' | 'active' | 'complete';
+
+export interface Season {
+  id: string;
+  show_id: string;
+  number: number;
+  title: string;
+  arc_summary: string;
+  status: SeasonStatus;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface EpisodeSlot {
+  id: string;
+  season_id: string;
+  slot_number: number;
+  title: string;
+  logline: string;
+  arc_function: string;
+  character_states: Record<string, string>;
+  cliffhanger: string;
+  notes: string;
+  project_id: string | null;
+  plan_stale: boolean;
+  created_at: string;
+  updated_at: string | null;
+}
+
+export interface SeasonDetail extends Season {
+  slots: EpisodeSlot[];
+}
+
+export interface EpisodeSlotUpdate {
+  slot_number?: number;
+  title?: string;
+  logline?: string;
+  arc_function?: string;
+  character_states?: Record<string, string>;
+  cliffhanger?: string;
+  notes?: string;
+  plan_stale?: boolean;
+}
+
+export interface SlotReconcileProposal {
+  title: string;
+  logline: string;
+  arc_function: string;
+  character_states: Record<string, string>;
+  cliffhanger: string;
+}
+
+export interface SlotReconcileResponse {
+  slot_id: string;
+  episode_summary: string;
+  proposal: SlotReconcileProposal;
+}
+
+export interface SeasonMapSlotResult {
+  slot_number: number;
+  title: string;
+  logline: string;
+  arc_function: string;
+  character_states: Record<string, string>;
+  cliffhanger: string;
+}
+
+export interface SeasonMapResult {
+  arc_summary: string;
+  slots: SeasonMapSlotResult[];
+}
+
+// ============================================================
 // API Key types (v5.0 -- Phase 43)
 // ============================================================
 

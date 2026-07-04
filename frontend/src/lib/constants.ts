@@ -202,6 +202,8 @@ export const QUERY_KEYS = {
   SHOW: (id: string) => ['show', id] as const,
   BIBLE: (id: string) => ['bible', id] as const,
   EPISODES: (showId: string) => ['episodes', showId] as const,
+  SEASONS: (showId: string) => ['seasons', showId] as const,
+  SEASON: (seasonId: string) => ['season', seasonId] as const,
   API_KEYS: 'api-keys',
 } as const;
 
