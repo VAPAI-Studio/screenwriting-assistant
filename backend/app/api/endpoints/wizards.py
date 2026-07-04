@@ -336,8 +336,10 @@ async def get_wizard_run(
     db: Session = Depends(get_db)
 ):
     """Get wizard run status and results."""
+    # str() — codebase convention: UUID columns are compared as strings so the
+    # SQLite test engine (String(36) columns) matches Postgres behavior.
     wizard_run = db.query(database.WizardRun).filter(
-        database.WizardRun.id == run_id
+        database.WizardRun.id == str(run_id)
     ).first()
     if not wizard_run:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wizard run not found")
@@ -365,7 +367,7 @@ async def apply_wizard_results(
 ):
     """Apply wizard results to project data (create list_items from generated episodes/scenes)."""
     wizard_run = db.query(database.WizardRun).filter(
-        database.WizardRun.id == run_id
+        database.WizardRun.id == str(run_id)
     ).first()
     if not wizard_run or wizard_run.status != "completed":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Wizard run not found or not completed")
