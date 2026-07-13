@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Wand2, CheckCircle2, AlertCircle, Sparkles, Check, CheckSquare, Square, Info } from 'lucide-react';
+import { Loader2, Wand2, CheckCircle2, AlertCircle, Sparkles, Check, CheckSquare, Square, Info, Upload } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, DEBOUNCE_DELAY } from '../../lib/constants';
 import { FieldRenderer } from '../Shared/FieldRenderer';
@@ -145,6 +146,25 @@ export function WizardView({ subsection, projectId, phase, phaseData, templateCo
     }
   };
 
+  // ── File import (PDF/TXT → screenplay editor) ─────────────────────────
+  const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fileImportMutation = useMutation({
+    mutationFn: (file: File) => api.importScreenplayFile(projectId, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: QUERY_KEYS.SUBSECTION_DATA(projectId, 'write', 'screenplay_editor'),
+      });
+    },
+  });
+
+  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) fileImportMutation.mutate(file);
+    e.target.value = '';
+  };
+
   // ── Mutations ─────────────────────────────────────────────────────────
   const [runError, setRunError] = useState<string | null>(null);
 
@@ -213,6 +233,71 @@ export function WizardView({ subsection, projectId, phase, phaseData, templateCo
           <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{subsection.description}</p>
         )}
       </div>
+
+      {/* Import: upload a screenplay file (PDF/TXT) straight to the editor */}
+      {isImport && (
+        <div className="mb-6">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.txt"
+            onChange={handleFileSelected}
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={fileImportMutation.isPending}
+            className="w-full border border-dashed border-border rounded-xl p-6 flex flex-col items-center gap-2 text-muted-foreground hover:border-amber-500/40 hover:text-foreground transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {fileImportMutation.isPending ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span className="text-sm">Importing screenplay...</span>
+              </>
+            ) : (
+              <>
+                <Upload className="h-5 w-5" />
+                <span className="text-sm font-medium">Upload screenplay (.pdf or .txt)</span>
+                <span className="text-xs text-muted-foreground/70">
+                  Scenes are split by INT./EXT. sluglines and saved to the Screenplay Editor
+                </span>
+              </>
+            )}
+          </button>
+
+          {fileImportMutation.isSuccess && fileImportMutation.data && (
+            <div className="mt-3 bg-card border border-emerald-500/20 rounded-xl p-4 animate-fade-up">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-medium text-emerald-400">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Imported {fileImportMutation.data.scene_count} scene(s)
+                </span>
+                <button
+                  onClick={() => navigate(`/projects/${projectId}/write/screenplay_editor`)}
+                  className="px-4 py-1.5 text-xs font-medium bg-emerald-500 text-emerald-950 rounded-lg hover:bg-emerald-400 transition-colors"
+                >
+                  Open Screenplay Editor
+                </button>
+              </div>
+            </div>
+          )}
+
+          {fileImportMutation.isError && (
+            <div className="mt-3 bg-destructive/5 border border-destructive/20 rounded-xl p-4 animate-fade-up">
+              <span className="flex items-center gap-2 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                {(fileImportMutation.error as Error).message}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3 my-6">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-xs text-muted-foreground/60 uppercase tracking-wider">or paste below</span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+        </div>
+      )}
 
       {/* Import fields */}
       {isImport && subsection.fields && (

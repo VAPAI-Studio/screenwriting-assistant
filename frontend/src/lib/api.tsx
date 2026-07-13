@@ -571,6 +571,21 @@ export const api = {
     return response.json();
   },
 
+  async importScreenplayFile(projectId: string, file: File): Promise<{ scene_count: number; scenes: { episode_index: number; title: string }[] }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetchWithTimeout(`${API_BASE_URL}/phase-data/${projectId}/screenplay/import`, {
+      method: 'POST',
+      headers: { 'Authorization': getAuthToken() },
+      body: formData
+    });
+    if (!response.ok) {
+      const detail = await response.json().then(d => d.detail).catch(() => null);
+      throw new Error(detail || 'Failed to import screenplay file');
+    }
+    return response.json();
+  },
+
   async getReadiness(projectId: string, phase: string): Promise<Record<string, any>> {
     const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/readiness/${phase}`, {
       headers: getHeaders()

@@ -8,8 +8,6 @@ scene PREVIEW is retrieved via the generic job_status tool.
 Phase 58 adds screenplay_read + screenplay_write (the Phase 54 direct path).
 """
 
-import re
-
 from mcp.server.fastmcp import Context
 from fastapi import HTTPException
 from sqlalchemy.orm.attributes import flag_modified
@@ -24,48 +22,9 @@ from ...api.endpoints.wizards import (
     _latest_script_wizard_config,
 )
 from ...api.endpoints.phase_data import _mark_breakdown_stale, _mark_shotlist_stale
+from ...utils.screenplay_split import split_by_headings
 from ..context import resolve_user, mcp_session
 from ..jobs import registry
-
-
-# Matches an INT./EXT. scene heading (slugline) at the start of a line.
-_HEADING_RE = re.compile(r"^\s*(INT\.|EXT\.|INT/EXT\.|I/E\.)", re.IGNORECASE)
-
-
-def _split_by_headings(text: str) -> list:
-    """Split a hand-written screenplay into scenes by INT./EXT. sluglines.
-
-    Server-side equivalent of the frontend's splitByHeadings (Phase 54, D-54-03):
-    each slugline starts a new scene; no-heading text becomes a single "Untitled"
-    scene so nothing is lost. Returns [{title, content, episode_index}]. Title is
-    the slugline; content is the body after it.
-    """
-    text = text or ""
-    if not text.strip():
-        return []
-
-    scenes = []
-    cur_title = None
-    cur_body: list = []
-
-    def _flush():
-        if cur_title is None and not any(l.strip() for l in cur_body):
-            return
-        title = cur_title if cur_title is not None else "Untitled"
-        scenes.append({"title": title, "content": "\n".join(cur_body).strip("\n")})
-
-    for line in text.splitlines():
-        if _HEADING_RE.match(line):
-            _flush()
-            cur_title = line.strip()
-            cur_body = []
-        else:
-            cur_body.append(line)
-    _flush()
-
-    for i, s in enumerate(scenes):
-        s["episode_index"] = i
-    return scenes
 
 
 def _build_regen_context(db, owner_id: str, project_id, phase: str, episode_index: int):
@@ -118,12 +77,16 @@ def register(mcp):
 
     @mcp.tool()
     async def screenplay_generate_scene(ctx: Context, project_id: str, episode_index: int, phase: str = "write") -> dict:
-        """Generate (regenerate) one screenplay scene by its index using the
-        improved AI generation path (continuity, character voice, craft).
+        """PIPELINE STEP 3 (WRITE, revision helper) — generate (regenerate) one
+        screenplay scene by its index using the improved AI generation path
+        (continuity, character voice, craft). Prefer this over hand-rewriting a
+        scene: it already knows the project's synopsis, characters, and the
+        previous scene.
 
         LONG-RUNNING: returns a job_id immediately. Poll job_status(job_id) until
         status is "done"; the result is a preview {title, content, episode_index}.
-        Returns a preview only — it does NOT overwrite the stored scene.
+        Returns a preview only — it does NOT overwrite the stored scene. To keep
+        it, merge the preview into the full text and screenplay_write it back.
         """
         # Resolve owner + build context within a short-lived session (fast).
         with mcp_session() as db:
@@ -144,7 +107,10 @@ def register(mcp):
     def screenplay_read(ctx: Context, project_id: str, scene_index: int = -1, phase: str = "write") -> dict:
         """Read a project's screenplay scenes. By default returns all scenes
         (title + content, ordered by episode_index). Pass scene_index >= 0 to read
-        one scene. Owner-scoped (404 if not owned)."""
+        one scene. Always identify scenes by their episode_index field, never by
+        list position. Read the full screenplay with this before any
+        screenplay_write revision (writes replace all scenes). Owner-scoped (404
+        if not owned)."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             project = db.query(database.Project).filter(
@@ -178,15 +144,19 @@ def register(mcp):
 
     @mcp.tool()
     def screenplay_write(ctx: Context, project_id: str, text: str, phase: str = "write") -> dict:
-        """Write a screenplay directly from raw text (no AI). The text is split
-        into scenes by INT./EXT. headings (no-heading text becomes one "Untitled"
-        scene), persisted to the project, and the breakdown/shotlist are marked
-        stale so extraction picks up the hand-written scenes. Idempotent — repeated
-        writes REPLACE the project's scenes (no duplicate accumulation).
+        """PIPELINE STEP 3 (WRITE) — the primary way to put a screenplay into the
+        platform. Write it directly from raw text (no AI). Give every scene an
+        INT./EXT. slugline: the text is split into scenes by those headings
+        (no-heading text becomes one "Untitled" scene), persisted to the project,
+        and the breakdown/shotlist are marked stale so extraction picks up the
+        new scenes. Idempotent — repeated writes REPLACE the project's scenes (no
+        duplicate accumulation), so to revise one scene send the FULL screenplay
+        text back, not just the changed scene.
 
+        After the screenplay is settled, continue with breakdown_extract.
         Mirrors the Phase 54 direct-writing path. Owner-scoped (404 if not owned).
         """
-        screenplays = _split_by_headings(text)
+        screenplays = split_by_headings(text)
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             project = db.query(database.Project).filter(

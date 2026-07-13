@@ -14,7 +14,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.mcp_server.server import mcp
 from app.mcp_server.session import mcp_session, set_session_factory_override
-from app.mcp_server.tools.screenwriting import _split_by_headings
+from app.utils.screenplay_split import split_by_headings as _split_by_headings
 from app.models.database import (
     ApiKey as ApiKeyModel, User as UserModel, Project as ProjectModel,
     ScreenplayContent, TemplateType,

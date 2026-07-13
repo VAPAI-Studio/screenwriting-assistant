@@ -1,6 +1,9 @@
 # backend/app/api/endpoints/phase_data.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import tempfile
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 from typing import List, Dict
@@ -10,6 +13,7 @@ from ...models import schemas, database
 from ...models.database import BreakdownElement
 from ..dependencies import get_db, get_current_user
 from ...templates import get_template
+from ...utils.screenplay_split import split_by_headings
 
 router = APIRouter()
 
@@ -282,3 +286,76 @@ async def update_subsection_data(
     db.commit()
     db.refresh(data)
     return data
+
+
+_IMPORT_EXTENSIONS = {".pdf": "pdf", ".txt": "txt"}
+
+
+@router.post("/{project_id}/screenplay/import")
+async def import_screenplay_file(
+    project_id: UUID,
+    file: UploadFile = File(...),
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Import a screenplay from an uploaded PDF/TXT file.
+
+    Extracts the text (document_service, same path as book ingestion), splits it
+    into scenes by INT./EXT. sluglines, and persists via the canonical
+    screenplay_editor PATCH path — so ScreenplayContent reconcile and
+    breakdown/shotlist staleness behave exactly like a manual editor save.
+    """
+    from ...services.document_service import document_service
+
+    _verify_project_ownership(db, project_id, current_user.id)
+
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    file_type = _IMPORT_EXTENSIONS.get(ext)
+    if not file_type:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported file type '{ext or 'unknown'}'. Use .pdf or .txt",
+        )
+
+    raw = await file.read()
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=ext) as tmp:
+            tmp.write(raw)
+            tmp_path = tmp.name
+        try:
+            pages = document_service.extract_text(tmp_path, file_type)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Could not read the file: {e}",
+            )
+    finally:
+        if tmp_path:
+            os.unlink(tmp_path)
+
+    text = "\n".join(p.get("text", "") for p in pages)
+    screenplays = split_by_headings(text)
+    if not screenplays:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No text could be extracted from the file (is it a scanned/image-only PDF?)",
+        )
+
+    # Reuse the PATCH handler so reconcile + staleness stay single-sourced.
+    await update_subsection_data(
+        project_id,
+        "write",
+        "screenplay_editor",
+        schemas.PhaseDataUpdate(content={"screenplays": screenplays}),
+        current_user,
+        db,
+    )
+
+    return {
+        "scene_count": len(screenplays),
+        "scenes": [
+            {"episode_index": s["episode_index"], "title": s["title"]}
+            for s in screenplays
+        ],
+    }
