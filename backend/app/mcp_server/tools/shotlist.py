@@ -39,7 +39,8 @@ def register(mcp):
 
     @mcp.tool()
     def shotlist_read(ctx: Context, project_id: str) -> dict:
-        """Read a project's shotlist (shots grouped by scene). Owner-scoped."""
+        """Read a project's shotlist (shots grouped by scene), as populated by
+        shotlist_generate and/or shot_create. Owner-scoped."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             _verify_owned(db, str(user.id), project_id)
@@ -59,9 +60,10 @@ def register(mcp):
     @mcp.tool()
     def shot_create(ctx: Context, project_id: str, fields: dict | None = None,
                     scene_item_id: str = "", shot_number: int = 1) -> dict:
-        """Create one shot on a project. `fields` is a freeform dict of shot
-        properties (shot size, angle, movement, description, etc.). Optionally
-        attach it to a scene via scene_item_id. Owner-scoped."""
+        """Create one shot on a project by hand — for additions or fixes on top of
+        shotlist_generate's output. `fields` is a freeform dict of shot properties
+        (shot size, angle, movement, description, etc.). Optionally attach it to a
+        scene via scene_item_id. Owner-scoped."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             _verify_owned(db, str(user.id), project_id)
@@ -79,9 +81,11 @@ def register(mcp):
 
     @mcp.tool()
     async def shotlist_generate(ctx: Context, project_id: str) -> dict:
-        """Generate a shotlist from the project's screenplay using AI.
-        LONG-RUNNING: returns a job_id immediately — poll job_status(job_id) for
-        the result. Owner-scoped."""
+        """PIPELINE STEP 5 (SHOTLIST, final step) — generate a shotlist from the
+        project's screenplay using AI. Run it after the breakdown, and re-run when
+        the project's shotlist_stale flag is set. LONG-RUNNING: returns a job_id
+        immediately — poll job_status(job_id) for the result, then read the shots
+        with shotlist_read. Owner-scoped."""
         from uuid import UUID
 
         with mcp_session() as db:

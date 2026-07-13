@@ -51,10 +51,12 @@ def register(mcp):
 
     @mcp.tool()
     async def breakdown_extract(ctx: Context, project_id: str) -> dict:
-        """Extract production elements (characters, locations, props, etc.) from a
-        project's screenplay using the AI breakdown path. LONG-RUNNING: returns a
-        job_id immediately — poll job_status(job_id) for the run result. Owner-
-        scoped."""
+        """PIPELINE STEP 4 (BREAKDOWN) — extract production elements (characters,
+        locations, props, etc.) from a project's screenplay using the AI breakdown
+        path. Run it once the screenplay is settled, and re-run whenever the
+        project's breakdown_stale flag is set. LONG-RUNNING: returns a job_id
+        immediately — poll job_status(job_id) for the run result, then read the
+        elements with breakdown_read. Owner-scoped."""
         from uuid import UUID
 
         with mcp_session() as db:
@@ -82,10 +84,10 @@ def register(mcp):
 
     @mcp.tool()
     def breakdown_read(ctx: Context, project_id: str, category: str = "") -> dict:
-        """Read a project's breakdown elements with their scene appearances.
-        Optionally filter by category (character | location | prop | wardrobe |
-        vehicle | set_dressing | animal | sfx | makeup_hair | extras). Owner-
-        scoped."""
+        """Read a project's breakdown elements with their scene appearances
+        (populated by breakdown_extract). Optionally filter by category
+        (character | location | prop | wardrobe | vehicle | set_dressing |
+        animal | sfx | makeup_hair | extras). Owner-scoped."""
         category = (category or "").strip()
         if category and category not in _VALID_CATEGORIES:
             raise HTTPException(

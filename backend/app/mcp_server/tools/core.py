@@ -12,10 +12,13 @@ def register(mcp):
 
     @mcp.tool()
     async def job_status(ctx: Context, job_id: str) -> dict:
-        """Poll a long-running tool's job by id. Returns {job_id, status, kind,
-        result, error}. status is one of: pending, running, done, error. When
-        status is "done", `result` holds the finished tool's output. Only the
-        job's owner can read it.
+        """Poll a long-running tool's job by id. Every LONG-RUNNING tool
+        (screenplay_generate_scene, breakdown_extract, shotlist_generate) returns
+        a job_id — keep polling this until the job leaves pending/running; never
+        assume it finished without polling. Returns {job_id, status, kind, result,
+        error}. status is one of: pending, running, done, error. When status is
+        "done", `result` holds the finished tool's output. Only the job's owner
+        can read it.
         """
         with mcp_session() as db:
             user = resolve_user(ctx, db)

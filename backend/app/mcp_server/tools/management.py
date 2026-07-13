@@ -53,9 +53,10 @@ def register(mcp):
 
     @mcp.tool()
     def project_list(ctx: Context) -> dict:
-        """List the authenticated user's standalone projects (Films). Episodes
-        (projects with a show_id) are listed per-show via episode_list, not here.
-        The starting point for any session."""
+        """PIPELINE STEP 1 (ORIENT) — list the authenticated user's standalone
+        projects (Films). Episodes (projects with a show_id) are listed per-show
+        via episode_list, not here. The starting point for any session: call this
+        (or show_list) before creating or writing anything."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             rows = db.query(database.Project).filter(
@@ -67,7 +68,9 @@ def register(mcp):
     @mcp.tool()
     def project_get(ctx: Context, project_id: str) -> dict:
         """Read a single project's metadata (the target to write into / extract
-        from). 404 if it isn't owned by the caller."""
+        from). breakdown_stale / shotlist_stale flags mean the screenplay changed
+        since the last extraction/generation — re-run those steps. 404 if it
+        isn't owned by the caller."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             p = db.query(database.Project).filter(
@@ -80,8 +83,10 @@ def register(mcp):
 
     @mcp.tool()
     def project_create(ctx: Context, title: str, framework: str = "three_act") -> dict:
-        """Create a new standalone project with a title and story framework
-        (three_act | save_the_cat | hero_journey). Returns the new project."""
+        """PIPELINE STEP 2 (CREATE) — create a new standalone film project with a
+        title and story framework (three_act | save_the_cat | hero_journey).
+        Returns the new project; write its screenplay next with screenplay_write.
+        Shows, episodes, and season maps are created in the web app, not here."""
         title = (title or "").strip()
         if len(title) < 2:
             raise HTTPException(status_code=400, detail="title must be at least 2 characters")
@@ -108,7 +113,9 @@ def register(mcp):
 
     @mcp.tool()
     def show_list(ctx: Context) -> dict:
-        """List the authenticated user's TV shows (id, title, episode count)."""
+        """PIPELINE STEP 1 (ORIENT, series) — list the authenticated user's TV
+        shows (id, title, episode count). Follow up with episode_list and
+        show_read_bible before touching any episode."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             shows = db.query(database.Show).filter(
@@ -125,7 +132,9 @@ def register(mcp):
     @mcp.tool()
     def show_read_bible(ctx: Context, show_id: str) -> dict:
         """Read a show's series bible (characters, world/setting, season arc, tone
-        & style). 404 if not owned by the caller."""
+        & style). REQUIRED READING before writing or revising any episode of the
+        show — everything you write must honor it. 404 if not owned by the
+        caller."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             s = db.query(database.Show).filter(
@@ -150,7 +159,9 @@ def register(mcp):
     @mcp.tool()
     def episode_list(ctx: Context, show_id: str) -> dict:
         """List a show's episodes (project id, episode number, title), ordered by
-        episode number. 404 if the show isn't owned by the caller."""
+        episode number. Each episode is a project — pass its project_id to the
+        screenplay/breakdown/shotlist tools. 404 if the show isn't owned by the
+        caller."""
         with mcp_session() as db:
             user = resolve_user(ctx, db)
             s = db.query(database.Show).filter(
