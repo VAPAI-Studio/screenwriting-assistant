@@ -168,15 +168,33 @@ export const api = {
   // Push the project's completed screenplay to vapai-studio. Uses the longer
   // CHAT_TIMEOUT because the MCP round-trip (+ Drive push on vapai's side) can
   // exceed the default request timeout.
-  async sendToVapai(projectId: string): Promise<SendToVapaiResponse> {
+  async sendToVapai(
+    projectId: string,
+    scope?: 'series' | 'standalone',
+  ): Promise<SendToVapaiResponse> {
+    const qs = scope ? `?scope=${scope}` : '';
     const response = await fetchWithTimeout(
-      `${API_BASE_URL}/projects/${projectId}/send-to-vapai`,
+      `${API_BASE_URL}/projects/${projectId}/send-to-vapai${qs}`,
       { method: 'POST', headers: getHeaders() },
       CHAT_TIMEOUT,
     );
     if (!response.ok) {
       const err = await response.json().catch(() => ({ detail: 'Failed to send to vapai-studio' }));
-      throw new Error(err.detail || 'Failed to send to vapai-studio');
+      // 409 on a series episode sent without a scope: signal the UI to ask which
+      // scope to use, rather than surfacing it as a plain error.
+      if (response.status === 409) {
+        const detail = err.detail || {};
+        const e = new Error(detail.message || 'This episode belongs to a series.') as Error & {
+          isSeriesEpisode?: boolean;
+          showId?: string;
+        };
+        e.isSeriesEpisode = true;
+        e.showId = detail.show_id;
+        throw e;
+      }
+      // detail can be a string (normal errors) or object; normalize to a string.
+      const msg = typeof err.detail === 'string' ? err.detail : 'Failed to send to vapai-studio';
+      throw new Error(msg);
     }
     return response.json();
   },

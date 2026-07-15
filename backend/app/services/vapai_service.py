@@ -313,6 +313,126 @@ class VapaiService:
             "deep_link": deep_link,
         }
 
+    async def send_episode_within_series(
+        self,
+        *,
+        series_title: str,
+        bible_text: str,
+        episode_number: int,
+        episode_title: str,
+        fountain_text: str,
+        existing_project_id: Optional[str] = None,
+        existing_episode_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Push a SINGLE episode into its series' vapai project (type="series").
+
+        Unlike send_screenplay (which creates a standalone project per episode),
+        this reuses/creates the ONE series project for the whole show, so an
+        episode sent from the editor lands as episode N of the series — matching
+        what "Enviar serie" builds. The series project is reused via
+        existing_project_id (show.vapai_project_id); the episode is reused/created
+        by number (reusing vapai's auto-created Episode 1). The bible is refreshed
+        on the series project when provided.
+
+        Returns {vapai_project_id, vapai_episode_id, vapai_script_id, deep_link}.
+        Raises VapaiServiceException (424 unconfigured, 502 downstream failure).
+        """
+        self._require_config()
+
+        auth_headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        }
+        if settings.VAPAI_MCP_API_KEY:
+            auth_headers["Authorization"] = f"Bearer {settings.VAPAI_MCP_API_KEY}"
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.VAPAI_TIMEOUT_SECONDS,
+                headers=auth_headers,
+            ) as client:
+                session = await self._open_session(client)
+
+                # 1. Series project (reuse on re-send, else create as type="series").
+                if existing_project_id:
+                    vapai_project_id = existing_project_id
+                else:
+                    project_args: Dict[str, Any] = {
+                        "name": series_title,
+                        "type": "series",
+                        "description": "Imported from screenwriting-assistant",
+                    }
+                    if settings.VAPAI_DEFAULT_USER_ID:
+                        project_args["user_id"] = settings.VAPAI_DEFAULT_USER_ID
+                    project = await self._call_tool(session, "create_project", project_args)
+                    vapai_project_id = str(project["id"])
+
+                # 2. Refresh the bible on the series project when we have content.
+                if bible_text.strip():
+                    await self._call_tool(
+                        session,
+                        "update_project",
+                        {"project_id": vapai_project_id, "bible": bible_text},
+                    )
+
+                # 3. Reuse/create THIS episode by number (reusing auto-created Ep 1).
+                if existing_episode_id:
+                    vapai_episode_id = existing_episode_id
+                else:
+                    episodes = await self._call_tool_list(
+                        session, "list_episodes", {"project_id": vapai_project_id},
+                    )
+                    match = next(
+                        (e for e in episodes if e.get("number") == episode_number), None
+                    )
+                    if match:
+                        vapai_episode_id = str(match["id"])
+                    else:
+                        created = await self._call_tool(
+                            session,
+                            "create_episode",
+                            {
+                                "project_id": vapai_project_id,
+                                "number": episode_number,
+                                "title": episode_title,
+                            },
+                        )
+                        vapai_episode_id = str(created["id"])
+
+                # 4. Attach the script.
+                script = await self._call_tool(
+                    session,
+                    "create_script",
+                    {
+                        "project_id": vapai_project_id,
+                        "episode_id": vapai_episode_id,
+                        "content": fountain_text,
+                        "title": episode_title,
+                        "source": "manual",
+                    },
+                )
+                vapai_script_id = str(script["id"])
+
+        except VapaiServiceException:
+            raise
+        except httpx.HTTPError as exc:
+            logger.error("vapai-studio episode-in-series push failed (transport): %s", exc)
+            raise VapaiServiceException(f"could not reach vapai-studio: {exc}")
+        except Exception as exc:  # noqa: BLE001 — surface anything else as 502
+            logger.error("vapai-studio episode-in-series push failed: %s", exc)
+            raise VapaiServiceException(str(exc))
+
+        deep_link: Optional[str] = None
+        if settings.VAPAI_WEB_URL:
+            deep_link = f"{settings.VAPAI_WEB_URL.rstrip('/')}/projects/{vapai_project_id}"
+
+        return {
+            "vapai_project_id": vapai_project_id,
+            "vapai_episode_id": vapai_episode_id,
+            "vapai_script_id": vapai_script_id,
+            "deep_link": deep_link,
+        }
+
     async def send_series(
         self,
         *,

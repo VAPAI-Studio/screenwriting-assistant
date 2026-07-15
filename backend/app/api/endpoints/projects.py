@@ -1,8 +1,8 @@
 # backend/app/api/endpoints/projects.py
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 from ...models import schemas, database
@@ -13,6 +13,7 @@ from ...templates import get_template, get_template_subsections
 from ...services.template_ai_service import template_ai_service, _read_episode_text_by_index
 from ...services.vapai_service import vapai_service
 from ...utils.episode_summary import mark_linked_slot_plan_stale
+from .shows import _build_bible_text
 
 router = APIRouter()
 
@@ -197,6 +198,12 @@ async def generate_episode_summary(
 @router.post("/{project_id}/send-to-vapai")
 async def send_to_vapai(
     project_id: UUID,
+    scope: Optional[str] = Query(
+        None,
+        description="For episodes of a series: 'series' sends this episode into the "
+        "series project; 'standalone' sends it as its own project. Ignored for "
+        "non-series projects. Omit on a series episode to get a 409 asking to choose.",
+    ),
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -207,9 +214,14 @@ async def send_to_vapai(
     returns 404. Returns 400 if there is no screenplay text yet, 424 if the
     integration is unconfigured, 502 on a downstream vapai failure.
 
-    Idempotency: the returned vapai project/episode ids are persisted on the Project
-    row so a re-send adds a new script under the same vapai project/episode instead
-    of creating a duplicate project (this endpoint owns the commit).
+    Series episodes (project.show_id set): the caller must pass ?scope=series (send
+    this episode INTO the show's one vapai series project, with bible + episode
+    number) or ?scope=standalone (send it as its own project, the legacy behavior).
+    Omitting scope on a series episode returns 409 with is_series_episode=true so the
+    UI can offer the choice. Non-series projects ignore scope and send standalone.
+
+    Idempotency: the returned vapai project/episode ids are persisted so a re-send
+    adds a new script under the same vapai project/episode instead of duplicating.
     """
     project = db.query(database.Project).filter(
         database.Project.id == str(project_id),
@@ -226,6 +238,54 @@ async def send_to_vapai(
             detail="No screenplay content to send. Write or generate the screenplay first.",
         )
 
+    if scope not in (None, "series", "standalone"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="scope must be 'series' or 'standalone'.",
+        )
+
+    is_series_episode = bool(project.show_id)
+
+    # A series episode with no explicit choice: ask the UI to pick (don't silently
+    # send it as a standalone project, which loses the series grouping + bible).
+    if is_series_episode and scope is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "message": "This episode belongs to a series. Choose whether to send "
+                "just this episode into the series, or the whole series.",
+                "is_series_episode": True,
+                "show_id": str(project.show_id),
+            },
+        )
+
+    if is_series_episode and scope == "series":
+        # Send this episode INTO the show's single vapai series project.
+        show = db.query(database.Show).filter(
+            database.Show.id == str(project.show_id),
+            database.Show.owner_id == str(current_user.id),
+        ).first()
+        if not show:
+            raise NotFoundException(resource="Show", identifier=str(project.show_id))
+
+        result = await vapai_service.send_episode_within_series(
+            series_title=show.title,
+            bible_text=_build_bible_text(show),
+            episode_number=project.episode_number or 1,
+            episode_title=project.title,
+            fountain_text=text,
+            existing_project_id=show.vapai_project_id,
+            existing_episode_id=project.vapai_episode_id,
+        )
+        # Persist linkage on BOTH the show (series project) and this episode.
+        show.vapai_project_id = result["vapai_project_id"]
+        project.vapai_project_id = result["vapai_project_id"]
+        project.vapai_episode_id = result["vapai_episode_id"]
+        db.commit()
+        return result
+
+    # Standalone: either a non-series project, or a series episode the user
+    # explicitly chose to send on its own.
     result = await vapai_service.send_screenplay(
         title=project.title,
         fountain_text=text,

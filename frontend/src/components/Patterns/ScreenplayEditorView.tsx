@@ -242,8 +242,23 @@ export function ScreenplayEditorView({
 
   // Push the completed screenplay to vapai-studio. Feedback is shown inline via an
   // alert banner below the toolbar (the app has no toast system).
-  const sendToVapaiMutation = useMutation<SendToVapaiResponse, Error>({
-    mutationFn: () => api.sendToVapai(projectId),
+  //
+  // Series episodes: sending with no scope gets a 409 (isSeriesEpisode); we then
+  // show an inline choice — send just this episode into the series, or the whole
+  // series. The chosen scope is passed on the retry. showId comes from the 409.
+  const [seriesChoice, setSeriesChoice] = useState<{ showId: string } | null>(null);
+  const sendToVapaiMutation = useMutation<SendToVapaiResponse, Error, 'series' | 'standalone' | undefined>({
+    mutationFn: (scope) => api.sendToVapai(projectId, scope),
+    onMutate: () => setSeriesChoice(null),
+    onError: (err: Error & { isSeriesEpisode?: boolean; showId?: string }) => {
+      if (err.isSeriesEpisode && err.showId) {
+        setSeriesChoice({ showId: err.showId });
+      }
+    },
+  });
+  const sendSeriesMutation = useMutation({
+    mutationFn: (showId: string) => api.sendSeriesToVapai(showId),
+    onSuccess: () => setSeriesChoice(null),
   });
 
   const handleDiscard = () => {
@@ -335,8 +350,8 @@ export function ScreenplayEditorView({
             <>
               {VAPAI_ENABLED && (
                 <button
-                  onClick={() => sendToVapaiMutation.mutate()}
-                  disabled={screenplays.length === 0 || sendToVapaiMutation.isPending}
+                  onClick={() => sendToVapaiMutation.mutate(undefined)}
+                  disabled={screenplays.length === 0 || sendToVapaiMutation.isPending || sendSeriesMutation.isPending}
                   title="Enviar este guión a vapai-studio para producción"
                   className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-foreground/80 bg-muted/40 border border-border/40 rounded-lg hover:bg-muted/70 hover:text-foreground transition-colors disabled:opacity-40"
                 >
@@ -356,6 +371,36 @@ export function ScreenplayEditorView({
       </div>
 
       {/* ── vapai-studio send feedback (inline; app has no toast) ── */}
+      {/* Series episode: ask whether to send just this episode into the series or
+          the whole series. Shown when the backend returned a 409 (isSeriesEpisode). */}
+      {seriesChoice && !sendToVapaiMutation.isPending && !sendSeriesMutation.isPending && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 px-6 py-2 text-xs bg-amber-500/10 border-b border-amber-500/20 text-amber-200"
+        >
+          <span>Este episodio es parte de una serie. ¿Qué querés enviar?</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => sendToVapaiMutation.mutate('series')}
+              className="px-3 py-1 font-medium rounded-md bg-amber-500/20 hover:bg-amber-500/30 transition-colors"
+            >
+              Solo este episodio
+            </button>
+            <button
+              onClick={() => sendSeriesMutation.mutate(seriesChoice.showId)}
+              className="px-3 py-1 font-medium rounded-md bg-amber-500/20 hover:bg-amber-500/30 transition-colors"
+            >
+              Toda la serie
+            </button>
+            <button
+              onClick={() => setSeriesChoice(null)}
+              className="px-2 py-1 text-amber-200/60 hover:text-amber-200 transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
       {sendToVapaiMutation.isSuccess && (
         <div
           role="alert"
@@ -374,12 +419,40 @@ export function ScreenplayEditorView({
           )}
         </div>
       )}
-      {sendToVapaiMutation.isError && (
+      {sendSeriesMutation.isSuccess && (
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 px-6 py-2 text-xs bg-emerald-500/10 border-b border-emerald-500/20 text-emerald-300"
+        >
+          <span>Serie enviada a vapai-studio.</span>
+          {sendSeriesMutation.data?.deep_link && (
+            <a
+              href={sendSeriesMutation.data.deep_link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 font-medium underline hover:no-underline"
+            >
+              Abrir en vapai <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      )}
+      {/* Suppress the raw error banner for the 409 series-choice case (that's the
+          amber panel above, not a failure). */}
+      {sendToVapaiMutation.isError && !seriesChoice && (
         <div
           role="alert"
           className="px-6 py-2 text-xs bg-red-500/10 border-b border-red-500/20 text-red-300"
         >
           No se pudo enviar a vapai-studio: {sendToVapaiMutation.error.message}
+        </div>
+      )}
+      {sendSeriesMutation.isError && (
+        <div
+          role="alert"
+          className="px-6 py-2 text-xs bg-red-500/10 border-b border-red-500/20 text-red-300"
+        >
+          No se pudo enviar la serie a vapai-studio: {(sendSeriesMutation.error as Error).message}
         </div>
       )}
 
