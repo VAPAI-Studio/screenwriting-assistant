@@ -16,7 +16,28 @@ vapai_service is patched (no network); we assert which method the endpoint route
 import uuid
 from unittest.mock import patch, AsyncMock
 
+import pytest
+
+from app.main import app
+from app.middleware import RateLimitMiddleware
 from app.models.database import Project, Show, ScreenplayContent
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """The RateLimitMiddleware keeps an in-memory per-IP request log shared across
+    the whole test session. By the time this file runs in the full suite the shared
+    'testclient' IP has accumulated enough requests to trip the limit, so our POSTs
+    429 instead of hitting the route. Walk the built middleware stack and clear the
+    live RateLimitMiddleware instance's request log before each test, so we assert
+    routing/validation, not the accumulated request count."""
+    node = getattr(app, "middleware_stack", None)
+    while node is not None:
+        if isinstance(node, RateLimitMiddleware):
+            node.requests = {}
+            break
+        node = getattr(node, "app", None)
+    yield
 
 # Must match the mock-auth user (auth_service.generate_mock_token default) so the
 # owner-scoped endpoint finds these rows.
