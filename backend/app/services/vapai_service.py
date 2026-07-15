@@ -376,12 +376,16 @@ class VapaiService:
                     )
 
                 # 3. Reuse/create THIS episode by number (reusing auto-created Ep 1).
-                if existing_episode_id:
+                #    A persisted existing_episode_id is only trustworthy if it STILL
+                #    exists in vapai — otherwise the script lands on a ghost episode
+                #    and the real one shows empty. Always list and verify.
+                episodes = await self._call_tool_list(
+                    session, "list_episodes", {"project_id": vapai_project_id},
+                )
+                live_ids = {str(e.get("id")) for e in episodes}
+                if existing_episode_id and existing_episode_id in live_ids:
                     vapai_episode_id = existing_episode_id
                 else:
-                    episodes = await self._call_tool_list(
-                        session, "list_episodes", {"project_id": vapai_project_id},
-                    )
                     match = next(
                         (e for e in episodes if e.get("number") == episode_number), None
                     )
@@ -503,14 +507,20 @@ class VapaiService:
                     session, "list_episodes", {"project_id": vapai_project_id},
                 )
                 by_number = {e.get("number"): e for e in vapai_episodes}
+                live_ids = {str(e.get("id")) for e in vapai_episodes}
 
                 for ep in episodes:
                     number = ep["episode_number"]
                     ep_title = ep["title"]
                     text = ep.get("fountain_text") or ""
 
+                    # A persisted vapai_episode_id is only trustworthy if it STILL
+                    # exists in vapai — a prior send may have referenced an episode
+                    # since deleted/recreated (its script would then land on a ghost
+                    # episode, leaving the real one empty). Verify against the live
+                    # list; fall back to match-by-number, then create.
                     vapai_episode_id = ep.get("vapai_episode_id")
-                    if not vapai_episode_id:
+                    if not vapai_episode_id or vapai_episode_id not in live_ids:
                         match = by_number.get(number)
                         if match:
                             vapai_episode_id = str(match["id"])
@@ -526,6 +536,7 @@ class VapaiService:
                             )
                             vapai_episode_id = str(created["id"])
                             by_number[number] = created
+                            live_ids.add(vapai_episode_id)
 
                     vapai_script_id: Optional[str] = None
                     screenplay_empty = not text.strip()

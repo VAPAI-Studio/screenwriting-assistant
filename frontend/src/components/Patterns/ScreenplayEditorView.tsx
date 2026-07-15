@@ -258,7 +258,13 @@ export function ScreenplayEditorView({
   });
   const sendSeriesMutation = useMutation({
     mutationFn: (showId: string) => api.sendSeriesToVapai(showId),
-    onSuccess: () => setSeriesChoice(null),
+    // Choosing "toda la serie" is a fresh action: clear both the choice panel AND
+    // the prior 409 that sendToVapaiMutation is still holding, so its error banner
+    // (gated on !seriesChoice) doesn't flash the 409 message as a real failure.
+    onMutate: () => {
+      setSeriesChoice(null);
+      sendToVapaiMutation.reset();
+    },
   });
 
   const handleDiscard = () => {
