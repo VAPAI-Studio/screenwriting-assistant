@@ -180,6 +180,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
   const [agentInput, setAgentInput] = useState('');
   const [agentStreaming, setAgentStreaming] = useState(false);
   const [agentStreamingText, setAgentStreamingText] = useState('');
+  const [agentErrorText, setAgentErrorText] = useState('');
   const [pendingAgentUpdates, setPendingAgentUpdates] = useState<Record<string, string> | null>(null);
   const [applyingAgent, setApplyingAgent] = useState(false);
 
@@ -381,6 +382,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
     if (!agentInput.trim() || !agentSessionId || agentStreaming) return;
     const content = agentInput.trim();
     setAgentInput(''); setAgentStreaming(true); setAgentStreamingText('');
+    setAgentErrorText('');
     setPendingAgentUpdates(null);
     const optimistic: ChatMessage = {
       id: 'temp-' + Date.now(), role: 'user', content,
@@ -391,6 +393,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
       QUERY_KEYS.CHAT_MESSAGES(agentSessionId),
       (old: ChatMessage[] | undefined) => [...(old || []), optimistic],
     );
+    let ok = false;
     try {
       const fieldContext = buildFieldContext();
       await api.sendChatMessageStream(
@@ -407,11 +410,18 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
         },
         fieldContext,
       );
+      ok = true;
     } catch (err) {
       console.error('Agent send error:', err);
+      setAgentErrorText(err instanceof Error ? err.message : 'The agent could not respond. Please try again.');
     } finally {
       setAgentStreamingText(''); setAgentStreaming(false);
-      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CHAT_MESSAGES(agentSessionId) });
+      // Only refetch from the server on success. On failure, refetching would drop
+      // the optimistic user bubble and make the message appear to vanish — instead
+      // we keep it on screen next to the visible error so the user can retry.
+      if (ok) {
+        queryClient.invalidateQueries({ queryKey: QUERY_KEYS.CHAT_MESSAGES(agentSessionId) });
+      }
     }
   };
 
@@ -697,6 +707,13 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
               <div className="flex justify-start mb-3">
                 <div className="bg-muted/50 border border-border rounded-xl px-3.5 py-2.5">
                   <Loader2 className="h-4 w-4 animate-spin text-violet-500/60" />
+                </div>
+              </div>
+            )}
+            {agentErrorText && (
+              <div className="flex justify-start mb-3">
+                <div className="max-w-[85%] rounded-xl px-3.5 py-2.5 text-xs leading-relaxed bg-destructive/10 text-destructive border border-destructive/30">
+                  <p className="whitespace-pre-wrap">{agentErrorText}</p>
                 </div>
               </div>
             )}

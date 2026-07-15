@@ -49,6 +49,56 @@ def mark_linked_slot_plan_stale(db, project_id) -> None:
         slot.plan_stale = True
 
 
+async def generate_missing_priors(db, show, project) -> None:
+    """Generate first-time summaries for strictly-prior episodes that have written
+    screenplay text but no ``episode_summary`` yet (ESUM-01, on-demand).
+
+    Complements ``regenerate_stale_priors`` (which only REFRESHES existing summaries):
+    without this pre-pass, an episode whose summary was never eagerly created stays
+    invisible to later episodes' continuity context. Mirrors the prior-episode query
+    shape (strictly-prior, same show_id, episode_number ASC — never positional).
+
+    ``summarize_episode`` returns "" when the prior has no source screenplay text; in
+    that case nothing is written (a summary-less, text-less prior simply contributes
+    no context). Per-prior try/except so one AI failure never aborts the chat. Commits
+    once after the loop (caller-commits convention is honoured by ``summarize_episode``).
+    """
+    if project.episode_number is None:
+        return
+
+    missing_priors = (
+        db.query(Project)
+        .filter(
+            Project.show_id == str(show.id),
+            Project.episode_number < project.episode_number,
+            Project.episode_summary.is_(None),
+        )
+        .order_by(Project.episode_number.asc())
+        .all()
+    )
+
+    wrote_any = False
+    for prior in missing_priors:
+        try:
+            fresh = await template_ai_service.summarize_episode(db, prior)
+            if fresh:
+                prior.episode_summary = fresh
+                prior.episode_summary_stale = False
+                mark_linked_slot_plan_stale(db, prior.id)
+                wrote_any = True
+            # summarize_episode returns "" when the prior has no screenplay text —
+            # leave episode_summary NULL rather than writing an empty string.
+        except Exception as exc:  # noqa: BLE001 -- degrade gracefully, never abort the chat
+            logger.warning(
+                "On-demand episode-summary generation failed for ep %s: %s",
+                prior.episode_number,
+                exc,
+            )
+
+    if wrote_any:
+        db.commit()
+
+
 async def regenerate_stale_priors(db, show, project) -> None:
     """Regenerate stale prior-episode summaries for ``project``'s connected show.
 

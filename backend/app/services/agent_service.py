@@ -10,12 +10,15 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..models.database import (
     Agent, AgentType, Section, Project, Framework, SectionType,
-    ChatSession, ChatMessage, PhaseData, ListItem,
+    ChatSession, ChatMessage, PhaseData, ListItem, Show,
 )
+from ..models.schemas import ContinuityMode
 from .rag_service import rag_service
 from .ai_provider import chat_completion, chat_completion_stream
 from .template_ai_service import template_ai_service
 from ..templates import get_template
+from ..utils.bible_context import build_bible_context
+from ..utils.episode_summary import generate_missing_priors, regenerate_stale_priors
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +208,36 @@ Available {item_label} fields — populate ALL of them:
         except (json.JSONDecodeError, ValueError):
             return text.strip(), []
 
-    def _format_project_context(self, project: Project, db: Optional[Session] = None) -> str:
+    async def _build_continuity_context(self, project: Project, db: Session) -> Optional[str]:
+        """Assemble the series-continuity block (show bible + prior-episode summaries)
+        for a connected-show episode chat, or None when not applicable.
+
+        Closes the gap the agent chat had versus wizards/socratic/ai-chat: those inject
+        prior-episode context, this chat never did. On-demand (user chose this): first
+        GENERATE any missing prior summaries (episodes with written screenplay but no
+        summary yet), then REGENERATE stale ones, then build the frozen context string —
+        so an episode-3 chat can actually answer questions about episode 1. Degrades to
+        None on any failure; the chat proceeds with current-episode context only.
+        """
+        if not getattr(project, "show_id", None):
+            return None
+        try:
+            show = db.query(Show).filter(Show.id == str(project.show_id)).first()
+            if not show or show.continuity_mode != ContinuityMode.CONNECTED.value:
+                return None
+            # Order matters: fill missing summaries and refresh stale ones BEFORE
+            # build_bible_context reads the rows, so the frozen string sees fresh text.
+            await generate_missing_priors(db, show, project)
+            await regenerate_stale_priors(db, show, project)
+            return build_bible_context(db, project)
+        except Exception as exc:  # noqa: BLE001 -- continuity is best-effort, never fatal
+            logger.warning("Continuity context build failed for project %s: %s", project.id, exc)
+            return None
+
+    def _format_project_context(
+        self, project: Project, db: Optional[Session] = None,
+        bible_context: Optional[str] = None,
+    ) -> str:
         # Template-based PhaseData (new system)
         if db is not None and hasattr(project, 'template') and project.template:
             phase_data_records = (
@@ -233,6 +265,7 @@ Available {item_label} fields — populate ALL of them:
                     project_data, template_id,
                     list_items=list_items_map,
                     project_title=project.title,
+                    bible_context=bible_context,
                 )
 
         # Legacy fallback: old Section model
@@ -394,26 +427,33 @@ Available {item_label} fields — populate ALL of them:
         if agent.agent_type == AgentType.ORCHESTRATOR:
             return await self._orchestrate(session, user_message, db, session_factory=session_factory)
 
-        if agent.agent_type == AgentType.TAG_BASED:
-            search_results = await rag_service.semantic_search(
-                query_text=user_message,
-                tags_filter=agent.tags_filter or [],
-                db=db,
-            )
-        else:
-            # BOOK_BASED: existing behavior
-            search_results = await rag_service.semantic_search(
-                query_text=user_message,
-                agent_id=agent.id,
-                db=db,
-            )
+        # RAG is best-effort: a failed embeddings/vector call degrades to project +
+        # continuity context instead of raising.
+        try:
+            if agent.agent_type == AgentType.TAG_BASED:
+                search_results = await rag_service.semantic_search(
+                    query_text=user_message,
+                    tags_filter=agent.tags_filter or [],
+                    db=db,
+                )
+            else:
+                # BOOK_BASED: existing behavior
+                search_results = await rag_service.semantic_search(
+                    query_text=user_message,
+                    agent_id=agent.id,
+                    db=db,
+                )
+        except Exception as exc:  # noqa: BLE001 -- degrade gracefully
+            logger.warning("RAG search failed for agent %s: %s", agent.name, exc)
+            search_results = {}
 
         concepts = search_results.get("concepts", [])
         chunks = search_results.get("chunks", [])
 
         concept_context = self._format_concept_cards(concepts)
         chunk_context = self._format_chunks(chunks)
-        project_context = self._format_project_context(session.project, db=db)
+        bible_context = await self._build_continuity_context(session.project, db)
+        project_context = self._format_project_context(session.project, db=db, bible_context=bible_context)
 
         system_prompt = f"""You are {agent.name}, a screenwriting consultant.
 {agent.description or ''}
@@ -535,25 +575,55 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
         if agent.agent_type == AgentType.ORCHESTRATOR:
             return await self._orchestrate_stream_prepare(session, user_message, db, field_context=field_context, session_factory=session_factory)
 
-        if agent.agent_type == AgentType.TAG_BASED:
-            search_results = await rag_service.semantic_search(
-                query_text=user_message,
-                tags_filter=agent.tags_filter or [],
-                db=db,
-            )
-        else:
-            search_results = await rag_service.semantic_search(
-                query_text=user_message,
-                agent_id=agent.id,
-                db=db,
-            )
+        # Snapshot prior history BEFORE persisting this message, so the just-added
+        # user turn isn't double-counted (once in history, once as the appended user
+        # message below).
+        history_messages = [
+            {"role": msg.role, "content": msg.content}
+            for msg in session.messages[-20:]
+        ]
+
+        # Persist the user message FIRST, before any RAG/embeddings call. Embeddings
+        # hit an external API with no local fallback, so a quota/network failure there
+        # used to raise before the message was saved — losing it entirely (the
+        # frontend's optimistic bubble then vanished on refetch). Committing up front
+        # makes the message durable regardless of what RAG does next.
+        sid = session.id
+        user_msg = ChatMessage(
+            session_id=sid,
+            role="user",
+            content=user_message,
+            message_type="chat",
+        )
+        db.add(user_msg)
+        db.commit()
+
+        # RAG is best-effort: on failure the chat still answers from project +
+        # continuity context, just without book excerpts, instead of dying.
+        try:
+            if agent.agent_type == AgentType.TAG_BASED:
+                search_results = await rag_service.semantic_search(
+                    query_text=user_message,
+                    tags_filter=agent.tags_filter or [],
+                    db=db,
+                )
+            else:
+                search_results = await rag_service.semantic_search(
+                    query_text=user_message,
+                    agent_id=agent.id,
+                    db=db,
+                )
+        except Exception as exc:  # noqa: BLE001 -- degrade gracefully, never lose the chat
+            logger.warning("RAG search failed for agent %s: %s", agent.name, exc)
+            search_results = {}
 
         concepts = search_results.get("concepts", [])
         chunks = search_results.get("chunks", [])
 
         concept_context = self._format_concept_cards(concepts)
         chunk_context = self._format_chunks(chunks)
-        project_context = self._format_project_context(session.project, db=db)
+        bible_context = await self._build_continuity_context(session.project, db)
+        project_context = self._format_project_context(session.project, db=db, bible_context=bible_context)
 
         system_prompt = f"""You are {agent.name}, a screenwriting consultant.
 {agent.description or ''}
@@ -612,28 +682,11 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
         list_creates_prompt, _list_item_config = self._build_list_creates_prompt(field_context, session)
         system_prompt += list_creates_prompt
 
-        history_messages = [
-            {"role": msg.role, "content": msg.content}
-            for msg in session.messages[-20:]
-        ]
-
         messages = [
             {"role": "system", "content": system_prompt},
             *history_messages,
             {"role": "user", "content": user_message},
         ]
-
-        # Capture session.id before commit (commit expires ORM attributes)
-        sid = session.id
-
-        user_msg = ChatMessage(
-            session_id=sid,
-            role="user",
-            content=user_message,
-            message_type="chat",
-        )
-        db.add(user_msg)
-        db.commit()
 
         return {
             "session_id": sid,
@@ -654,55 +707,78 @@ Include ALL fields the writer asked you to fill. Use the exact field keys listed
         """Prepare orchestrator context for streaming."""
         orchestrator = session.agent
 
-        # Global agent library (Phase 1.5): every active specialist is available
-        # to every user, regardless of who created it.
-        specialist_agents = (
-            db.query(Agent)
-            .filter(
-                Agent.is_active == True,
-                Agent.agent_type.in_([AgentType.BOOK_BASED, AgentType.TAG_BASED]),
-            )
-            .all()
+        # Snapshot prior history + persist the user message BEFORE any specialist
+        # RAG/embeddings work (same durability fix as chat_stream_prepare): an
+        # embeddings failure during agent selection must not lose the user's message.
+        history_messages = [
+            {"role": msg.role, "content": msg.content}
+            for msg in session.messages[-20:]
+        ]
+        sid = session.id
+        user_msg = ChatMessage(
+            session_id=sid,
+            role="user",
+            content=user_message,
+            message_type="chat",
         )
+        db.add(user_msg)
+        db.commit()
 
         consulted_agents_meta: List[Dict] = []
         all_concepts: List[Dict] = []
         all_chunks: List[Dict] = []
 
-        if specialist_agents:
-            selected = await self._select_relevant_agents(
-                user_message=user_message,
-                agents=specialist_agents,
-                db=db,
+        # Specialist consultation is best-effort: on failure the orchestrator still
+        # answers from project + continuity context rather than dying.
+        try:
+            # Global agent library (Phase 1.5): every active specialist is available
+            # to every user, regardless of who created it.
+            specialist_agents = (
+                db.query(Agent)
+                .filter(
+                    Agent.is_active == True,
+                    Agent.agent_type.in_([AgentType.BOOK_BASED, AgentType.TAG_BASED]),
+                )
+                .all()
             )
 
-            if session_factory:
-                tasks = [
-                    self._get_specialist_context_with_session(agent, user_message, session_factory)
-                    for agent in selected
-                ]
-            else:
-                tasks = [
-                    self._get_specialist_context(agent, user_message, db)
-                    for agent in selected
-                ]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+            if specialist_agents:
+                selected = await self._select_relevant_agents(
+                    user_message=user_message,
+                    agents=specialist_agents,
+                    db=db,
+                )
 
-            for agent, result in zip(selected, results):
-                if isinstance(result, Exception):
-                    logger.warning(f"Specialist {agent.name} failed in orchestrator: {result}")
-                    continue
-                all_concepts.extend(result.get("concepts", [])[:3])
-                all_chunks.extend(result.get("chunks", [])[:2])
-                consulted_agents_meta.append({
-                    "agent_id": str(agent.id),
-                    "name": agent.name,
-                    "color": agent.color,
-                })
+                if session_factory:
+                    tasks = [
+                        self._get_specialist_context_with_session(agent, user_message, session_factory)
+                        for agent in selected
+                    ]
+                else:
+                    tasks = [
+                        self._get_specialist_context(agent, user_message, db)
+                        for agent in selected
+                    ]
+                results = await asyncio.gather(*tasks, return_exceptions=True)
+
+                for agent, result in zip(selected, results):
+                    if isinstance(result, Exception):
+                        logger.warning(f"Specialist {agent.name} failed in orchestrator: {result}")
+                        continue
+                    all_concepts.extend(result.get("concepts", [])[:3])
+                    all_chunks.extend(result.get("chunks", [])[:2])
+                    consulted_agents_meta.append({
+                        "agent_id": str(agent.id),
+                        "name": agent.name,
+                        "color": agent.color,
+                    })
+        except Exception as exc:  # noqa: BLE001 -- degrade gracefully, never lose the chat
+            logger.warning("Orchestrator specialist selection failed: %s", exc)
 
         concept_context = self._format_concept_cards(all_concepts)
         chunk_context = self._format_chunks(all_chunks)
-        project_context = self._format_project_context(session.project, db=db)
+        bible_context = await self._build_continuity_context(session.project, db)
+        project_context = self._format_project_context(session.project, db=db, bible_context=bible_context)
 
         list_creates_prompt, _list_item_config = self._build_list_creates_prompt(field_context, session)
 
@@ -728,28 +804,11 @@ For this query, you drew from the knowledge of: {consulted_names}.
 
         system_prompt += list_creates_prompt
 
-        history_messages = [
-            {"role": msg.role, "content": msg.content}
-            for msg in session.messages[-20:]
-        ]
-
         messages = [
             {"role": "system", "content": system_prompt},
             *history_messages,
             {"role": "user", "content": user_message},
         ]
-
-        # Capture session.id before commit (commit expires ORM attributes)
-        sid = session.id
-
-        user_msg = ChatMessage(
-            session_id=sid,
-            role="user",
-            content=user_message,
-            message_type="chat",
-        )
-        db.add(user_msg)
-        db.commit()
 
         return {
             "session_id": sid,
