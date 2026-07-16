@@ -154,7 +154,7 @@
               {"value": "auto", "label": "Let AI decide"}
             ],
             "readiness_checks": [
-              {"source": "story.core", "label": "Foundation Elements", "count_fields": ["logline", "theme", "protagonist", "desire", "plan", "antagonistic_force", "other_characters", "external_stakes", "internal_stakes", "key_visual_motif", "unique_element"]},
+              {"source": "story.core", "label": "Foundation Elements", "count_fields": ["logline", "theme", "desire", "plan", "antagonistic_force", "external_stakes", "internal_stakes", "key_visual_motif", "unique_element"]},
               {"source": "story.characters", "label": "Characters", "count_items": true, "item_groups": ["protagonist", "antagonist", "supporting"]},
               {"source": "story.story", "label": "Story Beats", "count_fields": ["hook_opening_image", "status_quo", "inciting_incident", "point_of_no_return", "rising_complications", "twist_revelation", "climax", "resolution_closing_image"]}
             ],
