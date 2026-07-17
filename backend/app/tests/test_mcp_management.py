@@ -108,3 +108,101 @@ async def test_invalid_token_rejected():
     from fastapi import HTTPException
     with pytest.raises(HTTPException):
         _fn("project_list")(_ctx("sa_not_a_real_key"))
+
+
+# --- Series creation over MCP (Phase: agent-autonomous series) --------------
+
+@pytest.mark.anyio
+async def test_show_bible_season_slot_roundtrip():
+    """An agent can build a series end to end over MCP: create show, write the
+    full bible (incl. new engine fields + structured cast), create a season and
+    a slot, and read the bible back with every field."""
+    uid, token = _seed_user_and_key()
+    ctx = _ctx(token)
+
+    show = _fn("show_create")(ctx, title="Neon Heist", continuity_mode="connected")
+    show_id = show["data"]["show_id"]
+
+    _fn("bible_write")(
+        ctx, show_id=show_id,
+        central_premise="A crew that only steals what was already stolen.",
+        story_engine="Each week a new mark with dirty money walks in.",
+        series_questions="Will Ada go straight? Who is the inside man?",
+        regular_cast=[
+            {"name": "Ada", "role": "the planner", "arc": "loyalty tested"},
+            {"name": "", "role": "", "arc": ""},  # dropped
+            "junk",  # dropped
+        ],
+        tone_style="Neon-noir.",
+    )
+
+    bible = _fn("show_read_bible")(ctx, show_id=show_id)["data"]
+    assert bible["central_premise"].startswith("A crew that only steals")
+    assert bible["story_engine"]
+    assert bible["series_questions"]
+    assert len(bible["regular_cast"]) == 1
+    assert bible["regular_cast"][0]["name"] == "Ada"
+    assert bible["tone_style"] == "Neon-noir."
+
+    season = _fn("season_create")(ctx, show_id=show_id, title="Season One")
+    season_id = season["data"]["season_id"]
+    assert season["data"]["number"] == 1
+
+    slot = _fn("slot_create")(ctx, season_id=season_id, title="Pilot", logline="The job that starts it.")
+    assert slot["data"]["slot_number"] == 1
+    # Second slot auto-increments.
+    slot2 = _fn("slot_create")(ctx, season_id=season_id, title="Fallout")
+    assert slot2["data"]["slot_number"] == 2
+
+
+@pytest.mark.anyio
+async def test_bible_write_is_partial():
+    """bible_write only touches the fields passed; omitted fields are preserved."""
+    uid, token = _seed_user_and_key()
+    ctx = _ctx(token)
+    show_id = _fn("show_create")(ctx, title="Partial Show")["data"]["show_id"]
+
+    _fn("bible_write")(ctx, show_id=show_id, tone_style="Bleak.")
+    _fn("bible_write")(ctx, show_id=show_id, central_premise="A premise.")
+
+    bible = _fn("show_read_bible")(ctx, show_id=show_id)["data"]
+    assert bible["tone_style"] == "Bleak."          # untouched by second call
+    assert bible["central_premise"] == "A premise."
+
+
+@pytest.mark.anyio
+async def test_bible_draft_proposes_without_saving(monkeypatch):
+    """bible_draft returns an AI proposal but writes nothing to the show."""
+    uid, token = _seed_user_and_key()
+    ctx = _ctx(token)
+    show_id = _fn("show_create")(ctx, title="Draft Show")["data"]["show_id"]
+
+    from unittest.mock import AsyncMock
+    fake = {
+        "bible_central_premise": "PROPOSED PREMISE", "bible_story_engine": "",
+        "bible_series_questions": "", "bible_regular_cast": [],
+        "bible_characters": "", "bible_world_setting": "",
+        "bible_season_arc": "", "bible_tone_style": "",
+    }
+    from app.services import template_ai_service as tas_mod
+    monkeypatch.setattr(tas_mod.template_ai_service, "generate_series_bible", AsyncMock(return_value=fake))
+
+    out = await _fn("bible_draft")(ctx, show_id=show_id, logline="seed")
+    assert out["data"]["bible_central_premise"] == "PROPOSED PREMISE"
+    # Nothing saved: the show's bible is still empty.
+    bible = _fn("show_read_bible")(ctx, show_id=show_id)["data"]
+    assert bible["central_premise"] == ""
+
+
+@pytest.mark.anyio
+async def test_series_tools_owner_scoped():
+    uid_a, token_a = _seed_user_and_key()
+    uid_b, token_b = _seed_user_and_key()
+    from fastapi import HTTPException
+
+    show_id = _fn("show_create")(_ctx(token_a), title="A's Show")["data"]["show_id"]
+    with pytest.raises(HTTPException) as exc:
+        _fn("bible_write")(_ctx(token_b), show_id=show_id, tone_style="hijack")
+    assert exc.value.status_code == 404
+    with pytest.raises(HTTPException):
+        _fn("season_create")(_ctx(token_b), show_id=show_id)

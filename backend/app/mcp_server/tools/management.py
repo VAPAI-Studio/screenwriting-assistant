@@ -5,13 +5,17 @@ These are the agent's session entry point (project_list/get tell it what to
 write into). Per the locked decision, NO delete tools are exposed.
 """
 
+from typing import Optional
+
 from mcp.server.fastmcp import Context
 from fastapi import HTTPException
 
 from ...models import database
+from ...models.schemas import ContinuityMode
 from ..context import resolve_user, mcp_session
 
 _VALID_FRAMEWORKS = {f.value for f in database.Framework}
+_VALID_CONTINUITY = {m.value for m in ContinuityMode}
 
 
 def _project_framework(p: database.Project):
@@ -161,6 +165,123 @@ def register(mcp):
             }
 
     @mcp.tool()
+    def show_create(ctx: Context, title: str, description: str = "", continuity_mode: str = "anthology") -> dict:
+        """PIPELINE STEP 2 (CREATE, series) — create a new TV show (series). Next,
+        fill its bible with bible_write (or bible_draft to propose one from a seed),
+        then build a season with season_create + slot_create. continuity_mode is
+        one of: anthology (standalone episodes), connected (serial with carried
+        continuity), standalone (a single film-like show)."""
+        title = (title or "").strip()
+        if len(title) < 2:
+            raise HTTPException(status_code=400, detail="title must be at least 2 characters")
+        if continuity_mode not in _VALID_CONTINUITY:
+            raise HTTPException(
+                status_code=400,
+                detail=f"continuity_mode must be one of {sorted(_VALID_CONTINUITY)}",
+            )
+        with mcp_session() as db:
+            user = resolve_user(ctx, db)
+            s = database.Show(
+                title=title,
+                description=(description or "").strip(),
+                continuity_mode=continuity_mode,
+                owner_id=user.id,
+            )
+            db.add(s)
+            db.commit()
+            db.refresh(s)
+            return {"summary": f"Created show '{s.title}'", "data": {"show_id": str(s.id), "title": s.title}}
+
+    @mcp.tool()
+    def bible_write(
+        ctx: Context,
+        show_id: str,
+        central_premise: Optional[str] = None,
+        story_engine: Optional[str] = None,
+        series_questions: Optional[str] = None,
+        characters: Optional[str] = None,
+        regular_cast: Optional[list] = None,
+        world_setting: Optional[str] = None,
+        season_arc: Optional[str] = None,
+        tone_style: Optional[str] = None,
+    ) -> dict:
+        """PIPELINE STEP 2 (CREATE, series) — write/update a show's series bible.
+        Only the fields you pass are changed (partial update); omit a field to
+        leave it untouched. regular_cast is a list of {name, role, arc} objects.
+        The bible is REQUIRED READING (show_read_bible) before writing episodes,
+        so fill it before generating any script. 404 if the show isn't owned."""
+        fields = {
+            "bible_central_premise": central_premise,
+            "bible_story_engine": story_engine,
+            "bible_series_questions": series_questions,
+            "bible_characters": characters,
+            "bible_world_setting": world_setting,
+            "bible_season_arc": season_arc,
+            "bible_tone_style": tone_style,
+        }
+        with mcp_session() as db:
+            user = resolve_user(ctx, db)
+            s = db.query(database.Show).filter(
+                database.Show.id == show_id,
+                database.Show.owner_id == str(user.id),
+            ).first()
+            if not s:
+                raise HTTPException(status_code=404, detail="Show not found")
+            for col, val in fields.items():
+                if val is not None:
+                    setattr(s, col, str(val))
+            if regular_cast is not None:
+                # Sanitize to [{name, role, arc}]; drop non-dicts and fully-empty entries.
+                cast = []
+                for m in (regular_cast or [])[:50]:
+                    if not isinstance(m, dict):
+                        continue
+                    member = {
+                        "name": str(m.get("name", "") or "").strip(),
+                        "role": str(m.get("role", "") or "").strip(),
+                        "arc": str(m.get("arc", "") or "").strip(),
+                    }
+                    if any(member.values()):
+                        cast.append(member)
+                s.bible_regular_cast = cast
+            db.commit()
+            return {"summary": f"Updated bible for '{s.title}'", "data": {"show_id": str(s.id)}}
+
+    @mcp.tool()
+    async def bible_draft(
+        ctx: Context,
+        show_id: str,
+        logline: str = "",
+        genre: str = "",
+        tone: str = "",
+        guidance: str = "",
+    ) -> dict:
+        """Propose a full series bible from a short seed (logline/genre/tone), using
+        the show's CURRENT bible as grounding. Returns the proposal WITHOUT saving —
+        review it, then persist the parts you want with bible_write. 404 if the show
+        isn't owned by the caller."""
+        from ...services.template_ai_service import template_ai_service
+        from ...api.endpoints.shows import _build_bible_text
+        with mcp_session() as db:
+            user = resolve_user(ctx, db)
+            s = db.query(database.Show).filter(
+                database.Show.id == show_id,
+                database.Show.owner_id == str(user.id),
+            ).first()
+            if not s:
+                raise HTTPException(status_code=404, detail="Show not found")
+            current = _build_bible_text(s)
+            show_context = f"**Show:** {s.title}"
+            if (s.description or "").strip():
+                show_context += f"\n{s.description.strip()}"
+            show_context += f"\n\n{current}" if current else "\n(The bible is currently empty.)"
+        proposal = await template_ai_service.generate_series_bible(
+            config={"logline": logline, "genre": genre, "tone": tone, "custom_guidance": guidance},
+            show_context=show_context,
+        )
+        return {"summary": f"Drafted a bible for '{s.title}' (not saved)", "data": proposal}
+
+    @mcp.tool()
     def episode_list(ctx: Context, show_id: str) -> dict:
         """List a show's episodes (project id, episode number, title), ordered by
         episode number. Each episode is a project — pass its project_id to the
@@ -181,3 +302,81 @@ def register(mcp):
                 "summary": f"{len(eps)} episode(s) in '{s.title}'",
                 "episodes": [_project_brief(e) for e in eps],
             }
+
+    @mcp.tool()
+    def season_create(ctx: Context, show_id: str, title: str = "", arc_summary: str = "", number: Optional[int] = None) -> dict:
+        """PIPELINE STEP 2 (CREATE, series) — create a season for a show. `number`
+        auto-increments per show when omitted. Fill its episode plan with
+        slot_create. A season's arc_summary supersedes the show's bible season arc
+        for that season's episodes. 404 if the show isn't owned by the caller."""
+        from sqlalchemy import func
+        with mcp_session() as db:
+            user = resolve_user(ctx, db)
+            s = db.query(database.Show).filter(
+                database.Show.id == show_id,
+                database.Show.owner_id == str(user.id),
+            ).first()
+            if not s:
+                raise HTTPException(status_code=404, detail="Show not found")
+            if number is None:
+                max_num = db.query(func.max(database.Season.number)).filter(
+                    database.Season.show_id == str(show_id)
+                ).scalar()
+                number = (max_num or 0) + 1
+            elif db.query(database.Season).filter(
+                database.Season.show_id == str(show_id), database.Season.number == number
+            ).first():
+                raise HTTPException(status_code=400, detail=f"Season {number} already exists in this show.")
+            season = database.Season(
+                show_id=str(show_id), number=number,
+                title=(title or "").strip(), arc_summary=(arc_summary or "").strip(),
+            )
+            db.add(season)
+            db.commit()
+            db.refresh(season)
+            return {"summary": f"Created season {season.number}", "data": {"season_id": str(season.id), "number": season.number}}
+
+    @mcp.tool()
+    def slot_create(
+        ctx: Context,
+        season_id: str,
+        title: str = "",
+        logline: str = "",
+        arc_function: str = "",
+        cliffhanger: str = "",
+        slot_number: Optional[int] = None,
+    ) -> dict:
+        """PIPELINE STEP 2 (CREATE, series) — add one planned-episode slot to a
+        season map. `slot_number` (narrative order) auto-increments per season when
+        omitted. The slot is the PLAN; once its episode is written the episode is
+        the truth. 404 if the season isn't owned by the caller."""
+        from sqlalchemy import func
+        with mcp_session() as db:
+            user = resolve_user(ctx, db)
+            season = (
+                db.query(database.Season)
+                .join(database.Show, database.Season.show_id == database.Show.id)
+                .filter(database.Season.id == season_id, database.Show.owner_id == str(user.id))
+                .first()
+            )
+            if not season:
+                raise HTTPException(status_code=404, detail="Season not found")
+            if slot_number is None:
+                max_num = db.query(func.max(database.EpisodeSlot.slot_number)).filter(
+                    database.EpisodeSlot.season_id == str(season_id)
+                ).scalar()
+                slot_number = (max_num or 0) + 1
+            elif db.query(database.EpisodeSlot).filter(
+                database.EpisodeSlot.season_id == str(season_id),
+                database.EpisodeSlot.slot_number == slot_number,
+            ).first():
+                raise HTTPException(status_code=400, detail=f"Slot {slot_number} already exists in this season.")
+            slot = database.EpisodeSlot(
+                season_id=str(season_id), slot_number=slot_number,
+                title=(title or "").strip(), logline=(logline or "").strip(),
+                arc_function=(arc_function or "").strip(), cliffhanger=(cliffhanger or "").strip(),
+            )
+            db.add(slot)
+            db.commit()
+            db.refresh(slot)
+            return {"summary": f"Created slot {slot.slot_number}", "data": {"slot_id": str(slot.id), "slot_number": slot.slot_number}}

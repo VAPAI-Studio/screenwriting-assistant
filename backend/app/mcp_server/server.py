@@ -39,10 +39,17 @@ instead of improvising. The canonical flow:
 1. ORIENT — project_list shows standalone film projects; show_list +
    episode_list cover TV shows (an episode is a project with a show_id).
    Before writing anything for a show, ALWAYS call show_read_bible and honor
-   its characters, world/setting, season arc, and tone & style.
+   the FULL bible: central premise, story engine (the repeatable machine that
+   generates episodes), series questions (long arcs to advance but NOT close),
+   regular cast (the fixed roster — use these characters), plus characters,
+   world/setting, season arc, and tone & style. An episode must run on the
+   story engine and advance the series questions without closing them.
 2. CREATE — project_create makes a standalone film project (framework:
-   three_act | save_the_cat | hero_journey). Shows, episodes, and season maps
-   are created in the web app, not over MCP — never invent them.
+   three_act | save_the_cat | hero_journey). For series work, show_create makes
+   a TV show; bible_write fills or updates its bible (or bible_draft proposes a
+   full bible from a seed for you to refine + persist with bible_write);
+   season_create and slot_create build a season map. Never invent shows or
+   seasons — create them through these tools.
 3. WRITE — screenplay_write persists the full screenplay text. Give every
    scene an INT./EXT. slugline (each slugline becomes one scene). Writes
    REPLACE all scenes, so to revise one scene: screenplay_read everything,
