@@ -7,7 +7,7 @@ import {
   AISessionResponse, AIMessageResponse, WizardRunResponse, ProjectV2,
   Snippet, SnippetListResponse, PipelineMapResponse,
   Shot, ShotCreate, ShotUpdate, AssetMedia, StoryboardFrame,
-  Show, ShowCreate, BibleResponse, BibleUpdate,
+  Show, ShowCreate, BibleResponse, BibleUpdate, BibleWizardRequest, BibleWizardResponse,
   Season, SeasonDetail, EpisodeSlot, EpisodeSlotUpdate, SlotReconcileResponse,
   ApiKey, ApiKeyCreate, ApiKeyCreateResponse,
   RegenerateSceneRequest, RegenerateSceneResponse, KeepSceneVersionRequest,
@@ -1393,6 +1393,19 @@ export const api = {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to update bible');
+    return response.json();
+  },
+
+  async runBibleWizard(showId: string, seed: BibleWizardRequest): Promise<BibleWizardResponse> {
+    const response = await fetchWithTimeout(`${API_BASE_URL}/shows/${showId}/bible/wizard`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(seed),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: 'Failed to run bible wizard' }));
+      throw new Error(err.detail || 'Failed to run bible wizard');
+    }
     return response.json();
   },
 

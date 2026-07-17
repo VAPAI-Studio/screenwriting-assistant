@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Check, Zap, Link, LayoutGrid, Plus, Trash2, Users } from 'lucide-react';
+import { ChevronDown, Check, Zap, Link, LayoutGrid, Plus, Trash2, Users, Wand2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { BIBLE_SECTIONS, SHOW_PRESETS, QUERY_KEYS } from '../../lib/constants';
 import type { BibleResponse, BibleUpdate, ContinuityMode, RegularCastMember } from '../../types';
+import { BibleWizardModal } from './BibleWizardModal';
 import { EpisodeDurationPicker } from './EpisodeDurationPicker';
 
 interface BibleEditorProps {
@@ -66,6 +67,7 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
   });
 
   const [savedField, setSavedField] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
   // Pre-select the preset card matching the show's current mode (UI-SPEC :102).
   const [selectedPreset, setSelectedPreset] = useState<string>(
@@ -173,6 +175,17 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
 
   return (
     <div className="space-y-3">
+      <BibleWizardModal showId={showId} open={wizardOpen} onOpenChange={setWizardOpen} />
+
+      {/* AI bible wizard — drafts every section from a short seed */}
+      <button
+        type="button"
+        onClick={() => setWizardOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-xl border border-amber-500/30 bg-amber-500/5 text-sm font-medium text-amber-300 hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors"
+      >
+        <Wand2 className="h-4 w-4" /> Draft the bible with AI
+      </button>
+
       {/* Continuity mode-change control -- reuses the creation preset cards */}
       <div className="border border-border rounded-xl px-4 py-4">
         <div className="flex items-center justify-between mb-3">

@@ -504,6 +504,25 @@ export interface BibleUpdate {
   episode_duration_minutes?: number | null;
 }
 
+export interface BibleWizardRequest {
+  logline?: string;
+  genre?: string;
+  tone?: string;
+  custom_guidance?: string;
+}
+
+// AI-proposed bible drafts (preview only). Shape maps onto BibleUpdate.
+export interface BibleWizardResponse {
+  bible_central_premise: string;
+  bible_story_engine: string;
+  bible_series_questions: string;
+  bible_regular_cast: RegularCastMember[];
+  bible_characters: string;
+  bible_world_setting: string;
+  bible_season_arc: string;
+  bible_tone_style: string;
+}
+
 // ============================================================
 // Season layer (Phase 4 -- capa de temporada)
 // ============================================================

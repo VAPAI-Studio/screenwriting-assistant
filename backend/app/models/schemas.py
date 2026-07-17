@@ -1008,6 +1008,29 @@ class BibleResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class BibleWizardRequest(BaseModel):
+    """Seed for the Series Bible Wizard (POST /api/shows/{id}/bible/wizard).
+    All optional — the wizard also grounds on the show's current partial bible."""
+    logline: Optional[str] = Field(None, max_length=5000)
+    genre: Optional[str] = Field(None, max_length=255)
+    tone: Optional[str] = Field(None, max_length=255)
+    custom_guidance: Optional[str] = Field(None, max_length=5000)
+
+
+class BibleWizardResponse(BaseModel):
+    """AI-proposed bible drafts. Preview only — nothing is written; the client
+    applies the accepted fields via PUT /api/shows/{id}/bible (shape matches
+    BibleUpdate)."""
+    bible_central_premise: str = ""
+    bible_story_engine: str = ""
+    bible_series_questions: str = ""
+    bible_regular_cast: List[RegularCastMember] = Field(default_factory=list)
+    bible_characters: str = ""
+    bible_world_setting: str = ""
+    bible_season_arc: str = ""
+    bible_tone_style: str = ""
+
+
 class EpisodeCreate(BaseModel):
     title: str = Field(..., min_length=2, max_length=255)
     episode_number: Optional[int] = Field(None, ge=1)

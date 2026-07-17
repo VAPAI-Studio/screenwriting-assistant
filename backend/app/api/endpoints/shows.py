@@ -10,7 +10,7 @@ from ..dependencies import get_db, get_current_user
 from ...exceptions import NotFoundException
 from ...templates import get_template, get_template_subsections
 from ...services.vapai_service import vapai_service
-from ...services.template_ai_service import _read_episode_text_by_index
+from ...services.template_ai_service import _read_episode_text_by_index, template_ai_service
 
 router = APIRouter()
 
@@ -171,6 +171,46 @@ async def update_bible(
         bible_regular_cast=show.bible_regular_cast or [],
         episode_duration_minutes=show.episode_duration_minutes,
     )
+
+
+@router.post("/{show_id}/bible/wizard", response_model=schemas.BibleWizardResponse)
+async def run_bible_wizard(
+    show_id: UUID,
+    body: schemas.BibleWizardRequest,
+    current_user: schemas.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Series Bible Wizard: propose AI drafts for every bible field from a short
+    seed plus the show's current partial bible. Writes NOTHING (preview pattern,
+    like /slots/{id}/reconcile); the client applies accepted fields via
+    PUT /shows/{id}/bible. Owner-scoped (404 if not owned)."""
+    show = (
+        db.query(database.Show)
+        .filter(database.Show.id == str(show_id), database.Show.owner_id == str(current_user.id))
+        .first()
+    )
+    if not show:
+        raise NotFoundException(resource="Show", identifier=str(show_id))
+
+    current_bible = _build_bible_text(show)
+    show_context = f"**Show:** {show.title}"
+    if (show.description or "").strip():
+        show_context += f"\n{show.description.strip()}"
+    if current_bible:
+        show_context += f"\n\n{current_bible}"
+    else:
+        show_context += "\n(The bible is currently empty.)"
+
+    proposal = await template_ai_service.generate_series_bible(
+        config={
+            "logline": body.logline or "",
+            "genre": body.genre or "",
+            "tone": body.tone or "",
+            "custom_guidance": body.custom_guidance or "",
+        },
+        show_context=show_context,
+    )
+    return schemas.BibleWizardResponse(**proposal)
 
 
 @router.get("/{show_id}/episodes", response_model=List[schemas.Project])

@@ -778,6 +778,105 @@ Return a JSON object: {{"arc_summary": "...", "slots": [{{"slot_number": 1, "tit
             "slots": slots,
         }
 
+    async def generate_series_bible(self, config: Dict, show_context: str) -> Dict:
+        """Series Bible Wizard: from a short seed (title/logline/genre/tone) plus the
+        show's CURRENT partial bible (show_context), propose drafts for every bible
+        field. The result is shaped to map 1:1 onto BibleUpdate; the client applies
+        the fields the user accepts through the existing PUT /shows/{id}/bible path.
+
+        Synchronous (single generation) — no WizardRun, mirroring reconcile_slot.
+        """
+        seed_logline = (config.get("logline") or "").strip()
+        genre = (config.get("genre") or "").strip()
+        tone = (config.get("tone") or "").strip()
+        guidance = (config.get("custom_guidance") or "").strip()
+
+        # Craft doctrine (series canon), same gating pattern as the season map.
+        doctrine = ""
+        cards = config.get("_doctrine_cards") or []
+        body = doctrine_service.format_block(cards[:6])
+        if body:
+            doctrine = (
+                "## Craft doctrine (series canon — ground the bible in it)\n\n"
+                + body + "\n\n"
+            )
+
+        seed_lines = []
+        if seed_logline:
+            seed_lines.append(f"Logline / idea: {seed_logline}")
+        if genre:
+            seed_lines.append(f"Genre: {genre}")
+        if tone:
+            seed_lines.append(f"Tone: {tone}")
+        if guidance:
+            seed_lines.append(f"Custom guidance: {guidance}")
+        seed_block = "\n".join(seed_lines) if seed_lines else "(no seed provided — infer from the current bible)"
+
+        prompt = f"""You are an expert TV series-development partner building a series bible.
+
+## Current Bible (may be partial or empty — build ON it, don't contradict it)
+{show_context}
+
+## Seed
+{seed_block}
+
+{doctrine}## Task
+Propose a coherent series bible. A series bible is the repeatable engine of the show, NOT one story: it must explain what generates episodes week after week. Fill every field below; keep each tight and usable, not flowery. If the current bible already has strong content for a field, refine rather than replace it.
+
+Return a JSON object with EXACTLY these keys:
+- "bible_central_premise": the whole series in one line — the recognizable idea a viewer could pitch to a friend
+- "bible_story_engine": the repeatable machine that generates episodes — who gets stories every week and why
+- "bible_series_questions": the long-arc questions episodes advance but deliberately do NOT close (the reason to keep watching)
+- "bible_regular_cast": an array of the fixed roster, each {{"name": "...", "role": "...", "arc": "..."}} (3-6 characters; role = their function in the show, arc = their season-long trajectory)
+- "bible_characters": a prose paragraph on the main and recurring characters and their dynamics
+- "bible_world_setting": the world, time period, and locations
+- "bible_season_arc": the overarching arc for the first season (start, midpoint turn, where it lands)
+- "bible_tone_style": the tone, visual style, and mood
+
+Return ONLY the JSON object."""
+
+        text = await chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert TV series-development partner who writes tight, usable series bibles. Return valid JSON only.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.8,
+            max_tokens=3000,
+            json_mode=True,
+        )
+        result = json.loads(text)
+
+        def _str(key: str) -> str:
+            return str(result.get(key, "") or "").strip()
+
+        # Sanitize the cast into [{name, role, arc}] — drop non-dicts and fully-empty
+        # entries, cap length to match BibleUpdate's max_length=50.
+        cast = []
+        for entry in (result.get("bible_regular_cast") or [])[:50]:
+            if not isinstance(entry, dict):
+                continue
+            member = {
+                "name": str(entry.get("name", "") or "").strip(),
+                "role": str(entry.get("role", "") or "").strip(),
+                "arc": str(entry.get("arc", "") or "").strip(),
+            }
+            if any(member.values()):
+                cast.append(member)
+
+        return {
+            "bible_central_premise": _str("bible_central_premise"),
+            "bible_story_engine": _str("bible_story_engine"),
+            "bible_series_questions": _str("bible_series_questions"),
+            "bible_regular_cast": cast,
+            "bible_characters": _str("bible_characters"),
+            "bible_world_setting": _str("bible_world_setting"),
+            "bible_season_arc": _str("bible_season_arc"),
+            "bible_tone_style": _str("bible_tone_style"),
+        }
+
     async def _generate_one_scene(
         self,
         ep: Dict,
