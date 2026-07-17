@@ -111,6 +111,11 @@ class Show(Base):
     bible_story_engine = Column(Text, default="")
     bible_series_questions = Column(Text, default="")
 
+    # Structured regular cast: list of {name, role, arc} objects (Migration 018).
+    # A first-class roster the episode template's "what do the regulars do this
+    # week" leans on -- richer than a free-text Characters blob.
+    bible_regular_cast = Column(JSON, default=list)
+
     # Continuity mode (v10.0 -- Phase 67). VARCHAR not PG Enum (D-03); default 'anthology' (D-01).
     continuity_mode = Column(String(20), nullable=False, default="anthology", server_default="anthology")
 

@@ -134,6 +134,7 @@ async def get_bible(
         bible_central_premise=show.bible_central_premise or "",
         bible_story_engine=show.bible_story_engine or "",
         bible_series_questions=show.bible_series_questions or "",
+        bible_regular_cast=show.bible_regular_cast or [],
         episode_duration_minutes=show.episode_duration_minutes,
     )
 
@@ -167,6 +168,7 @@ async def update_bible(
         bible_central_premise=show.bible_central_premise or "",
         bible_story_engine=show.bible_story_engine or "",
         bible_series_questions=show.bible_series_questions or "",
+        bible_regular_cast=show.bible_regular_cast or [],
         episode_duration_minutes=show.episode_duration_minutes,
     )
 
@@ -268,6 +270,19 @@ def _build_bible_text(show: "database.Show") -> str:
         ("Tone / Style", show.bible_tone_style),
     ]
     parts = [f"## {label}\n{value.strip()}" for label, value in sections if (value or "").strip()]
+
+    # Regular cast is a structured list, not a string — format it into its own block.
+    cast_lines = []
+    for member in (show.bible_regular_cast or []):
+        if not isinstance(member, dict):
+            continue
+        name = (member.get("name") or "").strip()
+        detail = " — ".join(p for p in [(member.get("role") or "").strip(), (member.get("arc") or "").strip()] if p)
+        if name or detail:
+            cast_lines.append(f"- {name or '(unnamed)'}{': ' + detail if detail else ''}")
+    if cast_lines:
+        parts.append("## Regular Cast\n" + "\n".join(cast_lines))
+
     return "\n\n".join(parts)
 
 

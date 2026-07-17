@@ -45,6 +45,9 @@ def _create_show(db_session, **overrides):
         "bible_world_setting": "Albuquerque, New Mexico",
         "bible_season_arc": "Walter's descent from teacher to Heisenberg",
         "bible_tone_style": "Dark, tense, morally complex",
+        "bible_regular_cast": [
+            {"name": "Jesse Pinkman", "role": "Walt's partner", "arc": "guilt and reckoning"},
+        ],
         "episode_duration_minutes": 47,
     }
     defaults.update(overrides)
@@ -97,6 +100,7 @@ class TestBuildBibleContext:
             bible_world_setting="",
             bible_season_arc="",
             bible_tone_style="",
+            bible_regular_cast=[],
             episode_duration_minutes=None,
         )
         project = _create_project(db_session, show=show)
@@ -155,6 +159,7 @@ class TestBuildBibleContext:
             bible_world_setting="",
             bible_season_arc="",
             bible_tone_style="",
+            bible_regular_cast=[],
             episode_duration_minutes=None,
             bible_story_engine="Case-of-the-week that reveals the detectives.",
         )
@@ -166,6 +171,47 @@ class TestBuildBibleContext:
         # Legacy sections stay absent when empty.
         assert "### Characters" not in result
 
+    def test_regular_cast_injected(self, db_session):
+        """Structured regular cast is formatted into a "### Regular Cast" block
+        with one line per member (Migration 018)."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(
+            db_session,
+            bible_regular_cast=[
+                {"name": "Skyler White", "role": "Walt's wife", "arc": "from denial to complicity"},
+                {"name": "Hank Schrader", "role": "DEA agent, brother-in-law", "arc": "closes in on Heisenberg"},
+            ],
+        )
+        project = _create_project(db_session, show=show)
+        result = build_bible_context(db_session, project)
+
+        assert result is not None
+        assert "### Regular Cast" in result
+        assert "Skyler White" in result
+        assert "Walt's wife" in result
+        assert "from denial to complicity" in result
+        assert "Hank Schrader" in result
+
+    def test_regular_cast_skips_empty_entries(self, db_session):
+        """Fully-empty cast entries are dropped so no "### Regular Cast" block is
+        emitted, even though a non-empty list keeps the bible from being 'empty'."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(
+            db_session,
+            bible_characters="Walter White",
+            bible_world_setting="",
+            bible_season_arc="",
+            bible_tone_style="",
+            episode_duration_minutes=None,
+            bible_regular_cast=[{"name": "", "role": "", "arc": ""}],
+        )
+        project = _create_project(db_session, show=show)
+        result = build_bible_context(db_session, project)
+        assert result is not None
+        assert "### Regular Cast" not in result
+
     def test_partial_bible_omits_empty_sections(self, db_session):
         """Only non-empty bible sections are included in the output."""
         from app.utils.bible_context import build_bible_context
@@ -176,6 +222,7 @@ class TestBuildBibleContext:
             bible_world_setting="",
             bible_season_arc="",
             bible_tone_style="",
+            bible_regular_cast=[],
             episode_duration_minutes=22,
         )
         project = _create_project(db_session, show=show)
@@ -184,6 +231,7 @@ class TestBuildBibleContext:
         assert result is not None
         assert "### Characters" in result
         assert "Jesse Pinkman" in result
+        assert "### Regular Cast" not in result
         assert "### World & Setting" not in result
         assert "### Season Arc" not in result
         assert "### Tone & Style" not in result

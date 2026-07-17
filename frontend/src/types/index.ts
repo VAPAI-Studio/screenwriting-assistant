@@ -473,6 +473,12 @@ export interface ShowCreate {
   continuity_mode?: ContinuityMode;
 }
 
+export interface RegularCastMember {
+  name: string;
+  role: string;
+  arc: string;
+}
+
 export interface BibleResponse {
   show_id: string;
   bible_characters: string;
@@ -482,6 +488,7 @@ export interface BibleResponse {
   bible_central_premise: string;
   bible_story_engine: string;
   bible_series_questions: string;
+  bible_regular_cast: RegularCastMember[];
   episode_duration_minutes: number | null;
 }
 
@@ -493,6 +500,7 @@ export interface BibleUpdate {
   bible_central_premise?: string;
   bible_story_engine?: string;
   bible_series_questions?: string;
+  bible_regular_cast?: RegularCastMember[];
   episode_duration_minutes?: number | null;
 }
 

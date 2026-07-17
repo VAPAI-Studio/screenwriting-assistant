@@ -396,7 +396,11 @@ async def get_episode_context(
     mode = show.continuity_mode or "anthology"
 
     bible = {
+        "central_premise": show.bible_central_premise or "",
+        "story_engine": show.bible_story_engine or "",
+        "series_questions": show.bible_series_questions or "",
         "characters": show.bible_characters or "",
+        "regular_cast": show.bible_regular_cast or [],
         "world_setting": show.bible_world_setting or "",
         "season_arc": show.bible_season_arc or "",
         "tone_style": show.bible_tone_style or "",

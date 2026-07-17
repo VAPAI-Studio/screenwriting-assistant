@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ChevronDown, Check, Zap, Link, LayoutGrid } from 'lucide-react';
+import { ChevronDown, Check, Zap, Link, LayoutGrid, Plus, Trash2, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { BIBLE_SECTIONS, SHOW_PRESETS, QUERY_KEYS } from '../../lib/constants';
-import type { BibleResponse, BibleUpdate, ContinuityMode } from '../../types';
+import type { BibleResponse, BibleUpdate, ContinuityMode, RegularCastMember } from '../../types';
 import { EpisodeDurationPicker } from './EpisodeDurationPicker';
 
 interface BibleEditorProps {
@@ -45,6 +45,10 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
 
   const [duration, setDuration] = useState<number | null>(bible.episode_duration_minutes);
 
+  // Structured regular cast — a repeatable list, not a textarea.
+  const [regularCast, setRegularCast] = useState<RegularCastMember[]>(bible.bible_regular_cast || []);
+  const [castExpanded, setCastExpanded] = useState(false);
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     bible_central_premise: true,
     bible_story_engine: false,
@@ -84,6 +88,7 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
         bible_tone_style: bible.bible_tone_style,
       });
       setDuration(bible.episode_duration_minutes);
+      setRegularCast(bible.bible_regular_cast || []);
       // Seed the selected preset once; later query refetches must not clobber
       // a user's in-session mode change.
       setSelectedPreset(presetIdForMode(continuityMode, bible.episode_duration_minutes));
@@ -137,6 +142,24 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
   const handleDurationChange = (val: number | null) => {
     setDuration(val);
     updateBibleMutation.mutate({ episode_duration_minutes: val });
+  };
+
+  // Regular cast: local-edit while typing, persist the whole list on blur/add/remove.
+  const persistCast = (next: RegularCastMember[]) => {
+    updateBibleMutation.mutate({ bible_regular_cast: next });
+  };
+  const updateCastMember = (index: number, field: keyof RegularCastMember, value: string) => {
+    setRegularCast(prev => prev.map((m, i) => (i === index ? { ...m, [field]: value } : m)));
+  };
+  const addCastMember = () => {
+    const next = [...regularCast, { name: '', role: '', arc: '' }];
+    setRegularCast(next);
+    setCastExpanded(true);
+  };
+  const removeCastMember = (index: number) => {
+    const next = regularCast.filter((_, i) => i !== index);
+    setRegularCast(next);
+    persistCast(next);
   };
 
   return (
@@ -223,6 +246,83 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
           )}
         </div>
       ))}
+
+      {/* Regular Cast — structured repeatable roster (not a textarea) */}
+      <div className="border border-border rounded-xl overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setCastExpanded(prev => !prev)}
+          className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-foreground hover:bg-muted/30 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            Regular Cast
+            {regularCast.length > 0 && (
+              <span className="text-xs text-muted-foreground">({regularCast.length})</span>
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            {savedField === 'bible_regular_cast' && (
+              <span className="flex items-center gap-1 text-xs text-emerald-400">
+                <Check className="h-3 w-3" /> Saved
+              </span>
+            )}
+            <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${castExpanded ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+        {castExpanded && (
+          <div className="px-4 pb-4 space-y-3">
+            {regularCast.length === 0 && (
+              <p className="text-xs text-muted-foreground py-2">
+                The fixed roster your episodes lean on. Add the recurring characters an episode can put to work each week.
+              </p>
+            )}
+            {regularCast.map((member, index) => (
+              <div key={index} className="rounded-lg border border-border p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    value={member.name}
+                    onChange={(e) => updateCastMember(index, 'name', e.target.value)}
+                    onBlur={() => persistCast(regularCast)}
+                    placeholder="Name"
+                    className="flex-1 rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeCastMember(index)}
+                    aria-label="Remove cast member"
+                    className="flex-shrink-0 p-2 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+                <input
+                  value={member.role}
+                  onChange={(e) => updateCastMember(index, 'role', e.target.value)}
+                  onBlur={() => persistCast(regularCast)}
+                  placeholder="Role in the series (what they do, function)"
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40"
+                />
+                <textarea
+                  value={member.arc}
+                  onChange={(e) => updateCastMember(index, 'arc', e.target.value)}
+                  onBlur={() => persistCast(regularCast)}
+                  placeholder="Season-long arc / where they're headed (optional)"
+                  rows={2}
+                  className="w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40 resize-y"
+                />
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addCastMember}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-dashed border-border text-sm text-muted-foreground hover:text-foreground hover:border-muted-foreground/40 transition-colors"
+            >
+              <Plus className="h-4 w-4" /> Add cast member
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Episode Duration */}
       <div className="border border-border rounded-xl px-4 py-4">

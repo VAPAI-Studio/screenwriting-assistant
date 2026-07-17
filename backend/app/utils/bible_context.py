@@ -111,6 +111,30 @@ def _build_slot_block(db: Session, project: Project) -> Optional[str]:
     return "\n".join(lines)
 
 
+def _format_regular_cast(cast) -> Optional[str]:
+    """Format the structured regular-cast list into a "### Regular Cast" block, or
+    None when empty. Each entry is a {name, role, arc} dict (JSON column); missing
+    keys degrade gracefully and fully-empty entries are skipped.
+    """
+    if not cast:
+        return None
+    lines = []
+    for member in cast:
+        if not isinstance(member, dict):
+            continue
+        name = (member.get("name") or "").strip()
+        role = (member.get("role") or "").strip()
+        arc = (member.get("arc") or "").strip()
+        if not any([name, role, arc]):
+            continue
+        header = name or "(unnamed)"
+        detail = " — ".join(p for p in [role, arc] if p)
+        lines.append(f"- **{header}**{': ' + detail if detail else ''}")
+    if not lines:
+        return None
+    return "\n### Regular Cast\n" + "\n".join(lines)
+
+
 def build_bible_context(db: Session, project: Project) -> Optional[str]:
     """Build bible context string for episode projects. Returns None for standalone films."""
     if not project.show_id:
@@ -141,7 +165,7 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
     # Check if there's any actual bible content or duration
     has_bible_content = any([
         show.bible_central_premise, show.bible_story_engine,
-        show.bible_series_questions,
+        show.bible_series_questions, show.bible_regular_cast,
         show.bible_characters, show.bible_world_setting,
         season_arc, show.bible_tone_style
     ])
@@ -170,6 +194,10 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
 
     if show.bible_characters:
         parts.append(f"\n### Characters\n{show.bible_characters}")
+
+    cast_block = _format_regular_cast(show.bible_regular_cast)
+    if cast_block:
+        parts.append(cast_block)
 
     if show.bible_world_setting:
         parts.append(f"\n### World & Setting\n{show.bible_world_setting}")

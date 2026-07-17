@@ -972,6 +972,13 @@ class ShowResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RegularCastMember(BaseModel):
+    """One fixed-roster character in the series bible (structured, Migration 018)."""
+    name: str = Field(default="", max_length=255)
+    role: str = Field(default="", max_length=2000)
+    arc: str = Field(default="", max_length=5000)
+
+
 class BibleUpdate(BaseModel):
     """Request body for PUT /api/shows/{id}/bible. All fields optional for partial updates."""
     bible_characters: Optional[str] = Field(None, max_length=50000)
@@ -981,6 +988,7 @@ class BibleUpdate(BaseModel):
     bible_central_premise: Optional[str] = Field(None, max_length=50000)
     bible_story_engine: Optional[str] = Field(None, max_length=50000)
     bible_series_questions: Optional[str] = Field(None, max_length=50000)
+    bible_regular_cast: Optional[List[RegularCastMember]] = Field(None, max_length=50)
     episode_duration_minutes: Optional[int] = Field(None, ge=1, le=480)
 
 
@@ -994,6 +1002,7 @@ class BibleResponse(BaseModel):
     bible_central_premise: str = ""
     bible_story_engine: str = ""
     bible_series_questions: str = ""
+    bible_regular_cast: List[RegularCastMember] = Field(default_factory=list)
     episode_duration_minutes: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
