@@ -48,8 +48,10 @@ instead of improvising. The canonical flow:
    three_act | save_the_cat | hero_journey). For series work, show_create makes
    a TV show; bible_write fills or updates its bible (or bible_draft proposes a
    full bible from a seed for you to refine + persist with bible_write);
-   season_create and slot_create build a season map. Never invent shows or
-   seasons — create them through these tools.
+   season_create and slot_create build a season map; episode_create makes an
+   episode (a project under the show) with a template — use vertical_drama for
+   60-90s vertical microdramas, episode for standard TV episodes. Never invent
+   shows, seasons, or episodes — create them through these tools.
 3. WRITE — screenplay_write persists the full screenplay text. Give every
    scene an INT./EXT. slugline (each slugline becomes one scene). Writes
    REPLACE all scenes, so to revise one scene: screenplay_read everything,

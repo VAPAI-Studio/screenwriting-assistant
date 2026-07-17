@@ -154,6 +154,25 @@ async def test_show_bible_season_slot_roundtrip():
     slot2 = _fn("slot_create")(ctx, season_id=season_id, title="Fallout")
     assert slot2["data"]["slot_number"] == 2
 
+    # Create an episode to write into — vertical microdrama template.
+    ep = _fn("episode_create")(ctx, show_id=show_id, title="Pilot", template="vertical_drama")
+    assert ep["data"]["template"] == "vertical_drama"
+    assert ep["data"]["show_id"] == show_id
+    assert ep["data"]["episode_number"] == 1
+    # It shows up in episode_list.
+    eps = _fn("episode_list")(ctx, show_id=show_id)
+    assert any(e["project_id"] == ep["data"]["project_id"] for e in eps["episodes"])
+
+
+@pytest.mark.anyio
+async def test_episode_create_rejects_bad_template():
+    uid, token = _seed_user_and_key()
+    ctx = _ctx(token)
+    from fastapi import HTTPException
+    show_id = _fn("show_create")(ctx, title="Tmpl Show")["data"]["show_id"]
+    with pytest.raises(HTTPException):
+        _fn("episode_create")(ctx, show_id=show_id, title="Ep", template="not_a_template")
+
 
 @pytest.mark.anyio
 async def test_bible_write_is_partial():

@@ -380,3 +380,57 @@ def register(mcp):
             db.commit()
             db.refresh(slot)
             return {"summary": f"Created slot {slot.slot_number}", "data": {"slot_id": str(slot.id), "slot_number": slot.slot_number}}
+
+    @mcp.tool()
+    def episode_create(ctx: Context, show_id: str, title: str, template: str = "episode", episode_number: Optional[int] = None) -> dict:
+        """PIPELINE STEP 2 (CREATE, series) — create an episode (a project under a
+        show) with a template, ready to write into. template is one of: episode,
+        vertical_drama (60-90s vertical microdrama), short_movie, sketch — pick the
+        one matching the show's format. episode_number auto-increments per show when
+        omitted. After creating, honor show_read_bible, then screenplay_write the
+        episode. 404 if the show isn't owned by the caller."""
+        from ...templates import get_template, get_template_subsections
+        title = (title or "").strip()
+        if len(title) < 2:
+            raise HTTPException(status_code=400, detail="title must be at least 2 characters")
+        valid_templates = {t.value for t in database.TemplateType}
+        if template not in valid_templates:
+            raise HTTPException(status_code=400, detail=f"template must be one of {sorted(valid_templates)}")
+        with mcp_session() as db:
+            user = resolve_user(ctx, db)
+            s = db.query(database.Show).filter(
+                database.Show.id == show_id,
+                database.Show.owner_id == str(user.id),
+            ).first()
+            if not s:
+                raise HTTPException(status_code=404, detail="Show not found")
+            ep_num = episode_number
+            if ep_num is None:
+                from sqlalchemy import func
+                max_num = db.query(func.max(database.Project.episode_number)).filter(
+                    database.Project.show_id == str(show_id)
+                ).scalar()
+                ep_num = (max_num or 0) + 1
+            p = database.Project(
+                title=title,
+                template=database.TemplateType(template),
+                current_phase=database.PhaseType.IDEA,
+                show_id=str(show_id),
+                episode_number=ep_num,
+                owner_id=str(user.id),
+            )
+            db.add(p)
+            db.flush()
+            # Scaffold phase_data for the template's subsections, same as the web app.
+            for sub in get_template_subsections(template):
+                db.add(database.PhaseData(
+                    project_id=p.id,
+                    phase=sub["phase"],
+                    subsection_key=sub["subsection_key"],
+                    sort_order=sub["sort_order"],
+                    content={},
+                    ai_suggestions={},
+                ))
+            db.commit()
+            db.refresh(p)
+            return {"summary": f"Created episode {ep_num}: '{p.title}'", "data": _project_brief(p)}
