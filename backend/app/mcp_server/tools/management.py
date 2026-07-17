@@ -86,11 +86,15 @@ def register(mcp):
             return {"summary": p.title, "data": _project_brief(p)}
 
     @mcp.tool()
-    def project_create(ctx: Context, title: str, framework: str = "three_act") -> dict:
-        """PIPELINE STEP 2 (CREATE) — create a new standalone film project with a
-        title and story framework (three_act | save_the_cat | hero_journey).
-        Returns the new project; write its screenplay next with screenplay_write.
-        Shows, episodes, and season maps are created in the web app, not here."""
+    def project_create(ctx: Context, title: str, framework: str = "three_act", template: str = "short_movie") -> dict:
+        """PIPELINE STEP 2 (CREATE) — create a new standalone project (not under a
+        show) with a title and a `template`: short_movie (5-10 min short film),
+        sketch (1-5 min comedy sketch), or vertical_drama (60-90s vertical
+        microdrama). `framework` (three_act | save_the_cat | hero_journey) is
+        recorded for the short-film flow. The project is scaffolded with the
+        template's phases/subsections, ready to develop and screenplay_write.
+        For series work use show_create + episode_create instead."""
+        from ...templates import get_template_subsections
         title = (title or "").strip()
         if len(title) < 2:
             raise HTTPException(status_code=400, detail="title must be at least 2 characters")
@@ -99,18 +103,37 @@ def register(mcp):
                 status_code=400,
                 detail=f"framework must be one of {sorted(_VALID_FRAMEWORKS)}",
             )
+        valid_templates = {t.value for t in database.TemplateType}
+        if template not in valid_templates:
+            raise HTTPException(
+                status_code=400,
+                detail=f"template must be one of {sorted(valid_templates)}",
+            )
         with mcp_session() as db:
             user = resolve_user(ctx, db)
-            # Use the working `template` column and record the requested framework
-            # in template_config — the legacy `framework` enum is broken on PG
-            # (D-57-A). This matches how the live app stores projects.
+            # `framework` is recorded in template_config — the legacy `framework`
+            # enum column is broken on PG (D-57-A). This matches the live app.
             p = database.Project(
                 title=title,
-                template=database.TemplateType.SHORT_MOVIE,
+                template=database.TemplateType(template),
                 template_config={"framework": framework},
+                current_phase=database.PhaseType.IDEA,
                 owner_id=user.id,
             )
             db.add(p)
+            db.flush()
+            # Scaffold phase_data for the template's subsections, same as the web
+            # app's create_project_v2 — without this the project has no structure
+            # to develop (idea/story/scenes/write) before writing.
+            for sub in get_template_subsections(template):
+                db.add(database.PhaseData(
+                    project_id=p.id,
+                    phase=sub["phase"],
+                    subsection_key=sub["subsection_key"],
+                    sort_order=sub["sort_order"],
+                    content={},
+                    ai_suggestions={},
+                ))
             db.commit()
             db.refresh(p)
             return {"summary": f"Created '{p.title}'", "data": _project_brief(p)}
@@ -389,7 +412,7 @@ def register(mcp):
         one matching the show's format. episode_number auto-increments per show when
         omitted. After creating, honor show_read_bible, then screenplay_write the
         episode. 404 if the show isn't owned by the caller."""
-        from ...templates import get_template, get_template_subsections
+        from ...templates import get_template_subsections
         title = (title or "").strip()
         if len(title) < 2:
             raise HTTPException(status_code=400, detail="title must be at least 2 characters")

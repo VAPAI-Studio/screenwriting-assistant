@@ -44,8 +44,10 @@ instead of improvising. The canonical flow:
    regular cast (the fixed roster — use these characters), plus characters,
    world/setting, season arc, and tone & style. An episode must run on the
    story engine and advance the series questions without closing them.
-2. CREATE — project_create makes a standalone film project (framework:
-   three_act | save_the_cat | hero_journey). For series work, show_create makes
+2. CREATE — project_create makes a standalone project (not under a show) with a
+   template: short_movie (short film), sketch (comedy sketch), or vertical_drama
+   (vertical microdrama); it scaffolds the template's phases ready to develop and
+   write. For series work, show_create makes
    a TV show; bible_write fills or updates its bible (or bible_draft proposes a
    full bible from a seed for you to refine + persist with bible_write);
    season_create and slot_create build a season map; episode_create makes an

@@ -73,6 +73,30 @@ async def test_project_create_list_get_roundtrip():
 
 
 @pytest.mark.anyio
+async def test_project_create_scaffolds_template():
+    """A standalone project created over MCP gets its template's phase_data
+    scaffolded (idea/story/scenes/write), same as the web app — and the agent
+    can pick a template like sketch, not just the default short_movie."""
+    from app.models.database import PhaseData
+    uid, token = _seed_user_and_key()
+    ctx = _ctx(token)
+
+    created = _fn("project_create")(ctx, title="My Sketch", template="sketch")
+    pid = created["data"]["project_id"]
+    assert created["data"]["template"] == "sketch"
+
+    with mcp_session() as db:
+        rows = db.query(PhaseData).filter(PhaseData.project_id == pid).all()
+        phases = {r.phase for r in rows}
+    # sketch has the canonical four phases scaffolded.
+    assert {"idea", "story", "scenes", "write"} <= phases
+    # And a short-film default still works with a framework.
+    film = _fn("project_create")(ctx, title="A Short", framework="save_the_cat")
+    assert film["data"]["template"] == "short_movie"
+    assert film["data"]["framework"] == "save_the_cat"
+
+
+@pytest.mark.anyio
 async def test_project_create_rejects_bad_input():
     uid, token = _seed_user_and_key()
     ctx = _ctx(token)
@@ -82,6 +106,8 @@ async def test_project_create_rejects_bad_input():
         _fn("project_create")(ctx, title="x")  # too short
     with pytest.raises(HTTPException):
         _fn("project_create")(ctx, title="Valid Title", framework="not_a_framework")
+    with pytest.raises(HTTPException):
+        _fn("project_create")(ctx, title="Valid Title", template="not_a_template")
 
 
 @pytest.mark.anyio
