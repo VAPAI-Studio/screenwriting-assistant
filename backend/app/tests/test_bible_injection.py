@@ -195,7 +195,7 @@ class TestBuildBibleContext:
 
     def test_regular_cast_skips_empty_entries(self, db_session):
         """Fully-empty cast entries are dropped so no "### Regular Cast" block is
-        emitted, even though a non-empty list keeps the bible from being 'empty'."""
+        emitted, while other real content still yields context."""
         from app.utils.bible_context import build_bible_context
 
         show = _create_show(
@@ -211,6 +211,26 @@ class TestBuildBibleContext:
         result = build_bible_context(db_session, project)
         assert result is not None
         assert "### Regular Cast" not in result
+
+    def test_only_blank_cast_returns_none(self, db_session):
+        """A bible whose ONLY content is a list of blank cast entries must return
+        None -- a truthy-but-content-free list must not emit a header-only block
+        (regression guard: has_bible_content keys on the formatted cast, not the
+        raw list)."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(
+            db_session,
+            bible_characters="",
+            bible_world_setting="",
+            bible_season_arc="",
+            bible_tone_style="",
+            episode_duration_minutes=None,
+            bible_regular_cast=[{"name": "", "role": "", "arc": ""}],
+        )
+        project = _create_project(db_session, show=show)
+        result = build_bible_context(db_session, project)
+        assert result is None
 
     def test_partial_bible_omits_empty_sections(self, db_session):
         """Only non-empty bible sections are included in the output."""

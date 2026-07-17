@@ -161,11 +161,16 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
         if season and (season.arc_summary or "").strip():
             season_arc = season.arc_summary
     slot_block = _build_slot_block(db, project)
+    # Compute the cast block up front so has_bible_content reflects REAL cast
+    # content: a list of only-blank entries is truthy but formats to nothing, and
+    # must not by itself keep the context alive (it would emit a header-only,
+    # content-free block that violates the "None when empty" contract).
+    cast_block = _format_regular_cast(show.bible_regular_cast)
 
     # Check if there's any actual bible content or duration
     has_bible_content = any([
         show.bible_central_premise, show.bible_story_engine,
-        show.bible_series_questions, show.bible_regular_cast,
+        show.bible_series_questions, cast_block,
         show.bible_characters, show.bible_world_setting,
         season_arc, show.bible_tone_style
     ])
@@ -195,7 +200,6 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
     if show.bible_characters:
         parts.append(f"\n### Characters\n{show.bible_characters}")
 
-    cast_block = _format_regular_cast(show.bible_regular_cast)
     if cast_block:
         parts.append(cast_block)
 

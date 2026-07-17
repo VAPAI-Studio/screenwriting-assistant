@@ -48,6 +48,12 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
   // Structured regular cast — a repeatable list, not a textarea.
   const [regularCast, setRegularCast] = useState<RegularCastMember[]>(bible.bible_regular_cast || []);
   const [castExpanded, setCastExpanded] = useState(false);
+  // Stable per-row keys so removing a row doesn't shift React keys by position
+  // (which would jump focus/cursor to the wrong row). Not persisted — UI only.
+  const castKeySeq = useRef(0);
+  const [castKeys, setCastKeys] = useState<number[]>(
+    () => (bible.bible_regular_cast || []).map(() => castKeySeq.current++)
+  );
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     bible_central_premise: true,
@@ -89,6 +95,7 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
       });
       setDuration(bible.episode_duration_minutes);
       setRegularCast(bible.bible_regular_cast || []);
+      setCastKeys((bible.bible_regular_cast || []).map(() => castKeySeq.current++));
       // Seed the selected preset once; later query refetches must not clobber
       // a user's in-session mode change.
       setSelectedPreset(presetIdForMode(continuityMode, bible.episode_duration_minutes));
@@ -154,11 +161,13 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
   const addCastMember = () => {
     const next = [...regularCast, { name: '', role: '', arc: '' }];
     setRegularCast(next);
+    setCastKeys(prev => [...prev, castKeySeq.current++]);
     setCastExpanded(true);
   };
   const removeCastMember = (index: number) => {
     const next = regularCast.filter((_, i) => i !== index);
     setRegularCast(next);
+    setCastKeys(prev => prev.filter((_, i) => i !== index));
     persistCast(next);
   };
 
@@ -278,7 +287,7 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
               </p>
             )}
             {regularCast.map((member, index) => (
-              <div key={index} className="rounded-lg border border-border p-3 space-y-2">
+              <div key={castKeys[index] ?? index} className="rounded-lg border border-border p-3 space-y-2">
                 <div className="flex items-center gap-2">
                   <input
                     value={member.name}

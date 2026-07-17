@@ -17,7 +17,6 @@
         "episode_selector_max": 10,
         "readiness_checks": [
           {"source": "scenes", "label": "Scenes", "count_items": true},
-          {"source": "story.core", "label": "Core Story Elements", "count_fields": ["logline", "theme", "protagonist"]},
           {"source": "story.characters", "label": "Characters", "count_items": true}
         ],
         "custom_guidance": true,
