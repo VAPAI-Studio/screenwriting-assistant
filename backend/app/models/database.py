@@ -105,6 +105,12 @@ class Show(Base):
     bible_tone_style = Column(Text, default="")
     episode_duration_minutes = Column(Integer, nullable=True)
 
+    # Series-engine bible fields (formalize what the episode template already
+    # references but the bible had no home for -- engine_fit / series_questions).
+    bible_central_premise = Column(Text, default="")
+    bible_story_engine = Column(Text, default="")
+    bible_series_questions = Column(Text, default="")
+
     # Continuity mode (v10.0 -- Phase 67). VARCHAR not PG Enum (D-03); default 'anthology' (D-01).
     continuity_mode = Column(String(20), nullable=False, default="anthology", server_default="anthology")
 

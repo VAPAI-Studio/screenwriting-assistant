@@ -122,6 +122,50 @@ class TestBuildBibleContext:
         assert "### Season Arc" in result
         assert "### Tone & Style" in result
 
+    def test_series_engine_fields_injected(self, db_session):
+        """Central premise, story engine and series questions are formatted into
+        the context under their own headers when non-empty (Migration 017)."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(
+            db_session,
+            bible_central_premise="A high-school teacher cooks meth to secure his family.",
+            bible_story_engine="Each week a new cook, buyer or rival forces Walt deeper in.",
+            bible_series_questions="Will Walt be caught? Will Skyler find out?",
+        )
+        project = _create_project(db_session, show=show)
+        result = build_bible_context(db_session, project)
+
+        assert result is not None
+        assert "### Central Premise" in result
+        assert "cooks meth" in result
+        assert "### Story Engine" in result
+        assert "new cook, buyer or rival" in result
+        assert "### Series Questions" in result
+        assert "Will Skyler find out?" in result
+
+    def test_series_engine_only_bible_is_not_none(self, db_session):
+        """A bible with ONLY the new engine fields (no legacy fields, no duration)
+        still emits context -- has_bible_content must count them."""
+        from app.utils.bible_context import build_bible_context
+
+        show = _create_show(
+            db_session,
+            bible_characters="",
+            bible_world_setting="",
+            bible_season_arc="",
+            bible_tone_style="",
+            episode_duration_minutes=None,
+            bible_story_engine="Case-of-the-week that reveals the detectives.",
+        )
+        project = _create_project(db_session, show=show)
+        result = build_bible_context(db_session, project)
+
+        assert result is not None
+        assert "### Story Engine" in result
+        # Legacy sections stay absent when empty.
+        assert "### Characters" not in result
+
     def test_partial_bible_omits_empty_sections(self, db_session):
         """Only non-empty bible sections are included in the output."""
         from app.utils.bible_context import build_bible_context

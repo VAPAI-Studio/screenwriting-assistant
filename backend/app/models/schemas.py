@@ -978,6 +978,9 @@ class BibleUpdate(BaseModel):
     bible_world_setting: Optional[str] = Field(None, max_length=50000)
     bible_season_arc: Optional[str] = Field(None, max_length=50000)
     bible_tone_style: Optional[str] = Field(None, max_length=50000)
+    bible_central_premise: Optional[str] = Field(None, max_length=50000)
+    bible_story_engine: Optional[str] = Field(None, max_length=50000)
+    bible_series_questions: Optional[str] = Field(None, max_length=50000)
     episode_duration_minutes: Optional[int] = Field(None, ge=1, le=480)
 
 
@@ -988,6 +991,9 @@ class BibleResponse(BaseModel):
     bible_world_setting: str = ""
     bible_season_arc: str = ""
     bible_tone_style: str = ""
+    bible_central_premise: str = ""
+    bible_story_engine: str = ""
+    bible_series_questions: str = ""
     episode_duration_minutes: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

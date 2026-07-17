@@ -131,6 +131,9 @@ async def get_bible(
         bible_world_setting=show.bible_world_setting or "",
         bible_season_arc=show.bible_season_arc or "",
         bible_tone_style=show.bible_tone_style or "",
+        bible_central_premise=show.bible_central_premise or "",
+        bible_story_engine=show.bible_story_engine or "",
+        bible_series_questions=show.bible_series_questions or "",
         episode_duration_minutes=show.episode_duration_minutes,
     )
 
@@ -161,6 +164,9 @@ async def update_bible(
         bible_world_setting=show.bible_world_setting or "",
         bible_season_arc=show.bible_season_arc or "",
         bible_tone_style=show.bible_tone_style or "",
+        bible_central_premise=show.bible_central_premise or "",
+        bible_story_engine=show.bible_story_engine or "",
+        bible_series_questions=show.bible_series_questions or "",
         episode_duration_minutes=show.episode_duration_minutes,
     )
 
@@ -253,6 +259,9 @@ async def create_episode(
 def _build_bible_text(show: "database.Show") -> str:
     """Concatenate the show's non-empty bible fields into one labeled block."""
     sections = [
+        ("Central Premise", show.bible_central_premise),
+        ("Story Engine", show.bible_story_engine),
+        ("Series Questions", show.bible_series_questions),
         ("Characters", show.bible_characters),
         ("World / Setting", show.bible_world_setting),
         ("Season Arc", show.bible_season_arc),

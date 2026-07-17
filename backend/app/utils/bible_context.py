@@ -140,6 +140,8 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
 
     # Check if there's any actual bible content or duration
     has_bible_content = any([
+        show.bible_central_premise, show.bible_story_engine,
+        show.bible_series_questions,
         show.bible_characters, show.bible_world_setting,
         season_arc, show.bible_tone_style
     ])
@@ -153,6 +155,18 @@ def build_bible_context(db: Session, project: Project) -> Optional[str]:
 
     if show.episode_duration_minutes:
         parts.append(f"**Target Episode Duration:** {show.episode_duration_minutes} minutes")
+
+    # Series-engine block first: it frames what generates episodes (the franchise)
+    # before the roster and world. The episode template's engine_fit and
+    # series_questions cards reference these directly.
+    if show.bible_central_premise:
+        parts.append(f"\n### Central Premise\n{show.bible_central_premise}")
+
+    if show.bible_story_engine:
+        parts.append(f"\n### Story Engine\n{show.bible_story_engine}")
+
+    if show.bible_series_questions:
+        parts.append(f"\n### Series Questions (advance, don't close)\n{show.bible_series_questions}")
 
     if show.bible_characters:
         parts.append(f"\n### Characters\n{show.bible_characters}")

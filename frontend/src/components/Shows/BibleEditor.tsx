@@ -34,6 +34,9 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
   const queryClient = useQueryClient();
 
   const [values, setValues] = useState<Record<string, string>>({
+    bible_central_premise: bible.bible_central_premise,
+    bible_story_engine: bible.bible_story_engine,
+    bible_series_questions: bible.bible_series_questions,
     bible_characters: bible.bible_characters,
     bible_world_setting: bible.bible_world_setting,
     bible_season_arc: bible.bible_season_arc,
@@ -43,7 +46,10 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
   const [duration, setDuration] = useState<number | null>(bible.episode_duration_minutes);
 
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    bible_characters: true,
+    bible_central_premise: true,
+    bible_story_engine: false,
+    bible_series_questions: false,
+    bible_characters: false,
     bible_world_setting: false,
     bible_season_arc: false,
     bible_tone_style: false,
@@ -69,6 +75,9 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
   useEffect(() => {
     if (!loaded.current) {
       setValues({
+        bible_central_premise: bible.bible_central_premise,
+        bible_story_engine: bible.bible_story_engine,
+        bible_series_questions: bible.bible_series_questions,
         bible_characters: bible.bible_characters,
         bible_world_setting: bible.bible_world_setting,
         bible_season_arc: bible.bible_season_arc,

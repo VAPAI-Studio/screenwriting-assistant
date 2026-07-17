@@ -479,6 +479,9 @@ export interface BibleResponse {
   bible_world_setting: string;
   bible_season_arc: string;
   bible_tone_style: string;
+  bible_central_premise: string;
+  bible_story_engine: string;
+  bible_series_questions: string;
   episode_duration_minutes: number | null;
 }
 
@@ -487,6 +490,9 @@ export interface BibleUpdate {
   bible_world_setting?: string;
   bible_season_arc?: string;
   bible_tone_style?: string;
+  bible_central_premise?: string;
+  bible_story_engine?: string;
+  bible_series_questions?: string;
   episode_duration_minutes?: number | null;
 }
 
