@@ -637,3 +637,62 @@ class TestContinuityModeInjection:
         assert result is not None
         assert "Prior Episodes" in result
         assert "STRING VALUE BRANCH SUMMARY" in result
+
+
+class TestAgentChatContinuityContext:
+    """AgentService._build_continuity_context: the sidebar chat must get the
+    bible in EVERY show mode (parity with wizards), while the expensive
+    prior-episode summary pre-pass stays connected-mode-only."""
+
+    @pytest.mark.asyncio
+    async def test_anthology_chat_gets_bible_without_prior_prepass(self, db_session):
+        """Anthology episode chat injects the bible (incl. regular cast) but does
+        NOT run the prior-summary generate/regenerate pre-pass."""
+        from app.services.agent_service import AgentService
+
+        show = _create_show(
+            db_session, continuity_mode="anthology",
+            bible_regular_cast=[{"name": "Nora", "role": "the fixer", "arc": ""}],
+        )
+        project = _create_project(db_session, show=show, episode_number=1)
+
+        with patch("app.services.agent_service.generate_missing_priors", new=AsyncMock()) as gen, \
+             patch("app.services.agent_service.regenerate_stale_priors", new=AsyncMock()) as regen:
+            result = await AgentService()._build_continuity_context(project, db_session)
+
+        assert result is not None
+        assert "## Series Bible Context" in result
+        assert "### Regular Cast" in result
+        assert "Nora" in result
+        # Prior-episode pre-pass is connected-mode-only.
+        gen.assert_not_called()
+        regen.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_connected_chat_runs_prior_prepass(self, db_session):
+        """Connected episode chat still runs the prior-summary pre-pass."""
+        from app.services.agent_service import AgentService
+
+        show = _create_show(db_session, continuity_mode="connected")
+        _create_project(
+            db_session, show=show, episode_number=1,
+            episode_summary="PRIOR SUMMARY",
+        )
+        current = _create_project(db_session, show=show, episode_number=2)
+
+        with patch("app.services.agent_service.generate_missing_priors", new=AsyncMock()) as gen, \
+             patch("app.services.agent_service.regenerate_stale_priors", new=AsyncMock()) as regen:
+            result = await AgentService()._build_continuity_context(current, db_session)
+
+        assert result is not None
+        gen.assert_called_once()
+        regen.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_no_show_returns_none(self, db_session):
+        """A standalone project (no show_id) still returns None."""
+        from app.services.agent_service import AgentService
+
+        project = _create_project(db_session)
+        result = await AgentService()._build_continuity_context(project, db_session)
+        assert result is None

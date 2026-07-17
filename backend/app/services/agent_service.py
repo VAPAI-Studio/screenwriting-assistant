@@ -223,12 +223,19 @@ Available {item_label} fields — populate ALL of them:
             return None
         try:
             show = db.query(Show).filter(Show.id == str(project.show_id)).first()
-            if not show or show.continuity_mode != ContinuityMode.CONNECTED.value:
+            if not show:
                 return None
-            # Order matters: fill missing summaries and refresh stale ones BEFORE
-            # build_bible_context reads the rows, so the frozen string sees fresh text.
-            await generate_missing_priors(db, show, project)
-            await regenerate_stale_priors(db, show, project)
+            # The prior-episode summaries are a connected-mode-only concern (and the
+            # only expensive part): generate/refresh them just for connected shows.
+            # The bible itself (characters, regular cast, engine, tone) applies to
+            # EVERY show mode, so it must be injected for anthology/standalone chats
+            # too -- otherwise the sidebar chat sees no bible while the wizards do
+            # (they call build_bible_context directly, unconditionally).
+            if show.continuity_mode == ContinuityMode.CONNECTED.value:
+                # Order matters: fill missing summaries and refresh stale ones BEFORE
+                # build_bible_context reads the rows, so the frozen string sees fresh text.
+                await generate_missing_priors(db, show, project)
+                await regenerate_stale_priors(db, show, project)
             return build_bible_context(db, project)
         except Exception as exc:  # noqa: BLE001 -- continuity is best-effort, never fatal
             logger.warning("Continuity context build failed for project %s: %s", project.id, exc)
