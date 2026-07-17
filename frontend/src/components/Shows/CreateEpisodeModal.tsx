@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Dialog from '@radix-ui/react-dialog';
-import { X, Tv, Film, Laugh } from 'lucide-react';
+import { X, Tv, Film, Laugh, Smartphone } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Button } from '../UI/Button';
 import { QUERY_KEYS } from '../../lib/constants';
@@ -11,6 +11,7 @@ const TEMPLATE_ICON_MAP: Record<string, typeof Tv> = {
   tv: Tv,
   film: Film,
   laugh: Laugh,
+  smartphone: Smartphone,
 };
 
 interface CreateEpisodeModalProps {

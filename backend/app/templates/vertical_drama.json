@@ -1,0 +1,467 @@
+{
+  "id": "vertical_drama",
+  "format": "series",
+  "name": "Vertical Microdrama",
+  "description": "Template for vertical microdrama episodes (60-90 seconds, ReelShort style) — hook in 3 seconds, one plot, one reversal, mandatory cliffhanger. Built for 50-100 episode seasons watched on a phone.",
+  "icon": "smartphone",
+  "phases": [
+    {
+      "id": "idea",
+      "name": "Idea",
+      "order": 0,
+      "subsections": [
+        {
+          "key": "idea_wizard",
+          "name": "Idea Wizard",
+          "description": "Develop this microdrama episode. A vertical episode is not a short film: it is one beat of a bingeable chain — grab in the first 3 seconds, deliver one turn, and end on a hook that forces the next tap. If the project belongs to a Show, the series bible and the season map feed the discussion.",
+          "ui_pattern": "wizard_with_chat",
+          "fields": [
+            {
+              "key": "genre",
+              "label": "Genre / Trope",
+              "type": "text",
+              "placeholder": "e.g., Secret billionaire, Revenge, Contract marriage, Hidden identity..."
+            },
+            {
+              "key": "initial_idea",
+              "label": "Episode Idea",
+              "type": "textarea",
+              "placeholder": "What single thing happens in THIS 60-90s episode? One situation, one turn."
+            },
+            {
+              "key": "runtime_target",
+              "label": "Target Runtime",
+              "type": "text",
+              "placeholder": "e.g., 60 seconds, 90 seconds"
+            },
+            {
+              "key": "tone",
+              "label": "Tone",
+              "type": "text",
+              "placeholder": "e.g., Soapy, High-melodrama, Wish-fulfillment, Petty-revenge..."
+            }
+          ],
+          "sidebar_chat": true,
+          "chat_system_prompt": "You are an expert vertical-microdrama development partner (ReelShort / DramaBox style). Help the user develop ONE episode of 60-90 seconds. The rules are strict: hook in the first 3 seconds (a slap, a reveal, a threat, a humiliation), ONE plotline only (no B-plot), exactly ONE reversal per episode, and a MANDATORY cliffhanger that makes the viewer tap 'next'. Emotions are big and legible; every line either escalates the situation or twists it. Push the user to cut anything that isn't the hook, the turn, or the cliffhanger. Think in taps, not minutes."
+        },
+        {
+          "key": "import_project",
+          "name": "Import Episode",
+          "description": "Bring an existing microdrama script to seed beats, scenes, and the screenplay editor. Paste or upload it, optionally include guidance, and we will align beats and scenes for you.",
+          "ui_pattern": "import_wizard",
+          "fields": [
+            {
+              "key": "screenplay_text",
+              "label": "Paste Screenplay",
+              "type": "textarea",
+              "placeholder": "Paste your episode script here..."
+            },
+            {
+              "key": "guidance",
+              "label": "Guidance (Optional)",
+              "type": "textarea",
+              "placeholder": "Any specific guidance for how to align beats and scenes..."
+            }
+          ],
+          "ai_actions": [
+            {
+              "key": "align",
+              "label": "Align Beats, Scenes & Screenplay",
+              "prompt_template": "import_and_align"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "story",
+      "name": "Story",
+      "order": 1,
+      "subsections": [
+        {
+          "key": "core",
+          "name": "Core",
+          "description": "Lock the engine of this microdrama episode. One hook, one turn, one cliffhanger. If you can't say the hook and the cliffhanger in one line each, the episode isn't ready.",
+          "ui_pattern": "card_grid",
+          "grid_columns": 3,
+          "sidebar_chat": true,
+          "cards": [
+            {
+              "key": "logline",
+              "label": "Episode Logline",
+              "type": "textarea",
+              "placeholder": "This episode in one breath: who, the single situation, and the turn."
+            },
+            {
+              "key": "hook_3s",
+              "label": "3-Second Hook",
+              "type": "textarea",
+              "placeholder": "What lands in the first 3 seconds to stop the scroll — a slap, a reveal, a threat, a humiliation."
+            },
+            {
+              "key": "single_plot",
+              "label": "The One Plotline",
+              "type": "textarea",
+              "placeholder": "The single thread this episode runs. No B-plot. Who wants what, right now."
+            },
+            {
+              "key": "reversal",
+              "label": "The Reversal",
+              "type": "textarea",
+              "placeholder": "The one turn that flips the situation this episode — the reason the viewer feels something changed."
+            },
+            {
+              "key": "cliffhanger",
+              "label": "Cliffhanger (mandatory)",
+              "type": "textarea",
+              "placeholder": "The unresolved threat, reveal or question that forces the next tap. Never optional."
+            },
+            {
+              "key": "emotional_payload",
+              "label": "Emotional Payload",
+              "type": "textarea",
+              "placeholder": "The big, legible feeling this episode delivers — satisfaction, outrage, vindication, dread."
+            },
+            {
+              "key": "series_questions",
+              "label": "Series Questions Advanced",
+              "type": "textarea",
+              "placeholder": "Which ongoing questions inch forward here without closing (the reason to keep bingeing)."
+            },
+            {
+              "key": "theme",
+              "label": "Theme (optional)",
+              "type": "textarea",
+              "placeholder": "The idea underneath the melodrama, if any. Optional — the turn matters more."
+            },
+            {
+              "key": "arc_shift",
+              "label": "Series-Arc Shift",
+              "type": "textarea",
+              "placeholder": "What is different in the story when this episode ends. If nothing changed, it's filler — cut it."
+            }
+          ]
+        },
+        {
+          "key": "characters",
+          "name": "Characters",
+          "description": "Who carries this episode. Vertical drama runs on a tiny set of high-contrast characters: the driver, the one who opposes them this episode, and whoever the turn lands on. Keep it small — a phone screen holds one face at a time.",
+          "ui_pattern": "repeatable_cards",
+          "card_groups": [
+            {
+              "key": "protagonist",
+              "label": "Episode Driver",
+              "item_type": "protagonist",
+              "min_items": 1,
+              "max_items": 2,
+              "fields": [
+                {
+                  "key": "name",
+                  "label": "Name",
+                  "type": "text"
+                },
+                {
+                  "key": "core_trait",
+                  "label": "Core Trait",
+                  "type": "textarea",
+                  "placeholder": "The single legible quality driving them this episode."
+                },
+                {
+                  "key": "want_vs_need",
+                  "label": "What They Want (this episode)",
+                  "type": "textarea",
+                  "placeholder": "The immediate, concrete thing they push for right now."
+                },
+                {
+                  "key": "dialogue_style",
+                  "label": "Dialogue Style",
+                  "type": "textarea",
+                  "placeholder": "How they speak — short, punchy, quotable."
+                }
+              ]
+            },
+            {
+              "key": "antagonist",
+              "label": "Opposition (this episode)",
+              "item_type": "antagonist",
+              "min_items": 0,
+              "max_items": 2,
+              "fields": [
+                {
+                  "key": "name",
+                  "label": "Name",
+                  "type": "text"
+                },
+                {
+                  "key": "core_trait",
+                  "label": "Core Trait",
+                  "type": "textarea"
+                },
+                {
+                  "key": "want_vs_need",
+                  "label": "What They Want",
+                  "type": "textarea",
+                  "placeholder": "Their agenda this episode — the thing that collides with the driver."
+                },
+                {
+                  "key": "dialogue_style",
+                  "label": "Dialogue Style",
+                  "type": "textarea"
+                }
+              ]
+            },
+            {
+              "key": "supporting",
+              "label": "Others in the Frame",
+              "item_type": "supporting",
+              "min_items": 0,
+              "max_items": 4,
+              "fields": [
+                {
+                  "key": "name",
+                  "label": "Name",
+                  "type": "text"
+                },
+                {
+                  "key": "role",
+                  "label": "Role This Episode",
+                  "type": "textarea",
+                  "placeholder": "What they do to feed the turn or the cliffhanger."
+                },
+                {
+                  "key": "dialogue_style",
+                  "label": "Dialogue Style",
+                  "type": "textarea"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "key": "story",
+          "name": "Beats",
+          "description": "Structure the 60-90 seconds: hook in the first 3 seconds, escalate the single situation fast, land the one reversal, and cut on the cliffhanger. There is no denouement — the episode ends the instant the hook for the next one is set.",
+          "ui_pattern": "card_grid",
+          "grid_columns": 3,
+          "sidebar_chat": true,
+          "linked_cards_source": "story.core",
+          "cards": [
+            {
+              "key": "hook",
+              "label": "Hook (first 3 seconds)",
+              "type": "textarea",
+              "placeholder": "Open ON the moment of maximum charge. No runway — the stop-the-scroll beat is the first frame."
+            },
+            {
+              "key": "setup_fast",
+              "label": "Fast Setup",
+              "type": "textarea",
+              "placeholder": "In a few lines: who's here, what's at stake right now. Compress ruthlessly."
+            },
+            {
+              "key": "escalation",
+              "label": "Escalation",
+              "type": "textarea",
+              "placeholder": "The single situation tightens — pressure rises toward the turn. One line at a time, no detours."
+            },
+            {
+              "key": "reversal",
+              "label": "The Reversal",
+              "type": "textarea",
+              "placeholder": "The turn lands: a reveal, a betrayal, a power flip. The emotional payload hits here."
+            },
+            {
+              "key": "cliffhanger",
+              "label": "Cliffhanger (Out)",
+              "type": "textarea",
+              "placeholder": "Cut on the new threat/question the reversal opens. The last frame IS the reason to tap next. Mandatory."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "scenes",
+      "name": "Scenes",
+      "order": 2,
+      "subsections": [
+        {
+          "key": "scene_wizard",
+          "name": "Scene Wizard",
+          "description": "A microdrama episode is usually 1-3 short scenes. The wizard turns the beats into a tight scene list that hits the hook fast and ends on the cliffhanger.",
+          "ui_pattern": "wizard",
+          "wizard_config": {
+            "item_label": "Scene",
+            "item_label_plural": "Scenes",
+            "default_count": "1-2",
+            "count_selector": true,
+            "count_options": [
+              {
+                "value": "1",
+                "label": "1 scene (single beat)"
+              },
+              {
+                "value": "1-2",
+                "label": "1–2 scenes"
+              },
+              {
+                "value": "2-3",
+                "label": "2–3 scenes"
+              },
+              {
+                "value": "auto",
+                "label": "Let AI decide"
+              }
+            ],
+            "readiness_checks": [
+              {
+                "source": "story.core",
+                "label": "Episode Engine",
+                "count_fields": [
+                  "logline",
+                  "hook_3s",
+                  "single_plot",
+                  "reversal",
+                  "cliffhanger",
+                  "emotional_payload",
+                  "series_questions",
+                  "theme",
+                  "arc_shift"
+                ]
+              },
+              {
+                "source": "story.characters",
+                "label": "Characters",
+                "count_items": true,
+                "item_groups": [
+                  "protagonist",
+                  "antagonist",
+                  "supporting"
+                ]
+              },
+              {
+                "source": "story.story",
+                "label": "Beats",
+                "count_fields": [
+                  "hook",
+                  "setup_fast",
+                  "escalation",
+                  "reversal",
+                  "cliffhanger"
+                ]
+              }
+            ],
+            "guidance_default": "Construct scenes for a 60-90 second vertical microdrama episode. Open ON the hook in the first scene's first line — no establishing runway. Keep to ONE plotline; every scene either escalates it or delivers the reversal. The final scene must cut on the cliffhanger. Favor short, quotable dialogue and a single face on screen at a time. No resolution, no wind-down.",
+            "beat_mapping_strategy": "Map the beats into 1-3 scenes: the hook and fast setup open scene one; escalation may share that scene or spill to a second; the reversal lands late; the cliffhanger is the final beat of the final scene. Never end a microdrama episode on a resolved beat.",
+            "import_from_screenplay": true,
+            "custom_guidance": true,
+            "generate_button": "Generate Scene List"
+          }
+        },
+        {
+          "key": "scene_list",
+          "name": "Scene List",
+          "description": "Organize your microdrama scenes.",
+          "ui_pattern": "ordered_list",
+          "list_config": {
+            "item_type": "scene",
+            "section_label": "EPISODE SCENES",
+            "sortable": true,
+            "addable": true,
+            "deletable": true,
+            "expandable": false,
+            "analyze_button": true,
+            "sidebar_chat": true,
+            "display_field": "summary"
+          }
+        },
+        {
+          "key": "scene_detail",
+          "name": "Individual Scenes",
+          "description": "Craft each scene for the phone: enter on the charged moment, keep one face in frame, and leave on the beat that pulls forward. In a microdrama the 'turning point' is the reversal and the final scene's 'push forward' is the cliffhanger.",
+          "ui_pattern": "individual_editor",
+          "editor_config": {
+            "item_type": "scene",
+            "navigator": true,
+            "layout": "two_column",
+            "fields": [
+              {
+                "key": "summary",
+                "label": "Summary",
+                "type": "textarea",
+                "full_width": true,
+                "placeholder": "What happens — kept to the single plotline."
+              },
+              {
+                "key": "arena",
+                "label": "Arena",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "One location, one face at a time."
+              },
+              {
+                "key": "inciting_incident",
+                "label": "Scene Hook",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "The charged moment the scene opens on — enter as late and as hot as possible."
+              },
+              {
+                "key": "goal",
+                "label": "Goal",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "What the driver pushes for right now."
+              },
+              {
+                "key": "subtext",
+                "label": "Subtext",
+                "type": "textarea",
+                "column": "left",
+                "placeholder": "The feeling under the line — big but unspoken."
+              },
+              {
+                "key": "turning_point",
+                "label": "Turning Point / Reversal",
+                "type": "textarea",
+                "column": "left"
+              },
+              {
+                "key": "climax",
+                "label": "Peak Beat",
+                "type": "textarea",
+                "column": "right",
+                "placeholder": "The hardest hit of the scene."
+              },
+              {
+                "key": "fallout",
+                "label": "Immediate Fallout",
+                "type": "textarea",
+                "column": "right"
+              },
+              {
+                "key": "push_forward",
+                "label": "Out / Cliffhanger",
+                "type": "textarea",
+                "column": "right",
+                "placeholder": "The pull into the next scene — and on the final scene, the episode cliffhanger."
+              }
+            ],
+            "sidebar_chat": true,
+            "bottom_bar": {
+              "show_item_number": true,
+              "show_act_sequence": true,
+              "show_linked_beats": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "write",
+      "name": "Write",
+      "order": 3,
+      "$ref": "shared/write_phase.json"
+    }
+  ]
+}

@@ -195,6 +195,7 @@ class TemplateType(str, enum.Enum):
     SHORT_MOVIE = "short_movie"
     SKETCH = "sketch"
     EPISODE = "episode"
+    VERTICAL_DRAMA = "vertical_drama"
 
 
 class PhaseType(str, enum.Enum):
