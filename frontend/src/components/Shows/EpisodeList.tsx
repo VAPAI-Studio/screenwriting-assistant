@@ -105,7 +105,7 @@ export function EpisodeList({ showId }: EpisodeListProps) {
               {/* Delete button */}
               <button
                 onClick={(e) => handleDelete(e, episode.id)}
-                className="flex-shrink-0 p-1.5 text-transparent group-hover:text-muted-foreground hover:!text-destructive rounded-lg transition-colors"
+                className="flex-shrink-0 p-1.5 text-muted-foreground/40 group-hover:text-muted-foreground hover:!text-destructive rounded-lg transition-colors"
                 aria-label={`Delete episode ${episode.episode_number}`}
               >
                 <Trash2 className="h-4 w-4" />

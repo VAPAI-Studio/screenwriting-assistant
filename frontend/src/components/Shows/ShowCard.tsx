@@ -34,7 +34,7 @@ export function ShowCard({ show, onDelete }: ShowCardProps) {
               e.stopPropagation();
               onDelete(show.id);
             }}
-            className="p-1.5 text-transparent group-hover:text-muted-foreground hover:!text-destructive rounded-lg transition-colors"
+            className="p-1.5 text-muted-foreground/40 group-hover:text-muted-foreground hover:!text-destructive rounded-lg transition-colors"
           >
             <Trash2 className="h-4 w-4" />
           </button>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Tv, Loader2, Send, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Tv, Loader2, Send, ExternalLink, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { QUERY_KEYS, VAPAI_ENABLED } from '../../lib/constants';
 import type { SendSeriesToVapaiResponse } from '../../types';
@@ -24,6 +24,17 @@ export function ShowDetail({ showId }: ShowDetailProps) {
     queryKey: QUERY_KEYS.BIBLE(showId),
     queryFn: () => api.getBible(showId),
   });
+
+  const deleteShowMutation = useMutation({
+    mutationFn: () => api.deleteShow(showId),
+    onSuccess: () => navigate('/'),
+  });
+
+  const handleDeleteShow = () => {
+    if (window.confirm(`Delete "${show?.title}"? This will remove all its episodes. This cannot be undone.`)) {
+      deleteShowMutation.mutate();
+    }
+  };
 
   // Push the whole series to vapai-studio. Inline banner feedback (no toast system).
   const sendSeriesMutation = useMutation<SendSeriesToVapaiResponse, Error>({
@@ -82,18 +93,35 @@ export function ShowDetail({ showId }: ShowDetailProps) {
           </div>
         </div>
 
-        {VAPAI_ENABLED && (
+        <div className="flex-shrink-0 flex items-center gap-2">
+          {VAPAI_ENABLED && (
+            <button
+              onClick={() => sendSeriesMutation.mutate()}
+              disabled={sendSeriesMutation.isPending}
+              title="Enviar toda la serie (episodios + biblia) a vapai-studio para producción"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-foreground/80 bg-muted/40 border border-border/40 rounded-lg hover:bg-muted/70 hover:text-foreground transition-colors disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" />
+              {sendSeriesMutation.isPending ? 'Enviando serie…' : 'Enviar serie a vapai-studio'}
+            </button>
+          )}
           <button
-            onClick={() => sendSeriesMutation.mutate()}
-            disabled={sendSeriesMutation.isPending}
-            title="Enviar toda la serie (episodios + biblia) a vapai-studio para producción"
-            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-foreground/80 bg-muted/40 border border-border/40 rounded-lg hover:bg-muted/70 hover:text-foreground transition-colors disabled:opacity-40"
+            onClick={handleDeleteShow}
+            disabled={deleteShowMutation.isPending}
+            title="Delete this show and all its episodes"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-muted-foreground border border-border/40 rounded-lg hover:text-red-300 hover:border-red-500/40 hover:bg-red-500/10 transition-colors disabled:opacity-40"
           >
-            <Send className="h-4 w-4" />
-            {sendSeriesMutation.isPending ? 'Enviando serie…' : 'Enviar serie a vapai-studio'}
+            <Trash2 className="h-4 w-4" />
+            {deleteShowMutation.isPending ? 'Deleting…' : 'Delete show'}
           </button>
-        )}
+        </div>
       </div>
+
+      {deleteShowMutation.isError && (
+        <div role="alert" className="mb-6 px-4 py-2.5 text-sm rounded-lg bg-red-500/10 border border-red-500/20 text-red-300">
+          Could not delete the show: {(deleteShowMutation.error as Error).message}
+        </div>
+      )}
 
       {/* vapai-studio send feedback (inline banners) */}
       {sendSeriesMutation.isSuccess && (
