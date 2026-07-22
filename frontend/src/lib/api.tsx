@@ -1397,11 +1397,13 @@ export const api = {
   },
 
   async runBibleWizard(showId: string, seed: BibleWizardRequest): Promise<BibleWizardResponse> {
+    // Single synchronous AI generation (~8 bible sections) — comfortably exceeds
+    // the default 30s API timeout, so use the long CHAT_TIMEOUT like sendToVapai.
     const response = await fetchWithTimeout(`${API_BASE_URL}/shows/${showId}/bible/wizard`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(seed),
-    });
+    }, CHAT_TIMEOUT);
     if (!response.ok) {
       const err = await response.json().catch(() => ({ detail: 'Failed to run bible wizard' }));
       throw new Error(err.detail || 'Failed to run bible wizard');
