@@ -50,6 +50,7 @@ docker-compose up --build
 - Frontend: http://localhost:4321
 - API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
+- MCP server (for agents): http://localhost:8000/mcp/ — see [mcp-guide.md](mcp-guide.md) for connecting and using it
 
 ## Development
 
