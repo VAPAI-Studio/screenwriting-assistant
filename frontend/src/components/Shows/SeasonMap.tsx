@@ -80,6 +80,14 @@ export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
     onSuccess: invalidateSeason,
   });
 
+  const deleteSeasonMutation = useMutation({
+    mutationFn: (seasonId: string) => api.deleteSeason(seasonId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SEASONS(showId) });
+      setSelectedSeasonId(null); // fall back to the first remaining season
+    },
+  });
+
   const createEpisodeMutation = useMutation({
     mutationFn: (slotId: string) => api.createEpisodeFromSlot(slotId),
     onSuccess: () => {
@@ -142,6 +150,19 @@ export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              if (!activeSeasonId || !season) return;
+              if (window.confirm(`Delete Season ${season.number}? Its planned slots are removed; already-created episodes are kept (they just lose the season link). This cannot be undone.`)) {
+                deleteSeasonMutation.mutate(activeSeasonId);
+              }
+            }}
+            disabled={!activeSeasonId || deleteSeasonMutation.isPending}
+            title="Delete this season (episodes are kept)"
+            className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-300 hover:bg-red-500/10 transition-colors disabled:opacity-40"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
           <Button size="sm" variant="ghost" onClick={() => addSlotMutation.mutate()} disabled={!activeSeasonId || addSlotMutation.isPending}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Add slot
