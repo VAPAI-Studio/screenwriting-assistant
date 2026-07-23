@@ -606,8 +606,12 @@ async def send_ai_message_stream(
             logger.error(f"Streaming error: {e}")
             full_text = full_text or "I'm having trouble generating a response right now."
 
-        # If field suggestions enabled, extract proposed updates (no DB write)
+        # If field suggestions enabled, extract proposed updates (no DB write for
+        # FIELD updates — those go back as a proposal the user applies). List-item
+        # creation IS applied server-side, mirroring the agent-chat panel: with the
+        # mode toggle gone this is the only path that can build lists from chat.
         field_updates = {}
+        items_created = 0
         if allow_field_suggestions and brainstorm_field_defs:
             try:
                 extraction_result = await template_ai_service.chat_action_extract_updates(
@@ -617,7 +621,45 @@ async def send_ai_message_stream(
                     current_content=brainstorm_current_content,
                 )
                 field_updates = extraction_result.get("field_updates", {})
+                list_item_creates = extraction_result.get("list_item_creates", []) or []
                 logger.info(f"Brainstorm suggestions extracted keys={list(field_updates.keys()) if field_updates else 'none'}")
+
+                list_config = sub_config.get("list_config") or {}
+                item_type = list_config.get("item_type")
+                if list_item_creates and item_type and not session.context_item_id:
+                    from sqlalchemy import func as sqlfunc
+                    pd = db.query(database.PhaseData).filter(
+                        database.PhaseData.project_id == project.id,
+                        database.PhaseData.phase == session.phase,
+                        database.PhaseData.subsection_key == session.subsection_key,
+                    ).first()
+                    if not pd:
+                        pd = database.PhaseData(
+                            project_id=project.id,
+                            phase=session.phase,
+                            subsection_key=session.subsection_key,
+                            content={},
+                        )
+                        db.add(pd)
+                        db.flush()
+                    max_order = db.query(sqlfunc.max(database.ListItem.sort_order)).filter(
+                        database.ListItem.phase_data_id == pd.id
+                    ).scalar()
+                    next_order = (max_order + 1) if max_order is not None else 0
+                    for item_content in list_item_creates:
+                        if isinstance(item_content, dict) and item_content:
+                            db.add(database.ListItem(
+                                phase_data_id=pd.id,
+                                item_type=item_type,
+                                content=item_content,
+                                sort_order=next_order,
+                                status="draft",
+                            ))
+                            next_order += 1
+                            items_created += 1
+                    if items_created:
+                        db.commit()
+                        logger.info(f"Chat suggestions: created {items_created} list items of type '{item_type}'")
             except Exception as e:
                 logger.error(f"Brainstorm field extraction error: {e}", exc_info=True)
 
@@ -627,15 +669,17 @@ async def send_ai_message_stream(
             role="assistant",
             content=full_text,
             message_type="chat",
-            metadata_={"field_updates": field_updates, "applied": False} if field_updates else {},
+            metadata_={"field_updates": field_updates, "applied": False, "list_items_created": items_created}
+            if (field_updates or items_created) else {},
         )
         try:
             db.add(ai_msg)
             db.commit()
             db.refresh(ai_msg)
-            if field_updates:
-                # Send field_updates to frontend for confirmation (applied=False)
-                yield f"data: {json.dumps({'field_updates': field_updates, 'applied': False, 'done': True, 'id': str(ai_msg.id)})}\n\n"
+            if field_updates or items_created:
+                # field_updates go to the frontend for confirmation (applied=False);
+                # list_items_created signals the ordered list to refresh.
+                yield f"data: {json.dumps({'field_updates': field_updates, 'applied': False, 'list_items_created': items_created, 'done': True, 'id': str(ai_msg.id)})}\n\n"
             else:
                 yield f"data: {json.dumps({'done': True, 'id': str(ai_msg.id)})}\n\n"
         except IntegrityError:

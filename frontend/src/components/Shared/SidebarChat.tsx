@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Send, Loader2, MessageSquare, Zap, Check, RotateCcw, AlertCircle,
+  Send, Loader2, Zap, Check, RotateCcw, AlertCircle,
   BookOpen, ChevronDown, Lightbulb, Pencil,
 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -11,7 +11,6 @@ import { MarkdownContent } from './MarkdownContent';
 import type { AIMessageResponse, SubsectionConfig, FieldDef, FieldGroup } from '../../types/template';
 import type { Agent, ChatMessage, BookReference, ConsultedAgent } from '../../types';
 
-type ChatMode = 'brainstorm' | 'action';
 type PanelMode = 'template' | 'agent';
 
 interface SidebarChatProps {
@@ -159,8 +158,6 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
 
   // Template AI state
   const [input, setInput] = useState('');
-  const [mode, setMode] = useState<ChatMode>('brainstorm');
-  const [allowBrainstormEdits, setAllowBrainstormEdits] = useState(false);
   const [pendingBrainstormUpdates, setPendingBrainstormUpdates] = useState<Record<string, string> | null>(null);
   const [applyingBrainstorm, setApplyingBrainstorm] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -331,21 +328,15 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
       await api.sendAIMessageStream(
         sessionId,
         content,
-        mode,
         (chunk) => setStreamingText((prev) => prev + chunk),
         (data) => {
           const fu = data.metadata?.field_updates;
-          if (data.metadata?.applied && fu && Object.keys(fu).length > 0) {
-            // action mode: auto-applied
-            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SUBSECTION_DATA(projectId, phase, subsectionKey) });
-            if (contextItemId) queryClient.invalidateQueries({ queryKey: QUERY_KEYS.LIST_ITEM(contextItemId) });
-          }
           if ((data.metadata?.list_items_created ?? 0) > 0) {
             // AI created new list items (scenes/episodes) — refresh the ordered list
             queryClient.invalidateQueries({ queryKey: ['list_items'] });
           }
-          if (data.metadata?.applied === false && fu && Object.keys(fu).length > 0) {
-            // brainstorm with suggestions: show confirmation
+          if (fu && Object.keys(fu).length > 0) {
+            // Every concrete edit arrives as a proposal — applied only on click.
             setPendingBrainstormUpdates(fu);
           }
         },
@@ -482,20 +473,6 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Template AI</h3>
               <div className="flex items-center gap-1">
-                {/* Allow edits toggle — only shown in brainstorm mode when there are fields */}
-                {mode === 'brainstorm' && hasFields && (
-                  <button
-                    onClick={() => { setAllowBrainstormEdits(v => !v); setPendingBrainstormUpdates(null); }}
-                    title={allowBrainstormEdits ? 'Disable field suggestions' : 'Allow field suggestions'}
-                    className={`p-1 rounded-md transition-colors ${
-                      allowBrainstormEdits
-                        ? 'text-violet-400 bg-violet-500/10 hover:bg-violet-500/20'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                    }`}
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                )}
                 {(messages.length > 0 || streamingText) && (
                   <button onClick={handleClear} disabled={isStreaming} title="Clear"
                     className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-30">
@@ -504,21 +481,9 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
                 )}
               </div>
             </div>
-            <div className="flex gap-1 bg-muted/30 rounded-lg p-0.5">
-              <button onClick={() => setMode('brainstorm')} className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-                mode === 'brainstorm' ? 'bg-card text-foreground shadow-sm border border-border' : 'text-muted-foreground hover:text-foreground/70'
-              }`}>
-                <MessageSquare className="h-3 w-3" /> Brainstorm
-              </button>
-              <button onClick={() => setMode('action')} className={`flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-all ${
-                mode === 'action' ? 'bg-amber-500/15 text-amber-300 shadow-sm border border-amber-500/20' : 'text-muted-foreground hover:text-foreground/70'
-              }`}>
-                <Zap className="h-3 w-3" /> Do stuff
-              </button>
-            </div>
-            {mode === 'brainstorm' && allowBrainstormEdits && (
-              <p className="text-[10px] text-violet-400/70 mt-1.5 px-0.5">
-                AI can suggest field edits — you'll confirm before anything is saved.
+            {hasFields && (
+              <p className="text-[10px] text-muted-foreground/70 px-0.5">
+                Charlá libremente — cuando la IA tenga cambios concretos, te los propone y vos decidís si aplicarlos.
               </p>
             )}
           </div>
@@ -527,7 +492,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
             {messages.length === 0 && !streamingText && (
               <div className="text-center py-8">
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  {mode === 'brainstorm' ? 'Discuss ideas freely. The AI has context about your current work.' : 'Ask the AI to fill in or modify fields. Changes will be applied directly.'}
+                  Charlá con la IA sobre esta sección — tiene el contexto de tu proyecto. Si surgen cambios concretos, te los propone para aplicar.
                 </p>
               </div>
             )}
@@ -556,12 +521,6 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
                   <div className="rounded-xl px-3.5 py-2.5 text-sm leading-relaxed bg-muted/50 text-foreground/80 border border-border">
                     <MarkdownContent content={streamingText} />
                   </div>
-                  {isStreaming && mode === 'action' && (
-                    <div className="flex items-center gap-1.5 ml-2 mt-1">
-                      <Loader2 className="h-3 w-3 animate-spin text-amber-400" />
-                      <span className="text-[10px] text-amber-400/80 font-medium">Applying changes...</span>
-                    </div>
-                  )}
                 </div>
               </div>
             )}
@@ -598,24 +557,21 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
           )}
 
           <div className="p-3 border-t border-border flex-shrink-0">
-            {mode === 'action' && (
-              <div className="flex items-center justify-between mb-2 px-1">
-                <div className="flex items-center gap-1.5">
-                  <Zap className="h-3 w-3 text-amber-400/60" />
-                  <span className="text-[10px] text-amber-400/60 font-medium">AI can modify fields</span>
-                </div>
+            {hasFields && (
+              <div className="flex items-center justify-end mb-2 px-1">
                 <button
                   onClick={handleYolo}
                   disabled={isStreaming || !sessionId}
+                  title="La IA propone contenido para todos los campos de la sección — vos decidís si aplicarlo"
                   className="text-[10px] px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed font-medium"
                 >
-                  ⚡ Generate all
+                  ⚡ Proponer todos los campos
                 </button>
               </div>
             )}
             <div className="flex gap-2">
               <textarea value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
-                placeholder={mode === 'brainstorm' ? 'Ask the AI...' : 'Tell the AI what to change...'}
+                placeholder="Escribile a la IA…"
                 rows={1} disabled={!sessionId || isStreaming}
                 className="flex-1 bg-input border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 resize-none" />
               <button onClick={() => handleSend()} disabled={!input.trim() || !sessionId || isStreaming}

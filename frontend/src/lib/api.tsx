@@ -742,17 +742,19 @@ export const api = {
   async sendAIMessageStream(
     sessionId: string,
     content: string,
-    mode: 'brainstorm' | 'action' = 'brainstorm',
     onChunk: (chunk: string) => void,
     onDone: (data: { id?: string; metadata?: Record<string, any> }) => void,
   ): Promise<void> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
+      // Mode-less chat: always converse (brainstorm) and always ask the backend
+      // to extract field suggestions — they surface as a proposal card the user
+      // applies explicitly. Nothing is written server-side from a chat turn.
       const response = await authFetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages/stream`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ content, mode }),
+        body: JSON.stringify({ content, mode: 'brainstorm', allow_field_suggestions: true }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
