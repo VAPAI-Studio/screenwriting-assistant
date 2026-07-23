@@ -361,11 +361,12 @@ export const ELEMENT_EXTENDED_FIELDS: Record<BreakdownCategory, Array<{ key: str
   ],
 };
 
+// NOTE: characters live in the merged "Personajes" section inside BibleEditor
+// (structured regular cast + free-notes bible_characters), not in this loop.
 export const BIBLE_SECTIONS = [
   { key: 'bible_central_premise', label: 'Central Premise', placeholder: 'The whole series in one line: the recognizable idea a viewer could pitch to a friend.' },
   { key: 'bible_story_engine', label: 'Story Engine', placeholder: 'The repeatable machine that generates episodes — who gets stories every week and why. This is what an episode\'s "engine fit" answers to.' },
   { key: 'bible_series_questions', label: 'Series Questions', placeholder: 'The long-arc questions episodes advance but deliberately do NOT close. The open threads that keep viewers coming back.' },
-  { key: 'bible_characters', label: 'Characters', placeholder: 'Describe your main and recurring characters...' },
   { key: 'bible_world_setting', label: 'World / Setting', placeholder: 'Describe the world, time period, and locations...' },
   { key: 'bible_season_arc', label: 'Season Arc', placeholder: 'Outline the overarching story arc for the season...' },
   { key: 'bible_tone_style', label: 'Tone & Style', placeholder: 'Describe the visual style, tone, and mood...' },

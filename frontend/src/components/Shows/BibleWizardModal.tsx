@@ -5,12 +5,15 @@ import { X, Wand2, Loader2, Check } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Button } from '../UI/Button';
 import { QUERY_KEYS } from '../../lib/constants';
-import type { BibleWizardResponse, BibleUpdate, RegularCastMember } from '../../types';
+import type { BibleWizardResponse, BibleUpdate, BibleResponse, RegularCastMember } from '../../types';
 
 interface BibleWizardModalProps {
   showId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called with the fresh bible after an apply, so the editor can re-seed its
+      local state (its init effect deliberately ignores query refetches). */
+  onApplied?: (bible: BibleResponse) => void;
 }
 
 const FIELD_CLS =
@@ -34,7 +37,7 @@ function hasContent(v: BibleWizardResponse[keyof BibleWizardResponse]): boolean 
   return Array.isArray(v) ? v.length > 0 : !!(v || '').trim();
 }
 
-export function BibleWizardModal({ showId, open, onOpenChange }: BibleWizardModalProps) {
+export function BibleWizardModal({ showId, open, onOpenChange, onApplied }: BibleWizardModalProps) {
   const queryClient = useQueryClient();
   const [logline, setLogline] = useState('');
   const [genre, setGenre] = useState('');
@@ -72,8 +75,9 @@ export function BibleWizardModal({ showId, open, onOpenChange }: BibleWizardModa
       }
       return api.updateBible(showId, data);
     },
-    onSuccess: () => {
+    onSuccess: (fresh) => {
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.BIBLE(showId) });
+      if (fresh) onApplied?.(fresh);
       queryClient.invalidateQueries({ queryKey: QUERY_KEYS.SHOW(showId) });
       handleClose(false);
     },

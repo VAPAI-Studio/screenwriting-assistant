@@ -68,6 +68,14 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
 
   const [savedField, setSavedField] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  // Wizard-first: with a fully empty bible the AI wizard is the hero action and
+  // the manual editor stays hidden until the user opts into it.
+  const [manualOpen, setManualOpen] = useState(false);
+  const bibleIsEmpty =
+    !(bible.bible_central_premise || bible.bible_story_engine || bible.bible_series_questions ||
+      bible.bible_characters || bible.bible_world_setting || bible.bible_season_arc ||
+      bible.bible_tone_style || '').trim() &&
+    (bible.bible_regular_cast || []).length === 0;
 
   // Pre-select the preset card matching the show's current mode (UI-SPEC :102).
   const [selectedPreset, setSelectedPreset] = useState<string>(
@@ -173,10 +181,61 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
     persistCast(next);
   };
 
+  // Re-seed local editor state from the bible returned by a wizard apply — the
+  // mount-once init effect deliberately ignores refetches, so without this the
+  // editor would keep showing the pre-wizard (empty) values.
+  const reseedFromBible = (b: BibleResponse) => {
+    setValues({
+      bible_central_premise: b.bible_central_premise,
+      bible_story_engine: b.bible_story_engine,
+      bible_series_questions: b.bible_series_questions,
+      bible_characters: b.bible_characters,
+      bible_world_setting: b.bible_world_setting,
+      bible_season_arc: b.bible_season_arc,
+      bible_tone_style: b.bible_tone_style,
+    });
+    setRegularCast(b.bible_regular_cast || []);
+    setCastKeys((b.bible_regular_cast || []).map(() => castKeySeq.current++));
+    setManualOpen(true);
+  };
+
   return (
     <div className="space-y-3">
-      <BibleWizardModal showId={showId} open={wizardOpen} onOpenChange={setWizardOpen} />
+      <BibleWizardModal showId={showId} open={wizardOpen} onOpenChange={setWizardOpen} onApplied={reseedFromBible} />
 
+      {/* Why the bible exists — the one line that frames everything below */}
+      <p className="text-xs text-muted-foreground px-1">
+        Todo lo que definas acá se inyecta en cada episodio que escribas o generes — el bible es el motor de la serie.
+      </p>
+
+      {bibleIsEmpty && !manualOpen ? (
+        /* Wizard-first hero: empty bible → the AI draft is the main path */
+        <div className="border border-amber-500/25 bg-amber-500/5 rounded-xl px-6 py-10 text-center">
+          <Wand2 className="h-8 w-8 text-amber-400 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-foreground mb-1.5">Empezá por acá</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
+            Contale a la IA tu serie en una línea y te propone el bible completo — premisa,
+            motor de historias, personajes, mundo y tono. Después lo refinás a mano.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setWizardOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-sm font-medium text-amber-300 hover:bg-amber-500/25 transition-colors"
+            >
+              <Wand2 className="h-4 w-4" /> Draft the bible with AI
+            </button>
+            <button
+              type="button"
+              onClick={() => setManualOpen(true)}
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-4"
+            >
+              Completar a mano
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* AI bible wizard — drafts every section from a short seed */}
       <button
         type="button"
@@ -278,7 +337,7 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
         >
           <span className="flex items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            Regular Cast
+            Personajes
             {regularCast.length > 0 && (
               <span className="text-xs text-muted-foreground">({regularCast.length})</span>
             )}
@@ -342,6 +401,22 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
             >
               <Plus className="h-4 w-4" /> Add cast member
             </button>
+
+            {/* Free-form character notes — merged here from the old standalone
+                "Characters" section so people live in ONE place. */}
+            <div className="pt-1">
+              <label className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                Notas de personajes (opcional)
+              </label>
+              <textarea
+                value={values.bible_characters || ''}
+                onChange={(e) => setValues(prev => ({ ...prev, bible_characters: e.target.value }))}
+                onBlur={() => handleBlur('bible_characters')}
+                placeholder="Dinámicas, relaciones, secundarios recurrentes, historia compartida…"
+                rows={4}
+                className="w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500/40 transition-all resize-y"
+              />
+            </div>
           </div>
         )}
       </div>
@@ -358,6 +433,8 @@ export function BibleEditor({ showId, bible, continuityMode }: BibleEditorProps)
         </div>
         <EpisodeDurationPicker value={duration} onChange={handleDurationChange} />
       </div>
+        </>
+      )}
     </div>
   );
 }

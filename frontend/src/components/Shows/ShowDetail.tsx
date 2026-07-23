@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Tv, Loader2, Send, ExternalLink, Trash2 } from 'lucide-react';
@@ -12,9 +13,14 @@ interface ShowDetailProps {
   showId: string;
 }
 
+type ShowTab = 'episodes' | 'map' | 'bible';
+
 export function ShowDetail({ showId }: ShowDetailProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // null = "not chosen yet" → computed default below (episodes, or bible when
+  // the bible is still empty — for a new show that IS the first step).
+  const [tab, setTab] = useState<ShowTab | null>(null);
 
   const { data: show, isLoading: showLoading, isError: showError } = useQuery({
     queryKey: QUERY_KEYS.SHOW(showId),
@@ -71,6 +77,14 @@ export function ShowDetail({ showId }: ShowDetailProps) {
       </div>
     );
   }
+
+  const bibleIsEmpty =
+    !!bible &&
+    !(bible.bible_central_premise || bible.bible_story_engine || bible.bible_series_questions ||
+      bible.bible_characters || bible.bible_world_setting || bible.bible_season_arc ||
+      bible.bible_tone_style || '').trim() &&
+    (bible.bible_regular_cast || []).length === 0;
+  const activeTab: ShowTab = tab ?? (bibleIsEmpty ? 'bible' : 'episodes');
 
   return (
     <div className="mx-auto max-w-screen-xl px-6 py-10 animate-fade-in">
@@ -161,23 +175,45 @@ export function ShowDetail({ showId }: ShowDetailProps) {
         </div>
       )}
 
-      {/* Series Bible */}
-      <section className="mb-12">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Series Bible</h2>
-        {bible && <BibleEditor key={showId} showId={showId} bible={bible} continuityMode={show.continuity_mode} />}
-      </section>
+      {/* Tabs: the daily work (episodes) first; bible is setup/refinement.
+          A brand-new show with an empty bible lands on Bible — that IS step one. */}
+      <div className="flex items-center gap-1.5 border-b border-border mb-6">
+        {([
+          { id: 'episodes', label: 'Episodios' },
+          { id: 'map', label: 'Mapa de temporada' },
+          { id: 'bible', label: 'Bible' },
+        ] as const).map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setTab(tab.id)}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+              activeTab === tab.id
+                ? 'border-amber-500 text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Season Map (Phase 4 -- capa de temporada) */}
-      <section className="mb-12">
-        <h2 className="text-xl font-semibold text-foreground mb-4">Season Map</h2>
-        <SeasonMap showId={showId} bibleSeasonArc={bible?.bible_season_arc ?? ''} />
-      </section>
+      {activeTab === 'episodes' && (
+        <section>
+          <EpisodeList showId={showId} />
+        </section>
+      )}
 
-      {/* Episode List */}
-      <section>
-        <h2 className="text-xl font-semibold text-foreground mb-4">Episodes</h2>
-        <EpisodeList showId={showId} />
-      </section>
+      {activeTab === 'map' && (
+        <section>
+          <SeasonMap showId={showId} bibleSeasonArc={bible?.bible_season_arc ?? ''} />
+        </section>
+      )}
+
+      {activeTab === 'bible' && bible && (
+        <section>
+          <BibleEditor key={showId} showId={showId} bible={bible} continuityMode={show.continuity_mode} />
+        </section>
+      )}
     </div>
   );
 }

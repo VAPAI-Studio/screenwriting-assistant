@@ -56,12 +56,11 @@ export function EpisodeList({ showId }: EpisodeListProps) {
           <span className="text-sm text-muted-foreground">{episodes.length} episode{episodes.length !== 1 ? 's' : ''}</span>
         </div>
         <Button
-          size="sm"
           onClick={() => setCreateOpen(true)}
           className="gap-1.5"
         >
-          <Plus className="h-3.5 w-3.5" />
-          New Episode
+          <Plus className="h-4 w-4" />
+          Crear episodio
         </Button>
       </div>
 

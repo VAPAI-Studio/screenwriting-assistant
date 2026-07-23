@@ -21,12 +21,12 @@ interface SeasonMapProps {
 /** Slot lifecycle badge: in progress > planned > empty. */
 function slotStatus(slot: EpisodeSlot) {
   if (slot.project_id) {
-    return { label: 'In progress', cls: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' };
+    return { label: 'Escribiéndose', cls: 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20' };
   }
   const planned = slot.logline.trim() || slot.arc_function.trim() || slot.cliffhanger.trim();
   return planned
-    ? { label: 'Planned', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/20' }
-    : { label: 'Empty', cls: 'bg-muted/40 text-muted-foreground border-border/40' };
+    ? { label: 'Planeado', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/20' }
+    : { label: 'Sin plan', cls: 'bg-muted/40 text-muted-foreground border-border/40' };
 }
 
 export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
@@ -165,7 +165,7 @@ export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
           </button>
           <Button size="sm" variant="ghost" onClick={() => addSlotMutation.mutate()} disabled={!activeSeasonId || addSlotMutation.isPending}>
             <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add slot
+            Planificar episodio
           </Button>
           <Button size="sm" onClick={() => setWizardOpen(true)} disabled={!activeSeasonId}>
             <Wand2 className="h-3.5 w-3.5 mr-1.5" />
@@ -190,11 +190,23 @@ export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : slots.length === 0 ? (
-        <div className="text-center py-10 border border-dashed border-border rounded-xl">
-          <MapIcon className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">
-            Empty map — generate the season map or add slots by hand
+        <div className="text-center py-12 border border-dashed border-border rounded-xl px-6">
+          <MapIcon className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
+          <h3 className="text-sm font-semibold text-foreground mb-1.5">Planificá la temporada antes de escribirla</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-5">
+            Cada casilla del mapa es un episodio planeado: título, logline, función en el arco
+            y cliffhanger. Después convertís cada plan en un episodio real para escribirlo.
           </p>
+          <div className="flex items-center justify-center gap-3">
+            <Button size="sm" onClick={() => setWizardOpen(true)} disabled={!activeSeasonId}>
+              <Wand2 className="h-3.5 w-3.5 mr-1.5" />
+              Generar mapa con IA
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => addSlotMutation.mutate()} disabled={!activeSeasonId || addSlotMutation.isPending}>
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Planificar episodio a mano
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -218,11 +230,11 @@ export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {slot.plan_stale && (
                       <span
-                        title="The written episode may have diverged from this plan"
+                        title="El episodio escrito se alejó de este plan. Usá el botón de reconciliar (⟳) para actualizar el plan con IA."
                         className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border bg-orange-500/10 text-orange-300 border-orange-500/20"
                       >
                         <AlertTriangle className="h-3 w-3" />
-                        Plan stale
+                        Plan desactualizado
                       </span>
                     )}
                     <span className={`px-1.5 py-0.5 text-[10px] rounded border ${status.cls}`}>
@@ -266,7 +278,7 @@ export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
                   {!slot.project_id && (
                     <button
                       onClick={() => {
-                        if (window.confirm('Delete this slot?')) deleteSlotMutation.mutate(slot.id);
+                        if (window.confirm('¿Quitar este episodio planificado del mapa? El episodio escrito (si existe) no se toca.')) deleteSlotMutation.mutate(slot.id);
                       }}
                       title="Delete slot"
                       className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
