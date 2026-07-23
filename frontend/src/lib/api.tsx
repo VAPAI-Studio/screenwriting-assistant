@@ -28,13 +28,30 @@ const getHeaders = (): Record<string, string> => ({
   'Authorization': getAuthToken()
 });
 
+// Session guard: a 401 on any API call means the token is expired or revoked.
+// Clear it and send the user to the login page instead of leaving every screen
+// stuck on a dead-end "Failed to fetch ..." error. Auth endpoints are excluded
+// (a failed login attempt must surface inline, not hard-redirect).
+const authFetch: typeof fetch = async (input, init) => {
+  const response = await fetch(input, init);
+  if (
+    response.status === 401 &&
+    !String(input).includes('/auth/') &&
+    !window.location.pathname.startsWith('/login')
+  ) {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    window.location.href = '/login';
+  }
+  return response;
+};
+
 // Create a fetch wrapper with timeout
 const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutMs: number = API_TIMEOUT) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(url, {
+    const response = await authFetch(url, {
       ...options,
       signal: controller.signal
     });
@@ -52,7 +69,7 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeoutM
 export const api = {
   // Auth
   async getMockToken(): Promise<{ access_token: string; token_type: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/token/mock`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/token/mock`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
@@ -61,7 +78,7 @@ export const api = {
   },
 
   async requestMagicLink(email: string): Promise<{ message: string; magic_link: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/magic-link`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/magic-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email })
@@ -71,7 +88,7 @@ export const api = {
   },
 
   async verifyMagicLink(token: string): Promise<{ access_token: string; token_type: string }> {
-    const response = await fetch(`${API_BASE_URL}/auth/verify-magic-link`, {
+    const response = await authFetch(`${API_BASE_URL}/auth/verify-magic-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token })
@@ -126,19 +143,19 @@ export const api = {
 
   // Projects
   async getProjects(): Promise<Project[]> {
-    const response = await fetch(`${API_BASE_URL}/projects/`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/projects/`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch projects');
     return response.json();
   },
 
   async getProject(id: string): Promise<Project> {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/projects/${id}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch project');
     return response.json();
   },
 
   async createProject(data: { title: string; framework: string }): Promise<Project> {
-    const response = await fetch(`${API_BASE_URL}/projects/`, {
+    const response = await authFetch(`${API_BASE_URL}/projects/`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -148,7 +165,7 @@ export const api = {
   },
 
   async updateProject(id: string, data: Partial<Project>): Promise<Project> {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -158,7 +175,7 @@ export const api = {
   },
 
   async deleteProject(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/projects/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/projects/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
@@ -216,13 +233,13 @@ export const api = {
 
   // Sections
   async getSection(id: string): Promise<Section> {
-    const response = await fetch(`${API_BASE_URL}/sections/${id}`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/sections/${id}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch section');
     return response.json();
   },
 
   async updateSection(id: string, data: { user_notes: string }): Promise<Section> {
-    const response = await fetch(`${API_BASE_URL}/sections/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/sections/${id}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -233,7 +250,7 @@ export const api = {
 
   // Checklist items
   async createChecklistItem(sectionId: string, data: Partial<ChecklistItem>): Promise<ChecklistItem> {
-    const response = await fetch(`${API_BASE_URL}/sections/${sectionId}/checklist`, {
+    const response = await authFetch(`${API_BASE_URL}/sections/${sectionId}/checklist`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -243,7 +260,7 @@ export const api = {
   },
 
   async updateChecklistItem(itemId: string, data: Partial<ChecklistItem>): Promise<ChecklistItem> {
-    const response = await fetch(`${API_BASE_URL}/sections/checklist/${itemId}`, {
+    const response = await authFetch(`${API_BASE_URL}/sections/checklist/${itemId}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -254,7 +271,7 @@ export const api = {
 
   // Review
   async reviewSection(data: ReviewRequest): Promise<ReviewResponse> {
-    const response = await fetch(`${API_BASE_URL}/review/`, {
+    const response = await authFetch(`${API_BASE_URL}/review/`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -278,25 +295,25 @@ export const api = {
   },
 
   async getBooks(): Promise<Book[]> {
-    const response = await fetch(`${API_BASE_URL}/books/`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/books/`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch books');
     return response.json();
   },
 
   async getBook(id: string): Promise<Book> {
-    const response = await fetch(`${API_BASE_URL}/books/${id}`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/books/${id}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch book');
     return response.json();
   },
 
   async getBookConcepts(bookId: string): Promise<Concept[]> {
-    const response = await fetch(`${API_BASE_URL}/books/${bookId}/concepts`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/books/${bookId}/concepts`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch concepts');
     return response.json();
   },
 
   async deleteBook(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/books/${id}`, {
+    const response = await authFetch(`${API_BASE_URL}/books/${id}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
@@ -308,13 +325,13 @@ export const api = {
   // ============================================================
 
   async getAgents(): Promise<Agent[]> {
-    const response = await fetch(`${API_BASE_URL}/agents/`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/agents/`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch agents');
     return response.json();
   },
 
   async getAgentTags(): Promise<{ tags: string[] }> {
-    const response = await fetch(`${API_BASE_URL}/agents/tags`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/agents/tags`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch agent tags');
     return response.json();
   },
@@ -329,7 +346,7 @@ export const api = {
     agent_type: AgentType;
     tags_filter: string[];
   }): Promise<Agent> {
-    const response = await fetch(`${API_BASE_URL}/agents/`, {
+    const response = await authFetch(`${API_BASE_URL}/agents/`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data),
@@ -339,7 +356,7 @@ export const api = {
   },
 
   async deleteAgent(agentId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/agents/${agentId}`, {
+    const response = await authFetch(`${API_BASE_URL}/agents/${agentId}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
@@ -347,7 +364,7 @@ export const api = {
   },
 
   async seedDefaultAgents(): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/agents/seed-defaults`, {
+    const response = await authFetch(`${API_BASE_URL}/agents/seed-defaults`, {
       method: 'POST',
       headers: getHeaders()
     });
@@ -355,7 +372,7 @@ export const api = {
   },
 
   async linkBookToAgent(agentId: string, bookId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/agents/${agentId}/books/${bookId}`, {
+    const response = await authFetch(`${API_BASE_URL}/agents/${agentId}/books/${bookId}`, {
       method: 'POST',
       headers: getHeaders()
     });
@@ -363,7 +380,7 @@ export const api = {
   },
 
   async unlinkBookFromAgent(agentId: string, bookId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/agents/${agentId}/books/${bookId}`, {
+    const response = await authFetch(`${API_BASE_URL}/agents/${agentId}/books/${bookId}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
@@ -381,7 +398,7 @@ export const api = {
     agent_type?: AgentType;
     tags_filter?: string[];
   }): Promise<Agent> {
-    const response = await fetch(`${API_BASE_URL}/agents/${agentId}`, {
+    const response = await authFetch(`${API_BASE_URL}/agents/${agentId}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify(data),
@@ -391,7 +408,7 @@ export const api = {
   },
 
   async getPipelineMap(): Promise<PipelineMapResponse> {
-    const response = await fetch(`${API_BASE_URL}/agents/pipeline-map`, {
+    const response = await authFetch(`${API_BASE_URL}/agents/pipeline-map`, {
       headers: getHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch pipeline map');
@@ -403,7 +420,7 @@ export const api = {
   // ============================================================
 
   async createChatSession(data: { agent_id: string; project_id: string; title?: string }): Promise<ChatSession> {
-    const response = await fetch(`${API_BASE_URL}/chat/sessions`, {
+    const response = await authFetch(`${API_BASE_URL}/chat/sessions`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -416,13 +433,13 @@ export const api = {
     const url = projectId
       ? `${API_BASE_URL}/chat/sessions?project_id=${projectId}`
       : `${API_BASE_URL}/chat/sessions`;
-    const response = await fetch(url, { headers: getHeaders() });
+    const response = await authFetch(url, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch chat sessions');
     return response.json();
   },
 
   async getChatMessages(sessionId: string): Promise<ChatMessage[]> {
-    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
+    const response = await authFetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch messages');
@@ -433,7 +450,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
+      const response = await authFetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ content }),
@@ -453,7 +470,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/review`, {
+      const response = await authFetch(`${API_BASE_URL}/chat/sessions/${sessionId}/review`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ section_id: sectionId }),
@@ -470,7 +487,7 @@ export const api = {
   },
 
   async deleteChatSession(sessionId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
+    const response = await authFetch(`${API_BASE_URL}/chat/sessions/${sessionId}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
@@ -487,7 +504,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages/stream`, {
+      const response = await authFetch(`${API_BASE_URL}/chat/sessions/${sessionId}/messages/stream`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ content, field_context: fieldContext }),
@@ -537,20 +554,20 @@ export const api = {
   // ============================================================
 
   async getTemplates(): Promise<TemplateListItem[]> {
-    const response = await fetch(`${API_BASE_URL}/templates/`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/templates/`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch templates');
     return response.json();
   },
 
   async getTemplate(id: string): Promise<TemplateConfig> {
-    const response = await fetch(`${API_BASE_URL}/templates/${id}`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/templates/${id}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch template');
     return response.json();
   },
 
   // Template-based project creation
   async createProjectV2(data: { title: string; template: string }): Promise<ProjectV2> {
-    const response = await fetch(`${API_BASE_URL}/projects/v2`, {
+    const response = await authFetch(`${API_BASE_URL}/projects/v2`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -564,7 +581,7 @@ export const api = {
   // ============================================================
 
   async getPhaseData(projectId: string, phase: string): Promise<PhaseDataResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}`, {
+    const response = await authFetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch phase data');
@@ -572,7 +589,7 @@ export const api = {
   },
 
   async getSubsectionData(projectId: string, phase: string, subsectionKey: string): Promise<PhaseDataResponse> {
-    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}/${subsectionKey}`, {
+    const response = await authFetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}/${subsectionKey}`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch subsection data');
@@ -580,7 +597,7 @@ export const api = {
   },
 
   async updateSubsectionData(projectId: string, phase: string, subsectionKey: string, content: Record<string, any>): Promise<PhaseDataResponse> {
-    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}/${subsectionKey}`, {
+    const response = await authFetch(`${API_BASE_URL}/phase-data/${projectId}/${phase}/${subsectionKey}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify({ content })
@@ -605,7 +622,7 @@ export const api = {
   },
 
   async getReadiness(projectId: string, phase: string): Promise<Record<string, any>> {
-    const response = await fetch(`${API_BASE_URL}/phase-data/${projectId}/readiness/${phase}`, {
+    const response = await authFetch(`${API_BASE_URL}/phase-data/${projectId}/readiness/${phase}`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch readiness');
@@ -617,7 +634,7 @@ export const api = {
   // ============================================================
 
   async getListItems(phaseDataId: string): Promise<ListItemResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/list-items/${phaseDataId}`, {
+    const response = await authFetch(`${API_BASE_URL}/list-items/${phaseDataId}`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch list items');
@@ -625,7 +642,7 @@ export const api = {
   },
 
   async getListItem(itemId: string): Promise<ListItemResponse> {
-    const response = await fetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
+    const response = await authFetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch list item');
@@ -633,7 +650,7 @@ export const api = {
   },
 
   async createListItem(phaseDataId: string, data: { item_type: string; content: Record<string, any>; sort_order?: number }): Promise<ListItemResponse> {
-    const response = await fetch(`${API_BASE_URL}/list-items/${phaseDataId}`, {
+    const response = await authFetch(`${API_BASE_URL}/list-items/${phaseDataId}`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -643,7 +660,7 @@ export const api = {
   },
 
   async updateListItem(itemId: string, data: { content?: Record<string, any>; status?: string }): Promise<ListItemResponse> {
-    const response = await fetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
+    const response = await authFetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
       method: 'PATCH',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -653,7 +670,7 @@ export const api = {
   },
 
   async deleteListItem(itemId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
+    const response = await authFetch(`${API_BASE_URL}/list-items/item/${itemId}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
@@ -661,7 +678,7 @@ export const api = {
   },
 
   async reorderListItems(phaseDataId: string, items: Array<{ id: string; sort_order: number }>): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/list-items/${phaseDataId}/reorder`, {
+    const response = await authFetch(`${API_BASE_URL}/list-items/${phaseDataId}/reorder`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify({ items })
@@ -676,7 +693,7 @@ export const api = {
   async lookupAISession(projectId: string, phase: string, subsectionKey: string, contextItemId?: string): Promise<AISessionResponse | null> {
     const params = new URLSearchParams({ project_id: projectId, phase, subsection_key: subsectionKey });
     if (contextItemId) params.set('context_item_id', contextItemId);
-    const response = await fetch(`${API_BASE_URL}/ai/sessions/lookup?${params}`, {
+    const response = await authFetch(`${API_BASE_URL}/ai/sessions/lookup?${params}`, {
       headers: getHeaders()
     });
     if (response.status === 404) return null;
@@ -685,7 +702,7 @@ export const api = {
   },
 
   async createAISession(data: { project_id: string; phase: string; subsection_key: string; context_item_id?: string }): Promise<AISessionResponse> {
-    const response = await fetch(`${API_BASE_URL}/ai/sessions`, {
+    const response = await authFetch(`${API_BASE_URL}/ai/sessions`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(data)
@@ -695,7 +712,7 @@ export const api = {
   },
 
   async getAIMessages(sessionId: string): Promise<AIMessageResponse[]> {
-    const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages`, {
+    const response = await authFetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch AI messages');
@@ -706,7 +723,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages`, {
+      const response = await authFetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ content, mode }),
@@ -732,7 +749,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages/stream`, {
+      const response = await authFetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages/stream`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ content, mode }),
@@ -781,7 +798,7 @@ export const api = {
   },
 
   async deleteAISession(sessionId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/ai/sessions/${sessionId}`, {
+    const response = await authFetch(`${API_BASE_URL}/ai/sessions/${sessionId}`, {
       method: 'DELETE',
       headers: getHeaders()
     });
@@ -833,7 +850,7 @@ export const api = {
   },
 
   async getWizardRun(runId: string): Promise<WizardRunResponse> {
-    const response = await fetch(`${API_BASE_URL}/wizards/${runId}`, {
+    const response = await authFetch(`${API_BASE_URL}/wizards/${runId}`, {
       headers: getHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch wizard run');
@@ -841,7 +858,7 @@ export const api = {
   },
 
   async applyWizardResults(runId: string): Promise<Record<string, any>> {
-    const response = await fetch(`${API_BASE_URL}/wizards/${runId}/apply`, {
+    const response = await authFetch(`${API_BASE_URL}/wizards/${runId}/apply`, {
       method: 'POST',
       headers: getHeaders()
     });
@@ -860,7 +877,7 @@ export const api = {
     const p = new URLSearchParams({ book_id: bookId });
     if (params.page) p.set('page', String(params.page));
     if (params.per_page) p.set('per_page', String(params.per_page));
-    const response = await fetch(`${API_BASE_URL}/snippets/?${p}`, { headers: getHeaders() });
+    const response = await authFetch(`${API_BASE_URL}/snippets/?${p}`, { headers: getHeaders() });
     if (!response.ok) throw new Error('Failed to fetch snippets');
     return response.json();
   },
@@ -876,7 +893,7 @@ export const api = {
   },
 
   async deleteSnippet(snippetId: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/snippets/${snippetId}`, {
+    const response = await authFetch(`${API_BASE_URL}/snippets/${snippetId}`, {
       method: 'DELETE',
       headers: getHeaders(),
     });
@@ -885,7 +902,7 @@ export const api = {
 
   // Fix pre-existing missing methods (BookManager.tsx calls these):
   async pauseBook(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/books/${id}/pause`, {
+    const response = await authFetch(`${API_BASE_URL}/books/${id}/pause`, {
       method: 'POST',
       headers: getHeaders(),
     });
@@ -893,7 +910,7 @@ export const api = {
   },
 
   async resumeBook(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/books/${id}/resume`, {
+    const response = await authFetch(`${API_BASE_URL}/books/${id}/resume`, {
       method: 'POST',
       headers: getHeaders(),
     });
@@ -901,7 +918,7 @@ export const api = {
   },
 
   async retryBook(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/books/${id}/retry`, {
+    const response = await authFetch(`${API_BASE_URL}/books/${id}/retry`, {
       method: 'POST',
       headers: getHeaders(),
     });
@@ -1069,7 +1086,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/shots/${projectId}/generate`, {
+      const response = await authFetch(`${API_BASE_URL}/shots/${projectId}/generate`, {
         method: 'POST',
         headers: getHeaders(),
         signal: controller.signal,
@@ -1095,7 +1112,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/wizards/regenerate-scene`, {
+      const response = await authFetch(`${API_BASE_URL}/wizards/regenerate-scene`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(data),
@@ -1178,7 +1195,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), CHAT_TIMEOUT);
     try {
-      const response = await fetch(`${API_BASE_URL}/breakdown-chat/${projectId}/stream`, {
+      const response = await authFetch(`${API_BASE_URL}/breakdown-chat/${projectId}/stream`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
@@ -1295,7 +1312,7 @@ export const api = {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 600000); // 10 minutes for all phases
     try {
-      const response = await fetch(`${API_BASE_URL}/ai/yolo-fill`, {
+      const response = await authFetch(`${API_BASE_URL}/ai/yolo-fill`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ project_id: projectId }),

@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Tv, Loader2, Send, ExternalLink, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
@@ -14,6 +14,7 @@ interface ShowDetailProps {
 
 export function ShowDetail({ showId }: ShowDetailProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: show, isLoading: showLoading, isError: showError } = useQuery({
     queryKey: QUERY_KEYS.SHOW(showId),
@@ -27,7 +28,12 @@ export function ShowDetail({ showId }: ShowDetailProps) {
 
   const deleteShowMutation = useMutation({
     mutationFn: () => api.deleteShow(showId),
-    onSuccess: () => navigate('/'),
+    onSuccess: () => {
+      // Invalidate the home list BEFORE navigating — the 5-min stale time would
+      // otherwise keep showing the deleted show until a manual refresh.
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.SHOWS] });
+      navigate('/');
+    },
   });
 
   const handleDeleteShow = () => {

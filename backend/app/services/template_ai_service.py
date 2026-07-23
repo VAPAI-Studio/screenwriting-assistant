@@ -756,10 +756,19 @@ Return a JSON object: {{"arc_summary": "...", "slots": [{{"slot_number": 1, "tit
                 {"role": "user", "content": prompt},
             ],
             temperature=0.8,
-            max_tokens=4000,
+            # Each planned slot is ~200-300 tokens of JSON; a flat 4000 truncated
+            # mid-string on real seasons ("Unterminated string" parse failure).
+            # Scale with the episode count, with a generous floor and a cap.
+            max_tokens=min(3000 + 350 * episode_count, 16000),
             json_mode=True,
         )
-        result = json.loads(text)
+        try:
+            result = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "The AI response was cut off before the season map was complete — "
+                "regenerate, or plan fewer episodes per run."
+            ) from exc
 
         slots = []
         seen = set()
@@ -844,10 +853,16 @@ Return ONLY the JSON object."""
                 {"role": "user", "content": prompt},
             ],
             temperature=0.8,
-            max_tokens=3000,
+            max_tokens=6000,
             json_mode=True,
         )
-        result = json.loads(text)
+        try:
+            result = json.loads(text)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                "The AI response was cut off before the bible draft was complete — "
+                "run the wizard again."
+            ) from exc
 
         def _str(key: str) -> str:
             return str(result.get(key, "") or "").strip()
