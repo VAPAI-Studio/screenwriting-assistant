@@ -30,6 +30,9 @@ export function WizardView({ subsection, projectId, phase, phaseData, templateCo
   const [selectedCount, setSelectedCount] = useState<string | number>(wizardConfig?.default_count || countOptions[0]?.value || '');
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [customGuidance, setCustomGuidance] = useState('');
+  // Craft doctrine from the user's processed books; per-run toggle so the user
+  // can compare generations with/without it (visibility-first evaluation).
+  const [useDoctrine, setUseDoctrine] = useState(true);
   const [wizardRunId, setWizardRunId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [saveTimer, setSaveTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -185,6 +188,7 @@ export function WizardView({ subsection, projectId, phase, phaseData, templateCo
           episodes: selectedEpisodes,
           runtime_target: runtimeTarget,
           custom_guidance: customGuidance,
+          use_doctrine: useDoctrine,
           ...formData,
         },
       };
@@ -508,6 +512,18 @@ export function WizardView({ subsection, projectId, phase, phaseData, templateCo
             rows={3}
             className="w-full bg-input border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500/30 resize-y transition-all"
           />
+          {subsection.key === 'script_writer_wizard' && (
+            <label className="flex items-center gap-2 mt-3 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={useDoctrine}
+                onChange={(e) => setUseDoctrine(e.target.checked)}
+                className="rounded border-border accent-amber-500"
+              />
+              Usar doctrina de mis libros
+              <span className="text-muted-foreground/60">— desactivalo para comparar el resultado sin ella</span>
+            </label>
+          )}
         </div>
       )}
 
@@ -589,6 +605,33 @@ export function WizardView({ subsection, projectId, phase, phaseData, templateCo
               {applyMutation.isPending ? 'Applying...' : 'Apply Results'}
             </button>
           </div>
+          {(() => {
+            const meta = (wizardRun.result as any)?._meta;
+            if (!meta) return null;
+            const doctrine = (meta.doctrine_used ?? []) as { name: string; source: string }[];
+            const agents = (meta.agents_consulted ?? []) as { name?: string }[];
+            if (doctrine.length === 0 && agents.length === 0) return null;
+            return (
+              <div className="mb-3 space-y-1.5 text-[11px] text-muted-foreground border-b border-border/40 pb-3">
+                {doctrine.length > 0 && (
+                  <p>
+                    <span className="text-amber-400/80">📚 Doctrina aplicada:</span>{' '}
+                    {doctrine.map((d) => `${d.name} (${d.source})`).join(' · ')}
+                  </p>
+                )}
+                {doctrine.length === 0 && (
+                  <p className="text-muted-foreground/60">📚 Generado sin doctrina de libros.</p>
+                )}
+                {agents.length > 0 && (
+                  <p>
+                    <span className="text-indigo-300/80">🤖 Revisado por:</span>{' '}
+                    {agents.map((a) => a.name ?? '?').join(', ')}
+                    {meta.review_applied ? ' — el review ajustó el resultado' : ' — sin cambios del review'}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
           <pre className="text-xs text-muted-foreground max-h-48 overflow-y-auto whitespace-pre-wrap font-screenplay leading-relaxed">
             {JSON.stringify(wizardRun.result, null, 2)}
           </pre>

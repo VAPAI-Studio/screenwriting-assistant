@@ -93,7 +93,11 @@ async def _run_wizard_background(
         # Craft doctrine (books Phase 2): format-tagged book concepts for the
         # critique/rewrite/polish loop. Failure or empty library → no doctrine,
         # generation proceeds unchanged.
-        if settings.DOCTRINE_IN_GENERATION and wizard_type == "script_writer_wizard":
+        if (
+            settings.DOCTRINE_IN_GENERATION
+            and wizard_type == "script_writer_wizard"
+            and config.get("use_doctrine", True)
+        ):
             config["_doctrine_cards"] = doctrine_service.build_doctrine_cards(
                 template_id, db
             )
@@ -125,6 +129,12 @@ async def _run_wizard_background(
             result["_meta"] = {}
         result["_meta"]["agents_consulted"] = review_result["agents_consulted"]
         result["_meta"]["review_applied"] = review_result["review_applied"]
+        # Which book concepts were injected as craft doctrine (the service uses
+        # the first 6 cards) — empty list = doctrine off or no library.
+        result["_meta"]["doctrine_used"] = [
+            {"name": c.get("name"), "source": c.get("source")}
+            for c in (config.get("_doctrine_cards") or [])[:6]
+        ]
         # Phase 3: surface per-scene rubric scores (critique/rewrite loop) so the
         # frontend can show quality metrics. Present only for script_writer_wizard
         # runs with the critique loop enabled.
@@ -160,10 +170,14 @@ async def _run_season_map_background(run_id, config: dict, show_context: str):
 
         # Craft doctrine: the season plans episodes of a series, so the deck is
         # the series-format canon (same gating flag as the script writer).
-        if settings.DOCTRINE_IN_GENERATION:
+        if settings.DOCTRINE_IN_GENERATION and config.get("use_doctrine", True):
             config["_doctrine_cards"] = doctrine_service.build_doctrine_cards("episode", db)
 
         result = await template_ai_service.generate_season_map(config, show_context)
+        result["doctrine_used"] = [
+            {"name": c.get("name"), "source": c.get("source")}
+            for c in (config.get("_doctrine_cards") or [])[:6]
+        ]
         wizard_run.result = result
         wizard_run.status = "completed"
     except Exception as e:

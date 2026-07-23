@@ -174,6 +174,13 @@ export function SeasonMapWizardModal({
             {/* Step 3: preview + apply */}
             {result && (
               <div className="space-y-4">
+                {((result as any).doctrine_used?.length ?? 0) > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    <span className="text-amber-400/80">📚 Doctrina aplicada:</span>{' '}
+                    {((result as any).doctrine_used as { name: string; source: string }[])
+                      .map((d) => `${d.name} (${d.source})`).join(' · ')}
+                  </p>
+                )}
                 {result.arc_summary.trim() && (
                   <div className="px-4 py-3 text-sm rounded-lg bg-muted/20 border border-border/40 text-muted-foreground">
                     <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70 block mb-1">
