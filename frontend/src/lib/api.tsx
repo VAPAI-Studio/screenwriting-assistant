@@ -690,9 +690,10 @@ export const api = {
   // AI Chat (Template system)
   // ============================================================
 
-  async lookupAISession(projectId: string, phase: string, subsectionKey: string, contextItemId?: string): Promise<AISessionResponse | null> {
-    const params = new URLSearchParams({ project_id: projectId, phase, subsection_key: subsectionKey });
-    if (contextItemId) params.set('context_item_id', contextItemId);
+  async lookupAISession(projectId: string): Promise<AISessionResponse | null> {
+    // Project-scoped: ONE continuous conversation per project. The active
+    // section travels with each message, not with the session.
+    const params = new URLSearchParams({ project_id: projectId });
     const response = await authFetch(`${API_BASE_URL}/ai/sessions/lookup?${params}`, {
       headers: getHeaders()
     });
@@ -742,6 +743,7 @@ export const api = {
   async sendAIMessageStream(
     sessionId: string,
     content: string,
+    section: { phase: string; subsectionKey: string; contextItemId?: string },
     onChunk: (chunk: string) => void,
     onDone: (data: { id?: string; metadata?: Record<string, any> }) => void,
   ): Promise<void> {
@@ -754,7 +756,14 @@ export const api = {
       const response = await authFetch(`${API_BASE_URL}/ai/sessions/${sessionId}/messages/stream`, {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({ content, mode: 'brainstorm', allow_field_suggestions: true }),
+        body: JSON.stringify({
+          content,
+          mode: 'brainstorm',
+          allow_field_suggestions: true,
+          phase: section.phase,
+          subsection_key: section.subsectionKey,
+          context_item_id: section.contextItemId ?? null,
+        }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);

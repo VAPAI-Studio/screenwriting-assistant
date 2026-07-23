@@ -464,6 +464,12 @@ class AIMessageCreate(BaseModel):
     content: str = Field(..., min_length=1, max_length=10000)
     mode: str = Field(default="brainstorm", pattern="^(brainstorm|action)$")
     allow_field_suggestions: bool = False
+    # One-conversation-per-project: the ACTIVE section travels per message (the
+    # session no longer pins it). Omitted -> fall back to the session's stored
+    # section, so older clients keep working.
+    phase: Optional[str] = None
+    subsection_key: Optional[str] = None
+    context_item_id: Optional[UUID] = None
 
     @field_validator('content')
     def validate_content(cls, v):

@@ -210,23 +210,25 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
   // Template session init
   const initSession = useCallback(async () => {
     try {
-      const existing = await api.lookupAISession(projectId, phase, subsectionKey, contextItemId);
+      // One continuous conversation per project — the lookup ignores sections.
+      const existing = await api.lookupAISession(projectId);
       if (existing) { setSessionId(existing.id); return; }
     } catch { /* fall through */ }
     try {
       const s = await api.createAISession({ project_id: projectId, phase, subsection_key: subsectionKey, context_item_id: contextItemId });
       setSessionId(s.id);
     } catch { /* ignore */ }
-  }, [projectId, phase, subsectionKey, contextItemId]);
+    // phase/subsection only seed the CREATE (columns are non-null); they must
+    // NOT re-trigger session init when the user navigates between sections.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   useEffect(() => {
     const prev = prevContextRef.current;
-    const changed = prev.projectId !== projectId || prev.phase !== phase ||
-      prev.subsectionKey !== subsectionKey || prev.contextItemId !== contextItemId;
-    if (changed) setSessionId(null);
+    if (prev.projectId !== projectId) setSessionId(null);
     prevContextRef.current = { projectId, phase, subsectionKey, contextItemId };
     initSession();
-  }, [projectId, phase, subsectionKey, contextItemId, initSession]);
+  }, [projectId, initSession]);
 
   const { data: messages = [] } = useQuery({
     queryKey: QUERY_KEYS.AI_MESSAGES(sessionId || ''),
@@ -328,6 +330,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
       await api.sendAIMessageStream(
         sessionId,
         content,
+        { phase, subsectionKey, contextItemId },
         (chunk) => setStreamingText((prev) => prev + chunk),
         (data) => {
           const fu = data.metadata?.field_updates;

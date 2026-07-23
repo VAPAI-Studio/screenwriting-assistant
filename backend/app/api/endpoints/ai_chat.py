@@ -88,23 +88,28 @@ async def create_ai_session(
 @router.get("/sessions/lookup", response_model=schemas.AISessionResponse)
 async def lookup_ai_session(
     project_id: UUID,
-    phase: str,
-    subsection_key: str,
+    phase: Optional[str] = None,
+    subsection_key: Optional[str] = None,
     context_item_id: Optional[UUID] = None,
     current_user: schemas.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Find the most recent existing session for a given context."""
+    """Find the most recent existing session. Without phase/subsection the
+    lookup is PROJECT-scoped (one continuous conversation per project); with
+    them it keeps the legacy per-section behavior."""
     query = db.query(database.AISession).filter(
         database.AISession.project_id == project_id,
         database.AISession.user_id == current_user.id,
-        database.AISession.phase == phase,
-        database.AISession.subsection_key == subsection_key,
     )
-    if context_item_id:
-        query = query.filter(database.AISession.context_item_id == context_item_id)
-    else:
-        query = query.filter(database.AISession.context_item_id.is_(None))
+    if phase is not None and subsection_key is not None:
+        query = query.filter(
+            database.AISession.phase == phase,
+            database.AISession.subsection_key == subsection_key,
+        )
+        if context_item_id:
+            query = query.filter(database.AISession.context_item_id == context_item_id)
+        else:
+            query = query.filter(database.AISession.context_item_id.is_(None))
 
     session = query.order_by(database.AISession.created_at.desc()).first()
     if not session:
@@ -355,11 +360,17 @@ async def send_ai_message_stream(
     db.add(user_msg)
     db.commit()
 
+    # One-conversation-per-project: the active section arrives on the message;
+    # fall back to the session's stored section for older clients.
+    eff_phase = message.phase or session.phase
+    eff_subsection = message.subsection_key or session.subsection_key
+    eff_item_id = message.context_item_id or session.context_item_id
+
     # Build context
     bible_context = build_bible_context(db, project)
     project_context = _get_project_context(db, project, bible_context=bible_context)
     template_id = project.template.value
-    sub_config = _get_subsection_config(template_id, session.phase, session.subsection_key)
+    sub_config = _get_subsection_config(template_id, eff_phase, eff_subsection)
     system_prompt = sub_config.get(
         "chat_system_prompt",
         "You are a helpful screenwriting assistant. Help the user develop their story."
@@ -395,9 +406,9 @@ async def send_ai_message_stream(
                 field_defs = editor_config["fields"]
 
         current_content = {}
-        if session.context_item_id:
+        if eff_item_id:
             item = db.query(database.ListItem).filter(
-                database.ListItem.id == session.context_item_id
+                database.ListItem.id == eff_item_id
             ).first()
             if item:
                 current_content = item.content or {}
@@ -407,14 +418,14 @@ async def send_ai_message_stream(
         else:
             phase_data = db.query(database.PhaseData).filter(
                 database.PhaseData.project_id == project.id,
-                database.PhaseData.phase == session.phase,
-                database.PhaseData.subsection_key == session.subsection_key,
+                database.PhaseData.phase == eff_phase,
+                database.PhaseData.subsection_key == eff_subsection,
             ).first()
             if phase_data:
                 current_content = phase_data.content or {}
 
         # Detect ordered_list subsection → enable list item creation by AI
-        is_list_subsection = bool(sub_config.get("list_config")) and not session.context_item_id
+        is_list_subsection = bool(sub_config.get("list_config")) and not eff_item_id
         item_type = sub_config.get("list_config", {}).get("item_type") if is_list_subsection else None
 
         async def action_stream():
@@ -456,9 +467,9 @@ async def send_ai_message_stream(
 
             # Apply field updates to database
             if field_updates:
-                if session.context_item_id:
+                if eff_item_id:
                     item = db.query(database.ListItem).filter(
-                        database.ListItem.id == session.context_item_id
+                        database.ListItem.id == eff_item_id
                     ).first()
                     if item:
                         existing = dict(item.content or {})
@@ -470,14 +481,14 @@ async def send_ai_message_stream(
                 else:
                     pd = db.query(database.PhaseData).filter(
                         database.PhaseData.project_id == project.id,
-                        database.PhaseData.phase == session.phase,
-                        database.PhaseData.subsection_key == session.subsection_key,
+                        database.PhaseData.phase == eff_phase,
+                        database.PhaseData.subsection_key == eff_subsection,
                     ).first()
                     if not pd:
                         pd = database.PhaseData(
                             project_id=project.id,
-                            phase=session.phase,
-                            subsection_key=session.subsection_key,
+                            phase=eff_phase,
+                            subsection_key=eff_subsection,
                             content={},
                         )
                         db.add(pd)
@@ -495,14 +506,14 @@ async def send_ai_message_stream(
                 from sqlalchemy import func as sqlfunc
                 pd = db.query(database.PhaseData).filter(
                     database.PhaseData.project_id == project.id,
-                    database.PhaseData.phase == session.phase,
-                    database.PhaseData.subsection_key == session.subsection_key,
+                    database.PhaseData.phase == eff_phase,
+                    database.PhaseData.subsection_key == eff_subsection,
                 ).first()
                 if not pd:
                     pd = database.PhaseData(
                         project_id=project.id,
-                        phase=session.phase,
-                        subsection_key=session.subsection_key,
+                        phase=eff_phase,
+                        subsection_key=eff_subsection,
                         content={},
                     )
                     db.add(pd)
@@ -573,9 +584,9 @@ async def send_ai_message_stream(
             if editor_config.get("fields"):
                 brainstorm_field_defs = editor_config["fields"]
 
-        if session.context_item_id:
+        if eff_item_id:
             item = db.query(database.ListItem).filter(
-                database.ListItem.id == session.context_item_id
+                database.ListItem.id == eff_item_id
             ).first()
             if item:
                 brainstorm_current_content = item.content or {}
@@ -585,8 +596,8 @@ async def send_ai_message_stream(
         else:
             phase_data = db.query(database.PhaseData).filter(
                 database.PhaseData.project_id == project.id,
-                database.PhaseData.phase == session.phase,
-                database.PhaseData.subsection_key == session.subsection_key,
+                database.PhaseData.phase == eff_phase,
+                database.PhaseData.subsection_key == eff_subsection,
             ).first()
             if phase_data:
                 brainstorm_current_content = phase_data.content or {}
@@ -626,18 +637,18 @@ async def send_ai_message_stream(
 
                 list_config = sub_config.get("list_config") or {}
                 item_type = list_config.get("item_type")
-                if list_item_creates and item_type and not session.context_item_id:
+                if list_item_creates and item_type and not eff_item_id:
                     from sqlalchemy import func as sqlfunc
                     pd = db.query(database.PhaseData).filter(
                         database.PhaseData.project_id == project.id,
-                        database.PhaseData.phase == session.phase,
-                        database.PhaseData.subsection_key == session.subsection_key,
+                        database.PhaseData.phase == eff_phase,
+                        database.PhaseData.subsection_key == eff_subsection,
                     ).first()
                     if not pd:
                         pd = database.PhaseData(
                             project_id=project.id,
-                            phase=session.phase,
-                            subsection_key=session.subsection_key,
+                            phase=eff_phase,
+                            subsection_key=eff_subsection,
                             content={},
                         )
                         db.add(pd)
