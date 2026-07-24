@@ -76,9 +76,12 @@ export function ProjectWorkspace() {
   }, [currentPhase, selectedSubsection, projectId]);
 
   // Legacy routes / stale localStorage may point at a hidden subsection
-  // (e.g. scenes/scene_detail/:itemId) — fold them into the visible surface.
+  // (e.g. scenes/scene_detail/:itemId) or at a key from another phase —
+  // fold them into the visible surface. Without this, single-surface phases
+  // would dead-end on "Select a section" with no sidebar to recover from.
   useEffect(() => {
-    if (currentSubsection?.hidden && visibleSubsections.length > 0) {
+    const unresolvable = !!selectedSubsection && !!currentPhase && !currentSubsection;
+    if ((currentSubsection?.hidden || unresolvable) && visibleSubsections.length > 0) {
       const target = visibleSubsections[0].key;
       setSelectedSubsection(target);
       navigate(
@@ -88,7 +91,7 @@ export function ProjectWorkspace() {
         { replace: true }
       );
     }
-  }, [currentSubsection, itemId, projectId, selectedPhase]);
+  }, [currentSubsection, currentPhase, selectedSubsection, itemId, projectId, selectedPhase]);
 
   useEffect(() => {
     if (phase && phase !== selectedPhase) setSelectedPhase(phase);
