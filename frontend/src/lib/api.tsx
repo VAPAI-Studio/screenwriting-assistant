@@ -216,13 +216,15 @@ export const api = {
     return response.json();
   },
 
-  // Push a whole series (show + all episodes) to vapai-studio. Longer timeout
-  // than a single episode — one MCP round-trip per episode.
+  // Push a whole series (show + all episodes) to vapai-studio. The work scales
+  // with episode count (several MCP round-trips per episode), so the flat
+  // 2-minute CHAT_TIMEOUT aborted real series mid-send — browser gave up while
+  // the server kept going. 5 minutes.
   async sendSeriesToVapai(showId: string): Promise<SendSeriesToVapaiResponse> {
     const response = await fetchWithTimeout(
       `${API_BASE_URL}/shows/${showId}/send-to-vapai`,
       { method: 'POST', headers: getHeaders() },
-      CHAT_TIMEOUT,
+      300000,
     );
     if (!response.ok) {
       const err = await response.json().catch(() => ({ detail: 'Failed to send series to vapai-studio' }));
