@@ -562,6 +562,8 @@ export interface SeasonDetail extends Season {
 
 export interface EpisodeSlotUpdate {
   slot_number?: number;
+  /** Link an existing episode to this slot; explicit null unlinks. */
+  project_id?: string | null;
   title?: string;
   logline?: string;
   arc_function?: string;

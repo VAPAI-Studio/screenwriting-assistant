@@ -4,7 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { api } from '../../lib/api';
 import { Button } from '../UI/Button';
-import type { EpisodeSlot } from '../../types';
+import type { EpisodeSlot, Project } from '../../types';
 
 /** character_states dict <-> editable "Name: state" lines. */
 export function statesToLines(states: Record<string, string>): string {
@@ -28,19 +28,28 @@ interface SlotEditModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
+  /** The show's episodes, for manual assignment. */
+  episodes: Project[];
+  /** project_ids already linked to OTHER slots (not selectable here). */
+  takenProjectIds: Set<string>;
 }
 
 const FIELD_CLS =
   'w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500/40 transition-all';
 const LABEL_CLS = 'block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2';
 
-export function SlotEditModal({ slot, open, onOpenChange, onSaved }: SlotEditModalProps) {
+export function SlotEditModal({ slot, open, onOpenChange, onSaved, episodes, takenProjectIds }: SlotEditModalProps) {
   const [title, setTitle] = useState(slot.title);
   const [logline, setLogline] = useState(slot.logline);
   const [arcFunction, setArcFunction] = useState(slot.arc_function);
   const [statesText, setStatesText] = useState(statesToLines(slot.character_states));
   const [cliffhanger, setCliffhanger] = useState(slot.cliffhanger);
   const [notes, setNotes] = useState(slot.notes);
+  const [assignedId, setAssignedId] = useState<string>(slot.project_id ?? '');
+  // Selectable: episodes not slotted elsewhere (plus the one already linked here).
+  const assignable = episodes.filter(
+    (e) => !takenProjectIds.has(e.id) || e.id === slot.project_id
+  );
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -51,6 +60,7 @@ export function SlotEditModal({ slot, open, onOpenChange, onSaved }: SlotEditMod
         character_states: linesToStates(statesText),
         cliffhanger,
         notes,
+        project_id: assignedId || null,
       }),
     onSuccess: () => {
       onSaved();
@@ -106,6 +116,24 @@ export function SlotEditModal({ slot, open, onOpenChange, onSaved }: SlotEditMod
             <div>
               <label className={LABEL_CLS}>Cliffhanger / out</label>
               <textarea value={cliffhanger} onChange={(e) => setCliffhanger(e.target.value)} rows={2} className={FIELD_CLS} placeholder="What pulls into the next episode (empty = clean resolution)" />
+            </div>
+            <div>
+              <label className={LABEL_CLS}>Episodio asignado</label>
+              <select
+                value={assignedId}
+                onChange={(e) => setAssignedId(e.target.value)}
+                className={FIELD_CLS}
+              >
+                <option value="">— Sin episodio (solo plan) —</option>
+                {assignable.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    Ep {e.episode_number ?? '?'} — {e.title}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Conectá un episodio ya creado con esta casilla del mapa — el plan pasa a seguir a ese episodio.
+              </p>
             </div>
             <div>
               <label className={LABEL_CLS}>Notes</label>

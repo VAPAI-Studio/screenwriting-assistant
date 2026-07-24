@@ -254,6 +254,45 @@ async def update_slot(
     slot, season = _get_owned_slot(db, slot_id, current_user)
     update_data = body.model_dump(exclude_unset=True)
 
+    # Manual episode assignment (explicit null unlinks). The slot is the PLAN;
+    # linking adopts an already-created episode as its written reality.
+    if "project_id" in update_data:
+        new_project_id = update_data.pop("project_id")
+        if new_project_id is None:
+            slot.project_id = None
+        else:
+            episode = (
+                db.query(database.Project)
+                .filter(
+                    database.Project.id == str(new_project_id),
+                    database.Project.owner_id == str(current_user.id),
+                )
+                .first()
+            )
+            if not episode:
+                raise NotFoundException(resource="Episode", identifier=str(new_project_id))
+            if str(episode.show_id or "") != str(season.show_id):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="That episode belongs to a different show.",
+                )
+            taken = (
+                db.query(database.EpisodeSlot)
+                .filter(
+                    database.EpisodeSlot.project_id == str(new_project_id),
+                    database.EpisodeSlot.id != str(slot.id),
+                )
+                .first()
+            )
+            if taken:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"That episode is already assigned to slot {taken.slot_number}.",
+                )
+            slot.project_id = str(new_project_id)
+            # Same linkage create-episode-from-slot establishes.
+            episode.season_id = str(season.id)
+
     new_number = update_data.get("slot_number")
     if new_number is not None and new_number != slot.slot_number:
         exists = (

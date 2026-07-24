@@ -604,3 +604,63 @@ class TestReconcile:
         ).first()
         assert db_slot.logline == "Planned logline"
         assert mock_rec.call_args.kwargs["episode_summary"] == project.episode_summary
+
+
+class TestManualEpisodeAssignment:
+    """PUT /slots/{id} with project_id — adopt an existing episode into the map."""
+
+    def _episode(self, client, headers, show_id, title="Loose Episode"):
+        resp = client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": title, "template": "episode"},
+            headers=headers,
+        )
+        assert resp.status_code == 201
+        return resp.json()
+
+    def test_assign_and_unlink(self, client, mock_auth_headers, db_session):
+        show_id = _create_show(client, mock_auth_headers)
+        season = _create_season(client, mock_auth_headers, show_id)
+        slot = _create_slot(client, mock_auth_headers, season["id"])
+        ep = self._episode(client, mock_auth_headers, show_id)
+
+        resp = client.put(
+            f"/api/slots/{slot['id']}", json={"project_id": ep["id"]}, headers=mock_auth_headers
+        )
+        assert resp.status_code == 200
+        assert resp.json()["project_id"] == ep["id"]
+        # Linking also adopts the episode into the season (same as create-from-slot).
+        proj = db_session.query(ProjectModel).filter(ProjectModel.id == ep["id"]).first()
+        assert str(proj.season_id) == season["id"]
+
+        # Explicit null unlinks.
+        resp = client.put(
+            f"/api/slots/{slot['id']}", json={"project_id": None}, headers=mock_auth_headers
+        )
+        assert resp.status_code == 200
+        assert resp.json()["project_id"] is None
+
+    def test_assign_rejects_other_shows_episode(self, client, mock_auth_headers):
+        show_a = _create_show(client, mock_auth_headers, title="Show A")
+        show_b = _create_show(client, mock_auth_headers, title="Show B")
+        season = _create_season(client, mock_auth_headers, show_a)
+        slot = _create_slot(client, mock_auth_headers, season["id"])
+        ep_b = self._episode(client, mock_auth_headers, show_b)
+        resp = client.put(
+            f"/api/slots/{slot['id']}", json={"project_id": ep_b["id"]}, headers=mock_auth_headers
+        )
+        assert resp.status_code == 400
+
+    def test_assign_rejects_already_slotted_episode(self, client, mock_auth_headers):
+        show_id = _create_show(client, mock_auth_headers)
+        season = _create_season(client, mock_auth_headers, show_id)
+        slot1 = _create_slot(client, mock_auth_headers, season["id"])
+        slot2 = _create_slot(client, mock_auth_headers, season["id"])
+        ep = self._episode(client, mock_auth_headers, show_id)
+        assert client.put(
+            f"/api/slots/{slot1['id']}", json={"project_id": ep["id"]}, headers=mock_auth_headers
+        ).status_code == 200
+        resp = client.put(
+            f"/api/slots/{slot2['id']}", json={"project_id": ep["id"]}, headers=mock_auth_headers
+        )
+        assert resp.status_code == 409

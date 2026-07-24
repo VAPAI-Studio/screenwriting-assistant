@@ -327,7 +327,16 @@ export function SeasonMap({ showId, bibleSeasonArc }: SeasonMapProps) {
           slot={editingSlot}
           open={!!editingSlot}
           onOpenChange={(open) => !open && setEditingSlot(null)}
-          onSaved={invalidateSeason}
+          onSaved={() => {
+            invalidateSeason();
+            queryClient.invalidateQueries({ queryKey: QUERY_KEYS.EPISODES(showId) });
+          }}
+          episodes={episodes}
+          takenProjectIds={new Set(
+            (season?.slots ?? [])
+              .filter((s) => s.project_id && s.id !== editingSlot.id)
+              .map((s) => s.project_id as string)
+          )}
         />
       )}
       {reconcilingSlot && (

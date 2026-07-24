@@ -1094,6 +1094,10 @@ class EpisodeSlotCreate(BaseModel):
 
 class EpisodeSlotUpdate(BaseModel):
     slot_number: Optional[int] = Field(None, ge=1)
+    # Manual episode<->slot assignment: link an EXISTING episode to this slot
+    # (explicit null unlinks). Validated in the endpoint (ownership, same show,
+    # not linked to another slot).
+    project_id: Optional[UUID] = None
     title: Optional[str] = Field(None, max_length=255)
     logline: Optional[str] = Field(None, max_length=10000)
     arc_function: Optional[str] = Field(None, max_length=10000)
