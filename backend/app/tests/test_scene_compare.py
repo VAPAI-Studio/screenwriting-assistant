@@ -512,6 +512,75 @@ def test_keep_scene_version_updates_newest_duplicate_row(
     assert older[0].content == "OLD BODY 2"
 
 
+def test_keep_scene_version_positional_fallback_targets_correct_episode(
+    client, db_session, mock_auth_headers
+):
+    """ph50 regression: when NO ScreenplayContent row carries
+    formatted_content.episode_index (legacy rows written before the index was
+    stored), keep-scene-version must fall back to the POSITIONAL match — and,
+    because rows are ordered newest-first, index from the END so ascending
+    episode order is preserved. Editing episode 0 must not clobber episode 1.
+
+    This exercises the heuristic branch at wizards.py:836-839 that CONCERNS.md
+    flagged as under-tested; getting the from-the-end arithmetic wrong is exactly
+    the class of bug that bit v6.0 WR-01 / v7.0 ph50 (screenplays joined
+    positionally instead of by episode_index)."""
+    project = _create_owner_project(client, db_session, mock_auth_headers)
+    _seed_screenplay_editor(db_session, project.id)
+
+    # Strip episode_index from the seeded rows to force the positional branch,
+    # and pin created_at so newest-first ordering is deterministic. Ascending
+    # episode order (0 then 1) => the episode-1 row is the NEWER of the two.
+    from datetime import datetime, timedelta, timezone
+    base = datetime.now(timezone.utc)
+    rows = db_session.query(database.ScreenplayContent).filter(
+        database.ScreenplayContent.project_id == project.id
+    ).all()
+    for r in rows:
+        idx = (r.formatted_content or {}).get("episode_index")
+        # Legacy shape: formatted_content without an episode_index key.
+        r.formatted_content = {"title": f"Legacy {idx}", "content": r.content}
+        # ep0 older, ep1 newer -> query order (newest-first) is [ep1, ep0].
+        r.created_at = base - timedelta(minutes=5) if idx == 0 else base
+        r.content = f"LEGACY BODY {idx}"
+    db_session.commit()
+
+    # Keep a new version of EPISODE 0. The positional fallback must resolve to the
+    # end-indexed row (the OLDER one), i.e. the true episode-0 row — NOT episode 1.
+    resp = client.post(
+        "/api/wizards/keep-scene-version",
+        json={
+            "project_id": str(project.id),
+            "phase": "write",
+            "episode_index": 0,
+            "title": "Kept Ep0",
+            "content": "KEPT EP0 BODY",
+        },
+        headers=mock_auth_headers,
+    )
+    assert resp.status_code == 200, resp.text
+
+    db_session.expire_all()
+    rows = db_session.query(database.ScreenplayContent).filter(
+        database.ScreenplayContent.project_id == project.id
+    ).order_by(
+        database.ScreenplayContent.created_at.desc(), database.ScreenplayContent.id.desc()
+    ).all()
+    # rows is newest-first == [ep1, ep0]. Episode 0 (the end row) got the edit;
+    # episode 1 (the newest row) was left untouched.
+    assert rows[1].content == "KEPT EP0 BODY"          # ep0 updated
+    assert rows[1].formatted_content["title"] == "Kept Ep0"
+    assert rows[0].content == "LEGACY BODY 1"          # ep1 NOT clobbered
+
+    # PhaseData screenplays[0] also updated; screenplays[1] untouched.
+    pd = db_session.query(database.PhaseData).filter(
+        database.PhaseData.project_id == project.id,
+        database.PhaseData.subsection_key == "screenplay_editor",
+    ).first()
+    assert pd.content["screenplays"][0]["content"] == "KEPT EP0 BODY"
+    assert pd.content["screenplays"][1]["content"] == "OLD BODY 2"
+
+
 def test_regenerate_endpoint_non_owner_404(client, db_session, mock_auth_headers):
     """A project owned by a different user returns 404 on regenerate-scene."""
     project = _create_other_user_project(db_session)

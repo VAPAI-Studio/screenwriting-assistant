@@ -1,5 +1,7 @@
 # backend/app/api/endpoints/review.py
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -8,6 +10,8 @@ from ...services.openai_service import openai_service
 from ..dependencies import get_db, get_current_user
 from ...utils import validate_review_text, validate_framework, sanitize_html
 from ...utils.bible_context import build_bible_context
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -73,7 +77,7 @@ async def review_section(
         return review_result
     
     except Exception as e:
-        print(f"Review error: {str(e)}")
+        logger.error(f"Review error: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error processing review request"

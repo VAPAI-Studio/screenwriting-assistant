@@ -51,6 +51,28 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         
         return response
 
+def _build_csp() -> str:
+    """Content-Security-Policy derived from settings, not hardcoded localhost.
+
+    connect-src is widened to the configured ALLOWED_ORIGINS so the deployed
+    frontend can reach the API; 'unsafe-eval' is dropped entirely (no code path
+    needs it) and 'unsafe-inline' for scripts is kept only in development.
+    """
+    from .config import settings
+
+    origins = " ".join(o for o in settings.ALLOWED_ORIGINS if o)
+    connect_src = f"'self' {origins}".strip()
+    # Vite's dev server injects inline scripts (HMR); prod build does not.
+    script_src = "'self' 'unsafe-inline'" if settings.ENVIRONMENT == "development" else "'self'"
+    return (
+        f"default-src 'self'; "
+        f"connect-src {connect_src}; "
+        f"img-src 'self' data: blob:; "
+        f"script-src {script_src}; "
+        f"style-src 'self' 'unsafe-inline';"
+    )
+
+
 class SecurityMiddleware(BaseHTTPMiddleware):
     """Add security headers to responses"""
     
@@ -66,14 +88,8 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         
-        # More permissive CSP for development
-        response.headers["Content-Security-Policy"] = (
-            "default-src 'self' http://localhost:4321; "
-            "connect-src 'self' http://localhost:4321 http://localhost:8000; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-            "style-src 'self' 'unsafe-inline';"
-        )
-        
+        response.headers["Content-Security-Policy"] = _build_csp()
+
         return response
 
 class RequestSizeLimitMiddleware(BaseHTTPMiddleware):

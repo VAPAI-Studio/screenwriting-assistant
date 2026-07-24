@@ -80,7 +80,11 @@ class Settings(BaseSettings):
     MAX_AGENTS_PER_PIPELINE_STEP: int = 3
     AGENT_RELEVANCE_THRESHOLD: float = 0.3
 
-    # File storage
+    # File storage. Defaults live under the app dir (fine for local/docker where
+    # a named volume is mounted). On Railway the container FS is ephemeral, so in
+    # production point UPLOAD_DIR/MEDIA_DIR at a mounted volume — e.g. set
+    # UPLOAD_DIR=$RAILWAY_VOLUME_MOUNT_PATH/uploads — or book uploads and
+    # generated storyboard/media frames are lost on every redeploy.
     UPLOAD_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "uploads")
     MEDIA_DIR: str = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "media")
     
