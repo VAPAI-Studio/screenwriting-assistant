@@ -85,6 +85,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "What exactly is the game — the one unusual thing we repeat?",
+            "Is the base reality grounded enough to make the game funny?",
+            "Who is the voice of reason, and why don't they leave?",
+            "Why does this happen TODAY — what breaks the routine?",
+            "Does the heightening logic escalate the same game, not a new one?"
+          ],
           "cards": [
             {
               "key": "premise",
@@ -257,6 +264,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "Does the cold open establish the base reality fast?",
+            "Is the game clearly established before we escalate?",
+            "Does each escalation raise the same game, harder?",
+            "Does the twist reframe the game, not abandon it?",
+            "Is the button a real out, or does it just stop?"
+          ],
           "linked_cards_source": "story.core",
           "cards": [
             {

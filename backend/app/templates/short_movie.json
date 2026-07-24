@@ -85,6 +85,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "Does the logline promise a story only this premise can tell?",
+            "Is the theme dramatized through the plan, not stated?",
+            "Are the internal and external stakes pulling in the same scene?",
+            "Is the antagonistic force specific and active, not abstract?",
+            "Does the key visual motif pay off the theme?"
+          ],
           "cards": [
             {
               "key": "logline",
@@ -254,6 +261,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "Does the opening image hook in the first 10 seconds?",
+            "Is the inciting incident a real point of no return?",
+            "Do the rising complications escalate, or just repeat?",
+            "Does the twist recontextualize what came before?",
+            "Does the closing image answer the opening one?"
+          ],
           "linked_cards_source": "story.core",
           "cards": [
             {

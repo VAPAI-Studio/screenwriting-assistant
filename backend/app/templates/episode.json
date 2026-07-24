@@ -85,6 +85,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "Does the episodic question close by the climax while series questions stay open?",
+            "Are the A, B and C plots each pulling their weight?",
+            "Does this episode fit the series engine, or fight it?",
+            "Is the arc shift a real change, or a reset to status quo?",
+            "Would the logline make someone watch THIS episode?"
+          ],
           "cards": [
             {
               "key": "logline",
@@ -255,6 +262,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "Does the cold open earn the title card?",
+            "Do the act breaks land on genuine reversals?",
+            "Is the midpoint reversal a true turn, not a speed bump?",
+            "Does the climax converge the A and B plots?",
+            "Does the tag / cliffhanger pull into the next episode?"
+          ],
           "linked_cards_source": "story.core",
           "cards": [
             {

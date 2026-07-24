@@ -497,6 +497,21 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Charlá con la IA sobre esta sección — tiene el contexto de tu proyecto. Si surgen cambios concretos, te los propone para aplicar.
                 </p>
+                {subsection?.chat_questions && subsection.chat_questions.length > 0 && (
+                  <div className="mt-4 flex flex-col gap-1.5">
+                    <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mb-1">Ask about this section</p>
+                    {subsection.chat_questions.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => handleSend(q)}
+                        disabled={isStreaming || !sessionId}
+                        className="text-left text-xs px-3 py-2 rounded-lg bg-muted/40 text-foreground/80 border border-border hover:bg-muted hover:border-amber-500/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             {messages.map((msg: AIMessageResponse) => (

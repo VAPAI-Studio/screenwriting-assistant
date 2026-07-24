@@ -108,6 +108,9 @@ export interface SubsectionConfig {
   ai_actions?: AIActionDef[];
   sidebar_chat?: boolean;
   chat_system_prompt?: string;
+  // Pre-written prompt chips shown in the empty chat, specific to this section —
+  // the socratic questions worth asking here (e.g. "Test the hook" on Core).
+  chat_questions?: string[];
   wizard_config?: WizardConfig;
   list_config?: ListConfig;
   editor_config?: EditorConfig;

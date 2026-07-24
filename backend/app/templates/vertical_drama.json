@@ -85,6 +85,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "Does the 3-second hook stop the scroll?",
+            "Is there a single, followable plot — no subplots to lose?",
+            "Does the reversal hit hard enough for a vertical audience?",
+            "Is the cliffhanger strong enough to earn the next episode?",
+            "What's the emotional payload we're paying off?"
+          ],
           "cards": [
             {
               "key": "logline",
@@ -244,6 +251,13 @@
           "ui_pattern": "card_grid",
           "grid_columns": 3,
           "sidebar_chat": true,
+          "chat_questions": [
+            "Does the hook work with the sound off?",
+            "Is the setup fast enough — are we losing seconds?",
+            "Does the escalation keep raising the temperature?",
+            "Is the reversal a genuine turn?",
+            "Does the cliffhanger demand the next tap?"
+          ],
           "linked_cards_source": "story.core",
           "cards": [
             {
