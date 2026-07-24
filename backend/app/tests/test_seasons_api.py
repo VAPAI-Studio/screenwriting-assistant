@@ -687,3 +687,85 @@ class TestManualEpisodeAssignment:
             f"/api/slots/{slot2['id']}", json={"project_id": ep["id"]}, headers=mock_auth_headers
         )
         assert resp.status_code == 409
+
+
+class TestSeasonMapAutoAdoption:
+    """Write first, map later: the wizard adopts unlinked episodes automatically."""
+
+    def _episode(self, client, headers, show_id, title):
+        resp = client.post(
+            f"/api/shows/{show_id}/episodes",
+            json={"title": title, "template": "episode"},
+            headers=headers,
+        )
+        assert resp.status_code == 201
+        return resp.json()
+
+    def test_run_config_locks_unlinked_episodes(self, client, mock_auth_headers):
+        """Starting a season-map run treats loose episodes as locked canon at
+        their implied slot number and records the adoption map."""
+        show_id = _create_show(client, mock_auth_headers)
+        season = _create_season(client, mock_auth_headers, show_id)
+        ep1 = self._episode(client, mock_auth_headers, show_id, "Real Ep One")
+        ep2 = self._episode(client, mock_auth_headers, show_id, "Real Ep Two")
+
+        with patch(
+            "app.api.endpoints.wizards._run_season_map_background", new=AsyncMock()
+        ) as mock_bg:
+            resp = client.post(
+                "/api/wizards/run",
+                json={
+                    "season_id": season["id"],
+                    "wizard_type": "season_map_wizard",
+                    "phase": "story",
+                    "config": {"episode_count": 5},
+                },
+                headers=mock_auth_headers,
+            )
+        assert resp.status_code == 200
+        cfg = mock_bg.call_args.kwargs["config"]
+        locked_numbers = {e["slot_number"] for e in cfg["_locked_slots"]}
+        assert {1, 2} <= locked_numbers
+        assert cfg["_adopt_episodes"] == {1: ep1["id"], 2: ep2["id"]}
+        titles = {e["slot_number"]: e["title"] for e in cfg["_locked_slots"]}
+        assert titles[1] == "Real Ep One"
+
+    def test_apply_links_adopted_episodes(self, client, mock_auth_headers, db_session):
+        """Applying a run with an adoption map creates/links slots to the real
+        episodes; an existing invented plan at that number is flagged stale."""
+        show_id = _create_show(client, mock_auth_headers)
+        season = _create_season(client, mock_auth_headers, show_id)
+        # Slot 1 pre-exists with an invented plan; slot 2 doesn't exist yet.
+        _create_slot(client, mock_auth_headers, season["id"], logline="Invented.")
+        ep1 = self._episode(client, mock_auth_headers, show_id, "Adopt One")
+        ep2 = self._episode(client, mock_auth_headers, show_id, "Adopt Two")
+
+        run = WizardRunModel(
+            season_id=season["id"],
+            wizard_type="season_map_wizard",
+            phase="story",
+            config={},
+            result={
+                "arc_summary": "Arc.",
+                "slots": [{"slot_number": 3, "title": "Planned Three", "logline": "L",
+                           "arc_function": "", "character_states": {}, "cliffhanger": ""}],
+                "_adopt_episodes": {"1": ep1["id"], "2": ep2["id"]},
+            },
+            status="completed",
+        )
+        db_session.add(run)
+        db_session.commit()
+        db_session.refresh(run)
+
+        resp = client.post(f"/api/wizards/{run.id}/apply", headers=mock_auth_headers)
+        assert resp.status_code == 200
+        assert resp.json()["episodes_adopted"] == 2
+
+        detail = client.get(f"/api/seasons/{season['id']}", headers=mock_auth_headers).json()
+        by_num = {s["slot_number"]: s for s in detail["slots"]}
+        assert by_num[1]["project_id"] == ep1["id"]
+        assert by_num[1]["plan_stale"] is True     # invented plan -> stale
+        assert by_num[2]["project_id"] == ep2["id"]
+        assert by_num[2]["plan_stale"] is False    # fresh slot, clean
+        assert by_num[2]["title"] == "Adopt Two"
+        assert by_num[3]["title"] == "Planned Three"

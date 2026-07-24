@@ -174,6 +174,7 @@ async def _run_season_map_background(run_id, config: dict, show_context: str):
             config["_doctrine_cards"] = doctrine_service.build_doctrine_cards("episode", db)
 
         result = await template_ai_service.generate_season_map(config, show_context)
+        result["_adopt_episodes"] = config.get("_adopt_episodes") or {}
         result["doctrine_used"] = [
             {"name": c.get("name"), "source": c.get("source")}
             for c in (config.get("_doctrine_cards") or [])[:6]
@@ -242,7 +243,54 @@ def _start_season_map_run(
             "logline": "" if slot.plan_stale else (slot.logline or ""),
             "episode_summary": (project.episode_summary or "").strip() if project else "",
         })
+
+    # Auto-adoption: episodes of this show not linked to ANY slot enter the map
+    # as locked canon at their implied slot number, and get linked on apply —
+    # so "write first, map later" needs no manual assignment.
+    from sqlalchemy import func as sqlfunc
+    prior_slot_count = (
+        db.query(sqlfunc.count(database.EpisodeSlot.id))
+        .join(database.Season, database.EpisodeSlot.season_id == database.Season.id)
+        .filter(
+            database.Season.show_id == str(season.show_id),
+            database.Season.number < season.number,
+        )
+        .scalar()
+    ) or 0
+    linked_anywhere = {
+        str(r[0])
+        for r in db.query(database.EpisodeSlot.project_id)
+        .filter(database.EpisodeSlot.project_id.isnot(None))
+        .all()
+    }
+    locked_numbers = {entry["slot_number"] for entry in locked}
+    adopt = {}
+    episodes = (
+        db.query(database.Project)
+        .filter(
+            database.Project.show_id == str(season.show_id),
+            database.Project.episode_number.isnot(None),
+        )
+        .order_by(database.Project.episode_number)
+        .all()
+    )
+    for ep in episodes:
+        if str(ep.id) in linked_anywhere:
+            continue
+        implied = ep.episode_number - prior_slot_count
+        if implied < 1 or implied in locked_numbers:
+            continue
+        locked_numbers.add(implied)
+        locked.append({
+            "slot_number": implied,
+            "title": ep.title,
+            "logline": "",
+            "episode_summary": (ep.episode_summary or "").strip(),
+        })
+        adopt[implied] = str(ep.id)
+
     config["_locked_slots"] = locked
+    config["_adopt_episodes"] = adopt
 
     wizard_run = database.WizardRun(
         season_id=season.id,
@@ -430,6 +478,37 @@ def apply_season_map_to_db(db: Session, season, result: dict) -> dict:
     }
     linked_numbers = {n for n, s in existing.items() if s.project_id}
 
+    # Auto-adoption (result JSON keys arrive as strings): link the pre-existing
+    # episodes the run promised to adopt. An existing invented plan gets flagged
+    # stale (same semantics as manual assignment); a fresh slot starts clean.
+    adopted = 0
+    for k, pid in (result.get("_adopt_episodes") or {}).items():
+        try:
+            num = int(k)
+        except (TypeError, ValueError):
+            continue
+        episode = db.query(database.Project).filter(database.Project.id == str(pid)).first()
+        if not episode or num < 1 or num in linked_numbers:
+            continue
+        slot = existing.get(num)
+        if slot is None:
+            slot = database.EpisodeSlot(
+                season_id=season.id, slot_number=num, title=episode.title or ""
+            )
+            db.add(slot)
+            existing[num] = slot
+        elif any([
+            (slot.logline or "").strip(),
+            (slot.arc_function or "").strip(),
+            (slot.cliffhanger or "").strip(),
+            slot.character_states or {},
+        ]):
+            slot.plan_stale = True
+        slot.project_id = str(episode.id)
+        episode.season_id = str(season.id)
+        linked_numbers.add(num)
+        adopted += 1
+
     written = 0
     generated_numbers = set()
     for entry in generated:
@@ -472,6 +551,7 @@ def apply_season_map_to_db(db: Session, season, result: dict) -> dict:
         "status": "success",
         "slots_written": written,
         "slots_locked": len(linked_numbers),
+        "episodes_adopted": adopted,
         "slots_deleted": deleted,
     }
 
