@@ -449,7 +449,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
           }`}
         >
           <Zap className="h-3 w-3" />
-          AI
+          Chat
         </button>
         <button
           onClick={() => handleSetPanelMode('agent')}
@@ -460,7 +460,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
           }`}
         >
           <BookOpen className="h-3 w-3" />
-          Agent
+          Specialists
           {agents.length > 0 && (
             <span className="text-[10px] text-muted-foreground">({agents.length})</span>
           )}
@@ -474,7 +474,7 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
         <>
           <div className="px-4 py-3 border-b border-border flex-shrink-0">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Template AI</h3>
+              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider">Chat</h3>
               <div className="flex items-center gap-1">
                 {(messages.length > 0 || streamingText) && (
                   <button onClick={handleClear} disabled={isStreaming} title="Clear"
@@ -612,7 +612,10 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: agent.color }} />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">{agent.name}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
+                        {agent.description && (
+                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{agent.description}</div>
+                        )}
+                        <div className="text-[10px] text-muted-foreground/70 mt-0.5">
                           {agent.agent_type === 'orchestrator' && <span className="text-violet-400">Orchestrator</span>}
                           {agent.agent_type === 'tag_based' && <span className="text-emerald-400">Tags: {(agent.tags_filter || []).slice(0, 2).join(', ') || 'none'}</span>}
                           {agent.agent_type === 'book_based' && agent.book_count > 0 && <span>{agent.book_count} book{agent.book_count !== 1 ? 's' : ''} linked</span>}
@@ -629,9 +632,14 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
                 </div>
               )}
             </div>
+            {selectedAgent?.description && (
+              <p className="text-[10px] text-muted-foreground mt-1.5 px-1 line-clamp-2">
+                {selectedAgent.description}
+              </p>
+            )}
             {hasFields && (
-              <p className="text-[10px] text-violet-400/60 mt-1.5 px-1">
-                Can read & suggest edits to current section
+              <p className="text-[10px] text-violet-400/60 mt-1 px-1">
+                Puede leer y proponer cambios en la sección actual
               </p>
             )}
           </div>
@@ -644,11 +652,13 @@ export function SidebarChat({ projectId, phase, subsectionKey, contextItemId, su
                   <Lightbulb className="h-5 w-5 text-violet-400" />
                 </div>
                 <p className="text-sm font-medium text-foreground/80 mb-1">
-                  {selectedAgent ? `Chat with ${selectedAgent.name}` : 'Select an agent'}
+                  {selectedAgent ? `Consultá a ${selectedAgent.name}` : 'Elegí un especialista'}
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Ask questions powered by your linked books
-                  {hasFields && '. The agent can also suggest edits to your current section.'}
+                  {selectedAgent?.description
+                    ? selectedAgent.description
+                    : 'Cada especialista domina un área según los libros que tiene vinculados — elegilo por el tipo de ayuda que buscás.'}
+                  {hasFields && ' También puede proponer cambios en tu sección actual.'}
                 </p>
               </div>
             )}
