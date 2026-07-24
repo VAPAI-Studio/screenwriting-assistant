@@ -318,7 +318,7 @@
       "subsections": [
         {
           "key": "scene_wizard",
-          "name": "Scene Wizard",
+          "name": "1 · Generar escenas",
           "description": "Most sketches are ONE scene playing one game. Use multiple scenes only for cutaway or escalating-location formats. The Scene Wizard builds your scene list from the beats.",
           "ui_pattern": "wizard",
           "wizard_config": {
@@ -390,7 +390,7 @@
         },
         {
           "key": "scene_list",
-          "name": "Scene List",
+          "name": "2 · Lista de escenas",
           "description": "Organize your sketch scenes.",
           "ui_pattern": "ordered_list",
           "list_config": {
@@ -407,7 +407,7 @@
         },
         {
           "key": "scene_detail",
-          "name": "Individual Scenes",
+          "name": "3 · Escena por escena",
           "description": "Craft the scene as an escalation ladder. In a sketch, the 'turning point' is a heightening of the game, the 'climax' is the blow, and the 'fallout' is the button. Everything serves the game — cut any line that doesn't feed it.",
           "ui_pattern": "individual_editor",
           "editor_config": {

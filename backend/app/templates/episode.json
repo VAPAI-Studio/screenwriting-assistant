@@ -316,7 +316,7 @@
       "subsections": [
         {
           "key": "scene_wizard",
-          "name": "Scene Wizard",
+          "name": "1 · Generar escenas",
           "description": "Turn the act structure into a scene list. Episodes need more scenes than shorts — each act is a run of scenes that builds to its break. The wizard maps A/B/C plots across acts.",
           "ui_pattern": "wizard",
           "wizard_config": {
@@ -392,7 +392,7 @@
         },
         {
           "key": "scene_list",
-          "name": "Scene List",
+          "name": "2 · Lista de escenas",
           "description": "Organize your episode scenes.",
           "ui_pattern": "ordered_list",
           "list_config": {
@@ -409,7 +409,7 @@
         },
         {
           "key": "scene_detail",
-          "name": "Individual Scenes",
+          "name": "3 · Escena por escena",
           "description": "Craft each scene as a unit of pressure: someone wants something now, someone resists, and the scene turns. Tag which plot the scene serves and end it pointed at the next one — TV scenes enter late and leave early.",
           "ui_pattern": "individual_editor",
           "editor_config": {

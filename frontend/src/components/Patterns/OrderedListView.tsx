@@ -122,7 +122,7 @@ export function OrderedListView({ subsection, projectId, phase, phaseData }: Ord
       {/* List */}
       {items.length === 0 ? (
         <div className="border border-dashed border-border rounded-xl p-16 text-center">
-          <p className="text-sm text-muted-foreground">No items yet. Add one or use the wizard to generate them.</p>
+          <p className="text-sm text-muted-foreground">Todavía no hay nada acá. Generá la lista con el paso 1 (el wizard) o agregá items a mano.</p>
         </div>
       ) : (
         <div className="space-y-1">

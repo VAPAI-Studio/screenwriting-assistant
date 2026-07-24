@@ -287,7 +287,7 @@
       "subsections": [
         {
           "key": "scene_wizard",
-          "name": "Scene Wizard",
+          "name": "1 · Generar escenas",
           "description": "A microdrama episode is usually 1-3 short scenes. The wizard turns the beats into a tight scene list that hits the hook fast and ends on the cliffhanger.",
           "ui_pattern": "wizard",
           "wizard_config": {
@@ -360,7 +360,7 @@
         },
         {
           "key": "scene_list",
-          "name": "Scene List",
+          "name": "2 · Lista de escenas",
           "description": "Organize your microdrama scenes.",
           "ui_pattern": "ordered_list",
           "list_config": {
@@ -377,7 +377,7 @@
         },
         {
           "key": "scene_detail",
-          "name": "Individual Scenes",
+          "name": "3 · Escena por escena",
           "description": "Craft each scene for the phone: enter on the charged moment, keep one face in frame, and leave on the beat that pulls forward. In a microdrama the 'turning point' is the reversal and the final scene's 'push forward' is the cliffhanger.",
           "ui_pattern": "individual_editor",
           "editor_config": {
