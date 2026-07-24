@@ -72,15 +72,6 @@ export function ContentArea({ subsection, projectId, phase, templateConfig, item
     case 'screenplay_editor':
       return <ScreenplayEditorView {...commonProps} />;
 
-    case 'analyzer':
-      return (
-        <PlaceholderView
-          title={subsection.name}
-          description={subsection.description || ''}
-          pattern={subsection.ui_pattern}
-        />
-      );
-
     default:
       return (
         <PlaceholderView

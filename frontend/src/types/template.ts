@@ -12,8 +12,7 @@ export type UIPattern =
   | 'card_grid'
   | 'ordered_list'
   | 'individual_editor'
-  | 'screenplay_editor'
-  | 'analyzer';
+  | 'screenplay_editor';
 
 export interface FieldDef {
   key: string;

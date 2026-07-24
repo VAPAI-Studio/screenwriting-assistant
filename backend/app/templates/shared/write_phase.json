@@ -16,8 +16,16 @@
         "episode_selector": true,
         "episode_selector_max": 10,
         "readiness_checks": [
-          {"source": "scenes", "label": "Scenes", "count_items": true},
-          {"source": "story.characters", "label": "Characters", "count_items": true}
+          {
+            "source": "scenes",
+            "label": "Scenes",
+            "count_items": true
+          },
+          {
+            "source": "story.characters",
+            "label": "Characters",
+            "count_items": true
+          }
         ],
         "custom_guidance": true,
         "generate_button": "Generate Screenplays"
@@ -38,14 +46,6 @@
           "commands": true
         }
       }
-    },
-    {
-      "key": "screenplay_analyzer",
-      "name": "Screenplay Analyzer",
-      "description": "Analyze and polish your screenplay \u2013 view and edit dialogue by character.",
-      "ui_pattern": "analyzer",
-      "requires_content": true,
-      "empty_message": "No screenplay content found. Create scenes in the Screenplay Editor first."
     }
   ]
 }
