@@ -292,6 +292,17 @@ async def update_slot(
             slot.project_id = str(new_project_id)
             # Same linkage create-episode-from-slot establishes.
             episode.season_id = str(season.id)
+            # If the slot already carried a plan (e.g. an earlier map generation
+            # invented this episode), that plan may contradict the real one we
+            # just adopted — flag it stale so the reconcile flow can rewrite it
+            # from the episode's actual summary.
+            if any([
+                (slot.logline or "").strip(),
+                (slot.arc_function or "").strip(),
+                (slot.cliffhanger or "").strip(),
+                slot.character_states or {},
+            ]):
+                slot.plan_stale = True
 
     new_number = update_data.get("slot_number")
     if new_number is not None and new_number != slot.slot_number:

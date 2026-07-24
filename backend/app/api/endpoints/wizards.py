@@ -235,8 +235,11 @@ def _start_season_map_run(
         ).first()
         locked.append({
             "slot_number": slot.slot_number,
-            "title": slot.title or (project.title if project else ""),
-            "logline": slot.logline or "",
+            "title": (project.title if project and slot.plan_stale else slot.title)
+            or (project.title if project else ""),
+            # A stale plan (episode adopted over an older invented plan) must not
+            # feed the wizard as canon — the episode summary is the truth.
+            "logline": "" if slot.plan_stale else (slot.logline or ""),
             "episode_summary": (project.episode_summary or "").strip() if project else "",
         })
     config["_locked_slots"] = locked

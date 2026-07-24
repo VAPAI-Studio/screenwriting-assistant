@@ -640,6 +640,29 @@ class TestManualEpisodeAssignment:
         assert resp.status_code == 200
         assert resp.json()["project_id"] is None
 
+    def test_assign_over_existing_plan_marks_stale(self, client, mock_auth_headers):
+        """Adopting an episode into a slot that already carries a plan (e.g. an
+        earlier map generation invented it) flags plan_stale so reconcile can
+        rewrite the plan from the real episode."""
+        show_id = _create_show(client, mock_auth_headers)
+        season = _create_season(client, mock_auth_headers, show_id)
+        slot = _create_slot(client, mock_auth_headers, season["id"], logline="Invented plan.")
+        ep = self._episode(client, mock_auth_headers, show_id)
+        resp = client.put(
+            f"/api/slots/{slot['id']}", json={"project_id": ep["id"]}, headers=mock_auth_headers
+        )
+        assert resp.status_code == 200
+        assert resp.json()["plan_stale"] is True
+
+        # Assigning into an EMPTY plan does not flag stale.
+        slot2 = _create_slot(client, mock_auth_headers, season["id"])
+        ep2 = self._episode(client, mock_auth_headers, show_id, title="Second Loose")
+        resp = client.put(
+            f"/api/slots/{slot2['id']}", json={"project_id": ep2["id"]}, headers=mock_auth_headers
+        )
+        assert resp.status_code == 200
+        assert resp.json()["plan_stale"] is False
+
     def test_assign_rejects_other_shows_episode(self, client, mock_auth_headers):
         show_a = _create_show(client, mock_auth_headers, title="Show A")
         show_b = _create_show(client, mock_auth_headers, title="Show B")
