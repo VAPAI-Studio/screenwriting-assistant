@@ -1,247 +1,159 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-03-11
+**Analysis Date:** 2026-07-24
+
+Full-stack screenwriting + production-breakdown assistant (React/Vite frontend, FastAPI/PostgreSQL backend, OpenAI/Anthropic AI). This document catalogs technical debt, risks, fragile areas, and scaling limits. It is an internal-tool audit — market/multi-tenant concerns are deliberately out of scope; the focus is script-writing and breakdown quality plus operational safety on the current Railway/Vercel deploy.
 
 ## Tech Debt
 
-**Duplicate Migration Files:**
-- Issue: Two conflicting migration files exist for the template system (`003_template_system.sql` and `003_templates_overhaul.sql`), both with identical naming prefix. Only one will execute depending on run order, leaving database schema potentially inconsistent.
-- Files: `backend/migrations/003_template_system.sql`, `backend/migrations/003_templates_overhaul.sql`
-- Impact: Database schema inconsistencies, failed deployments, unpredictable table structure
-- Fix approach: Consolidate into a single migration file, rename the second to `004_template_system.sql`, test migration order
+**Mock auth still wired into the request path (dev-gated):**
+- Issue: `authenticate_token` and `validate_token` special-case the literal token `"mock-token"` and return a hardcoded user (UUID `12345678-...`) whenever `settings.ENVIRONMENT == "development"`. Real JWT + `sa_` API-key auth exist and are the production path, but the mock branch and `MockAuthService` remain in the codebase.
+- Files: `backend/app/services/auth_service.py` (`MockAuthService`, `generate_mock_token`), `backend/app/api/dependencies.py:33` and `:124`
+- Impact: If `ENVIRONMENT` is ever misconfigured to `development` in a public deploy, every request authenticates as the single mock owner — full data exposure. The whole test suite also depends on `Bearer mock-token`, so the branch cannot be deleted without reworking tests.
+- Fix approach: Keep the env gate but add a startup assertion that refuses to boot with `ENVIRONMENT=development` when `DATABASE_URL` points at a managed/prod host; consider a dedicated `ALLOW_MOCK_AUTH` flag independent of `ENVIRONMENT` so tests and prod-safety are decoupled.
 
-**Manual SQL Migrations Without Schema Management:**
-- Issue: Database schema uses raw SQL migrations in `backend/migrations/` without Alembic or formal migration tool. Comment in `backend/app/db.py:26` indicates awareness of this limitation but no action taken.
-- Files: `backend/app/db.py`, `backend/migrations/*.sql`
-- Impact: No automatic rollback capability, difficult to track schema versions, team coordination issues on schema changes
-- Fix approach: Adopt Alembic for Python-based migration management with versioning
+**Hardcoded localhost in production security headers (CSP):**
+- Issue: `SecurityMiddleware` emits a static `Content-Security-Policy` that whitelists `http://localhost:4321` and `http://localhost:8000` and allows `'unsafe-inline'`/`'unsafe-eval'` for scripts. It is not derived from `ALLOWED_ORIGINS` or environment.
+- Files: `backend/app/middleware.py:69-75`
+- Impact: The CSP is meaningless/incorrect in production (points at localhost) and permissive (`unsafe-eval`). It provides no real XSS mitigation for the deployed app.
+- Fix approach: Build the CSP from `settings.ALLOWED_ORIGINS` and drop `unsafe-eval`; skip or relax only in development.
 
-**Broad Exception Handling:**
-- Issue: Many services use bare `except Exception as e:` blocks without specific error types, making debugging and error recovery difficult. Examples in `backend/app/services/openai_service.py:103`, `backend/app/services/agent_service.py:333`, `backend/app/services/template_ai_service.py:125` and many others.
-- Files: `backend/app/services/openai_service.py:103`, `backend/app/services/agent_service.py:333`, `backend/app/services/template_ai_service.py:125`, `backend/app/services/knowledge_extraction_service.py:44,98,151,200,254`, `backend/app/api/endpoints/ai_chat.py:430,449,600,616,1100`, `backend/app/api/endpoints/chat.py:209,228`
-- Impact: Exceptions are silently caught and generic fallback responses returned. Real errors buried. Production debugging nearly impossible.
-- Fix approach: Replace with specific exception types (e.g., `except json.JSONDecodeError`, `except ValueError`, `except AIProviderError`). Re-raise or log with context.
+**Growing service surface (26 service modules, several very large):**
+- Issue: `backend/app/services/` now holds 26 modules. The largest single files in the codebase are services/endpoints, not tests: `template_ai_service.py` (1654 lines), `agent_service.py` (1203), `ai_chat.py` endpoint (1190), `schemas.py` (1183), `wizards.py` endpoint (847), `breakdown_service.py` (622), `vapai_service.py` (584).
+- Files: `backend/app/services/template_ai_service.py`, `backend/app/services/agent_service.py`, `backend/app/api/endpoints/ai_chat.py`, `backend/app/api/endpoints/wizards.py`
+- Impact: These files concentrate prompt-building, DB access, and orchestration in single modules, making them hard to test in isolation and easy to break during edits. No clear internal seams.
+- Fix approach: Extract prompt templates and pure transforms out of the large AI services into smaller, unit-testable helpers; split `ai_chat.py`/`wizards.py` by concern (scene regen, keep-version, persistence).
 
-**In-Memory Rate Limiting:**
-- Issue: RateLimitMiddleware (`backend/app/middleware.py:89-132`) stores request history in memory without bounds. In production with sustained traffic, `self.requests` dict grows unbounded and never shrinks beyond the 60-second window cleanup.
-- Files: `backend/app/middleware.py:95-108`
-- Impact: Memory leak. High-traffic deployments will exhaust heap memory over hours/days. Rate limit becomes ineffective.
-- Fix approach: Use Redis for distributed rate limiting, or add max bucket size with overflow eviction
+**Frontend `api.tsx` is a 1650-line monolith:**
+- Files: `frontend/src/lib/api.tsx`
+- Impact: Every backend call funnels through one file; a single fetch-wrapper change touches everything. Hard to reason about which endpoints exist.
+- Fix approach: Split per-domain API modules (projects, breakdown, shows, chat) sharing one fetch core.
 
-**Unvalidated JSON Parsing:**
-- Issue: 14+ instances of `json.loads()` without try/catch or validation (e.g., `backend/app/services/agent_service.py`, `backend/app/services/template_ai_service.py`, `backend/app/services/openai_service.py:87`). If AI response is malformed, entire endpoint crashes without graceful fallback.
-- Files: `backend/app/services/agent_service.py`, `backend/app/services/template_ai_service.py:125,245,312,373,414,439,583,651,699`, `backend/app/services/openai_service.py:87`, `backend/app/services/knowledge_extraction_service.py:98`
-- Impact: Crashes on malformed AI responses. User-facing 500 errors instead of fallback behavior.
-- Fix approach: Wrap all JSON parsing in try/except blocks returning sensible defaults
-
-**Mock Authentication Hardcoded:**
-- Issue: Development mock auth token `"mock-token"` is hardcoded in production code path. `backend/app/api/dependencies.py:24` checks `if settings.ENVIRONMENT == "development"` to enable mock auth, but the string `'Bearer mock-token'` is also hardcoded in frontend (`frontend/src/lib/api.tsx:16`) as fallback, bypassing auth in production if token missing.
-- Files: `backend/app/api/dependencies.py:24`, `frontend/src/lib/api.tsx:16`
-- Impact: Production deployments without properly configured auth could allow unauthenticated access if client auth fails
-- Fix approach: Remove mock token entirely from frontend fallback. Ensure production validation enforces valid JWT tokens.
+**`print()` for error logging in review endpoint:**
+- Files: `backend/app/api/endpoints/review.py:76` (`print(f"Review error: {str(e)}")`)
+- Impact: Bypasses the structured logger; error not captured consistently in Railway logs.
+- Fix approach: Replace with `logger.error(...)`.
 
 ## Known Bugs
 
-**Print Statement Left in Production Code:**
-- Symptom: Debug print statement outputs to stdout in API endpoint
-- Files: `backend/app/api/endpoints/review.py`
-- Location: Line with `print(f"Review error: {str(e)}")`
-- Workaround: Logs will pollute stdout/container logs but requests still process
-- Fix: Replace with `logger.error()` call
-
-**Password field validation issue in schemas:**
-- Symptom: `backend/app/models/schemas.py` lines 29, 48, 79 have empty `pass` statements in class bodies, suggesting incomplete schema definitions
-- Files: `backend/app/models/schemas.py:29,48,79`
-- Trigger: Schema validation or serialization of these objects
-- Workaround: None currently visible — schemas may have incomplete validators
-- Fix: Review and complete schema definitions
-
-**CSP Headers Conflict with Development:**
-- Symptom: `backend/app/middleware.py:62-67` sets `Content-Security-Policy` with `'unsafe-inline'` and `'unsafe-eval'` for development. These are overly permissive and conflict with production security requirements.
-- Files: `backend/app/middleware.py:62-67`
-- Impact: Headers are identical for all environments. Production deployments will have insecure CSP.
-- Fix: Move CSP configuration to `config.py` with environment-specific policies
+**None confirmed at audit time.** No `TODO`/`FIXME`/`HACK` markers exist in `backend/app` or `frontend/src` (all `placeholder` hits are UI input attributes). The fragile areas below are latent-bug risks rather than open defects.
 
 ## Security Considerations
 
-**Unencrypted Default Secret Key:**
-- Risk: `backend/app/config.py:27` has default `SECRET_KEY = "your-secret-key-replace-in-production"`. Production validation (`backend/app/config.py:96-98`) will raise error if unchanged, but development environment silently accepts it.
-- Files: `backend/app/config.py:27,96-98`
-- Current mitigation: Production validation enforces change. Development allows default.
-- Recommendations: Add pre-startup check that logs warning if SECRET_KEY matches default in any environment
+**Default `SECRET_KEY` only warns in non-production:**
+- Risk: JWT signing key defaults to `"your-secret-key-replace-in-production"`. Production boot hard-fails (`config.py:160`), but staging/development only log a warning, so JWTs can be forged with the well-known default outside prod.
+- Files: `backend/app/config.py:27`, `:134-138`, `:159-161`
+- Current mitigation: Production `__init__` raises if the default is unchanged.
+- Recommendation: Also fail in `staging`; never allow the literal default when `DATABASE_URL` is non-local.
 
-**CORS Allows Localhost Wildcards:**
-- Risk: `backend/app/config.py:30` includes `http://localhost:*` in ALLOWED_ORIGINS. If config is copied to staging, localhost remains accessible from outside network.
-- Files: `backend/app/config.py:30`
-- Current mitigation: Relies on environment variable override in deployment
-- Recommendations: Add validation that rejects localhost origins in non-development environments
+**Shared-secret bearer to vapai MCP + broad exception swallowing:**
+- Risk: `vapai_service` authenticates to the external vapai-studio MCP with a single shared `VAPAI_MCP_API_KEY`. `json.JSONDecodeError` is silently `pass`ed while parsing MCP responses (`vapai_service.py:129`), and `ai_provider.py:183` swallows all exceptions in usage logging.
+- Files: `backend/app/services/vapai_service.py:112-130`, `backend/app/services/ai_provider.py:178-184`
+- Current mitigation: Feature is disabled when `VAPAI_MCP_URL` is empty (returns 424); downstream failures map to 502.
+- Recommendation: Log the swallowed decode error at debug level; rotate the shared key; confirm the key is never echoed in 502 detail messages.
 
-**AI Provider Keys in Environment:**
-- Risk: `backend/app/config.py:19,23` loads OPENAI_API_KEY and ANTHROPIC_API_KEY from environment without encryption. If environment variables leak (container logs, error dumps), keys are exposed.
-- Files: `backend/app/config.py:19,23`
-- Current mitigation: None
-- Recommendations: Use secrets management system (AWS Secrets Manager, HashiCorp Vault). Never log config values.
+**CORS bound to an explicit origin list (deploy constraint, not a hole):**
+- Risk: `ALLOWED_ORIGINS` is an explicit allowlist with `allow_credentials=True`. The deployed frontend lives at `guion.vapai.studio` (Vercel); any origin not listed fails with "Failed to fetch". This is correct security posture but a brittle operational coupling — a Vercel preview-URL or domain change silently breaks the app until `ALLOWED_ORIGINS` is updated on Railway.
+- Files: `backend/app/main.py:110-117`, `backend/app/config.py:36`, `:162`
+- Current mitigation: Production warns if `localhost` is in the list.
+- Recommendation: Document the exact prod origin in deploy notes; consider a regex allow for Vercel preview domains if previews are used.
 
-**No Input Sanitization on Frontend:**
-- Risk: Frontend sends unsanitized user input to backend (e.g., in `frontend/src/lib/api.tsx` all POST bodies). Backend `backend/app/utils/validators.py` has HTML sanitization but it's not clear if all endpoints use it.
-- Files: `frontend/src/lib/api.tsx`, `backend/app/utils/validators.py`
-- Current mitigation: Pydantic v2 basic validation
-- Recommendations: Audit all endpoints to ensure `sanitize_html()` is called on user-provided text fields
+**Secrets handling — clean:**
+- No `.env`/secret/key files are git-tracked; only `.env.docker.example`, `backend/.env.example.txt`, `frontend/.env.example.txt` are committed. All keys (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SECRET_KEY`, `VAPAI_MCP_API_KEY`, `GOOGLE_CLOUD_PROJECT`) load from env via Pydantic Settings. No inline secrets found.
 
 ## Performance Bottlenecks
 
-**Large AI Service Files:**
-- Problem: `backend/app/api/endpoints/ai_chat.py` is 1,108 lines and `backend/app/services/template_ai_service.py` is 705 lines. Both contain multiple concerns (session management, message handling, prompting, streaming).
-- Files: `backend/app/api/endpoints/ai_chat.py:1-1108`, `backend/app/services/template_ai_service.py:1-705`
-- Cause: No separation of concerns. AI prompt building, API calls, database operations, streaming response handling all in single files.
-- Improvement path: Split `template_ai_service.py` into: `prompt_builder.py` (strategy pattern), `streaming_handler.py`, `result_parser.py`. Extract session logic to dedicated service.
+**Synchronous single-scene regeneration can exceed API timeout:**
+- Problem: `regenerate-single-scene` is a blocking LLM call (`max_tokens=4000`) with no background-task plumbing; the frontend must use a 120s timeout (CHAT_TIMEOUT) instead of the default 30s.
+- Files: `backend/app/api/endpoints/wizards.py:716-771`, `frontend/src/lib/api.tsx`
+- Cause: Deliberate design decision (D-49-02) to avoid background-job complexity for a single scene.
+- Improvement path: Acceptable for one scene; if batch regen is added, move to a job/queue rather than lengthening HTTP timeouts.
 
-**In-Memory OpenAI Cache with No TTL Enforcement:**
-- Problem: `backend/app/services/openai_service.py:17-18` implements LRU cache with max_cache_size=100 but no time-based expiration. Cache entries stay in memory indefinitely until evicted by size limit.
-- Files: `backend/app/services/openai_service.py:17-99`
-- Cause: OrderedDict-based cache doesn't check timestamp. Old entries served to users even if section content changed.
-- Improvement path: Use `functools.lru_cache` with `@cache` decorator instead, or implement TTL check on retrieval (`backend/app/config.py:37` CACHE_TTL=900 is ignored)
-
-**N+1 Query in Project Context Building:**
-- Problem: `backend/app/api/endpoints/ai_chat.py:24-44` builds project context by querying ALL phase_data, then looping to fetch list_items. If project has many phases/subsections, this is O(n) database queries.
-- Files: `backend/app/api/endpoints/ai_chat.py:26-28,38-41`
-- Cause: Missing `.options(joinedload(...))` to eager-load relationships
-- Improvement path: Use SQLAlchemy `joinedload('phase_data').joinedload('list_items')` to fetch in single query
-
-**No Database Connection Pooling Limits:**
-- Problem: `backend/app/db.py:6` creates SQLAlchemy engine without pool configuration. Under high concurrent load, connection pool grows unbounded and PostgreSQL max connections (default 100) is quickly exhausted.
-- Files: `backend/app/db.py:6`
-- Cause: Default pool_size=5, max_overflow=10 insufficient for production with multiple workers
-- Improvement path: Set `pool_size=20, max_overflow=40, pool_recycle=3600` based on worker count and expected concurrency
+**In-process book processing tasks tie long jobs to one worker:**
+- Problem: Book ingestion (extract → chunk → embed → KG extract via GPT-4) runs as an `asyncio.Task` registered in a module-level `_active_tasks` dict inside the web process.
+- Files: `backend/app/services/book_processing_service.py:20`, `:32-47`
+- Cause: No external task queue; processing shares the API event loop and memory.
+- Improvement path: Move to a dedicated worker/queue (the vapai prod side already runs a separate worker). At minimum, cap concurrency so a large upload can't starve request handling.
 
 ## Fragile Areas
 
-**AI Response Parsing Regex:**
-- Files: `backend/app/services/agent_service.py:95-96`
-- Why fragile: Complex regex `r'\{[^{}]*"field_updates"\s*:\s*\{.*?\}\s*\}'` with DOTALL flag is fragile to:
-  - Nested JSON with multiple `{}` blocks (regex will match first complete outer block only, potentially truncating data)
-  - AI returning slightly malformed JSON (extra spaces, different key order)
-  - Edge case where field_updates is null or empty object
-- Safe modification: Use JSON parsing with try/catch instead of regex extraction. Ask AI to always return `field_updates` as top-level key, validate with Pydantic schema.
-- Test coverage: No tests visible for this parsing logic
+**ScreenplayContent / screenplays[] ordering — the #1 recurring bug source:**
+- Files: `backend/app/models/database.py:398-408` (`ScreenplayContent` has NO order column — only `list_item_id`, `created_at`, `version`), `backend/app/api/endpoints/wizards.py:725-847`, `backend/app/api/endpoints/phase_data.py:358`
+- Why fragile: There is no reliable positional order for screenplay content rows. Regeneration can leave duplicate rows per episode, so `keep_scene_version` must locate the target by `formatted_content.episode_index`, falling back to reverse-index heuristics (`wizards.py:833-839`). The documented ALIGNMENT ASSUMPTION (D-49-03) is that `episode_index` indexes BOTH the `sort_order`-ordered scene list AND `screenplays[]` 1:1. This exact class of bug has bitten twice historically (v6.0 WR-01, v7.0 ph50 — see project memory).
+- Safe modification: NEVER join screenplay content to episodes positionally. Always match on `episode_index` (from `formatted_content` or the sort_order-ordered list). Any new code that reads/writes `screenplays[]` or `ScreenplayContent` must bounds-check and match by index, never by array position or `created_at`.
+- Test coverage: `test_scene_compare.py` covers compare/keep flows, but the duplicate-row-per-episode fallback path is heuristic and under-tested.
 
-**Template System Routing Without Type Checking:**
-- Files: `backend/app/api/endpoints/ai_chat.py:43,50,54`, `backend/app/templates/__init__.py` (not read but referenced)
-- Why fragile: Phase and subsection keys are strings with no enum validation. Template JSON has no schema validation. If template JSON structure changes, code breaks silently.
-- Safe modification: Define Pydantic model for template structure. Validate on load in `backend/app/templates/__init__.py`. Return typed objects from `get_template()` instead of dicts.
-- Test coverage: No visible tests for template loading or subsection lookup
+**Boot-time migration runner (`db_migrator.py`):**
+- Files: `backend/app/services/db_migrator.py`, invoked via `init_db()` in the app lifespan (`backend/app/main.py:63-84`)
+- Why fragile: All schema DDL runs on every app start, guarded by a single Postgres advisory lock (`MIGRATION_LOCK_KEY = 8273461928374651`) so overlapping Railway replicas serialize. A failing delta crashes boot loudly (intended fail-hard). Risks: (1) a long-running migration blocks all replicas behind the advisory lock during a rolling deploy; (2) a non-idempotent delta that half-applies before commit will retry-fail every boot; (3) baseline detection keys off the `projects` table existing — a partially-created schema could misclassify as "fresh" and run `init_db.sql`.
+- Safe modification: Every new `migrations/delta/NNN_*.sql` MUST be idempotent (`ADD COLUMN IF NOT EXISTS`, `ON CONFLICT DO NOTHING`) and small. Test locally against a copy before deploy. Do not reorder or renumber existing delta files.
+- Test coverage: `backend/app/tests/test_db_migrator.py` exists; verify it covers the fresh-DB vs pre-tracking-baseline branches.
 
-**Frontend Auto-Save Timers Without Cleanup:**
-- Files: `frontend/src/components/Patterns/WizardView.tsx`, `frontend/src/components/Patterns/CardGridView.tsx`, `frontend/src/components/Patterns/StructuredFormView.tsx`, `frontend/src/components/Patterns/IndividualEditorView.tsx`
-- Why fragile: Multiple setTimeout/setInterval calls for auto-save without visible cleanup on component unmount. Can lead to:
-  - Saves firing after component destroyed (race condition)
-  - Memory leaks from lingering timers
-  - Multiple saves queued if user rapidly changes fields
-- Safe modification: Always clear timers in useEffect cleanup functions. Use useRef to track timer IDs. Test unmount scenarios.
-- Test coverage: No tests visible for cleanup behavior
+**In-memory caches and rate limiters (horizontal-scaling ceiling):**
+- Files: `backend/app/middleware.py:108-214` (`RateLimitMiddleware.requests`, `ApiKeyRateLimitMiddleware.requests` — plain dicts), `backend/app/services/openai_service.py:17` (OrderedDict, max 100), `backend/app/services/embedding_service.py:23` (OrderedDict, max 500), `backend/app/services/template_ai_service.py` prompt/response caching
+- Why fragile: All rate-limit state and AI-response/embedding caches live in a single process's memory. Correct for one Railway replica; the moment the app scales to 2+ instances, rate limits become per-instance (effectively N× the configured limit) and cache hit rates drop. The advisory-lock migration design anticipates multiple replicas, but the rate limiters do not.
+- Safe modification: Treat single-replica as a hard assumption today. Before enabling horizontal scaling, move rate limiting and caches to Redis (or accept per-instance semantics explicitly).
+- Note: A test-suite gotcha exists — new test files with several client POSTs can 429 unrelated later tests because rate-limit state is shared in-process; an autouse rate-limiter-reset fixture is required (project memory).
 
-**Response Streaming Without Backpressure Handling:**
-- Files: `frontend/src/lib/api.tsx:352-405`, `backend/app/api/endpoints/ai_chat.py` (streaming endpoints)
-- Why fragile: Frontend reads response stream with `reader.read()` in tight loop without checking if data can be consumed (backpressure). If client network is slow:
-  - Response body buffer fills up
-  - Server waits for client to drain
-  - Timeout fires (CHAT_TIMEOUT=30s) and request aborts mid-stream
-- Safe modification: Implement exponential backoff in stream read loop. Add metric for bytes buffered. Consider reducing CHAT_TIMEOUT for streaming responses.
-- Test coverage: No visible load/streaming tests
+**vapai-studio MCP bridge coupling:**
+- Files: `backend/app/services/vapai_service.py` (584 lines), config `VAPAI_MCP_URL`/`VAPAI_MCP_API_KEY`/`VAPAI_WEB_URL` in `backend/app/config.py:112-121`
+- Why fragile: "Send to vapai-studio" pushes a finished screenplay into a SEPARATE production app (vapai-studio on Railway) over its FastMCP JSON-RPC HTTP endpoint, calling `create_project` → `create_episode` → `create_script`. This app hard-depends on vapai's tool names, argument shapes, and response envelope (it manually digs the object out of `tools/call` results at `vapai_service.py:111`). Any change on the vapai side (tool rename, arg change, auth rotation) silently breaks the bridge with a 502.
+- Safe modification: Version or contract-test the MCP tool interface; keep the 424-when-unconfigured guard so a missing URL degrades gracefully rather than erroring. Do not assume `ScreenplayContent` order when assembling the per-episode payload — join by `episode_index`.
+- Test coverage: No integration test can exercise the live vapai MCP; the bridge is only unit-tested against mocked responses.
+
+**Local filesystem storage on an ephemeral host:**
+- Files: `backend/app/config.py:84-85` (`UPLOAD_DIR`, `MEDIA_DIR` under the app dir), `backend/app/api/endpoints/books.py:75`, `media.py:71`, `storyboard.py:81`
+- Why fragile: Uploaded books and generated media/storyboard frames are written to the container's local disk. On Railway, container filesystems are ephemeral unless a volume is mounted (phase 63 addressed the Postgres volume, but uploads/media persistence depends on the same volume being configured).
+- Safe modification: Confirm a persistent volume backs `UPLOAD_DIR`/`MEDIA_DIR` in production, or move media to object storage before relying on it.
 
 ## Scaling Limits
 
-**SQLAlchemy Session Not Thread-Safe:**
-- Current capacity: Single worker/thread
-- Limit: Multiple FastAPI workers (uvicorn --workers=4) will fail because SQLAlchemy SessionLocal is not thread-safe by default
-- Scaling path: Either (a) ensure each worker thread has its own SessionLocal (already done via dependency injection), (b) use thread pool with thread-local sessions, or (c) switch to async-safe database driver (asyncpg instead of psycopg2)
+**Single-replica assumption (rate limiting + caches):**
+- Current capacity: Correct behavior at 1 web replica.
+- Limit: Breaks at 2+ replicas — rate limits multiply per instance, caches fragment.
+- Scaling path: Externalize rate-limit and cache state to Redis before scaling out.
 
-**Synchronous Database Calls Blocking Event Loop:**
-- Current capacity: <10 concurrent AI requests before event loop blocks
-- Limit: Any long-running query blocks all other async operations. PostgreSQL query timeouts not set.
-- Scaling path: Migrate to async SQLAlchemy (sqlalchemy+asyncpg) or use thread pool for sync operations
-
-**Fixed Rate Limit Per IP:**
-- Current capacity: 600 requests/minute (line 44 in main.py, set generously for dev)
-- Limit: No differentiation by endpoint. AI endpoints should have lower limits. Broadcast endpoints need higher limits.
-- Scaling path: Implement per-endpoint rate limiting. Track API cost (token usage for AI calls) not just request count.
-
-**No Caching Layer for Template Configs:**
-- Current capacity: Every template load calls `get_template()` which likely reads from disk/database
-- Limit: High-traffic scenarios reload same templates repeatedly
-- Scaling path: Cache template configs in memory with 1-hour TTL. Invalidate on template updates.
+**AI-bound throughput:**
+- Current capacity: Request throughput is gated by upstream OpenAI/Anthropic latency and the in-process critique/rewrite/polish loop (`SCREENPLAY_CRITIQUE_ENABLED` trades ~3× tokens for quality).
+- Limit: Concurrent heavy generations (full-screenplay polish, multi-agent review with `MAX_AGENTS_PER_REVIEW=5`, `AGENT_REVIEW_TIMEOUT=90`) compete for the same event loop and provider rate limits.
+- Scaling path: Offload long generations to a worker; add per-provider concurrency caps.
 
 ## Dependencies at Risk
 
-**Pydantic v2 Migration Incomplete:**
-- Risk: `backend/requirements.txt:5` pins `pydantic[email]>=2.10` but code uses both `pydantic.v1` (if imported) and new v2 APIs. Frontend has no type validation layer — Pydantic is backend-only.
-- Impact: If codebase is forced to use older Pydantic (e.g., dependency conflict), validation breaks. No runtime schema validation on frontend.
-- Migration plan: Audit all imports to ensure v2 APIs only. Add `json_schema_extra` decorators to schemas for better API docs.
+**Pinned/fragile Python toolchain (from project memory):**
+- Risk: The backend test venv needs `mcp` installed to collect the full pytest suite, but installing it can bump `starlette` past the working pin — it must be re-pinned to `starlette<0.37`. Python 3.14 breaks SQLAlchemy/tiktoken; **use Python 3.11**.
+- Impact: A missing `mcp` dep or wrong Python version blocks the ENTIRE test suite from collecting, not just MCP tests.
+- Migration plan: Document the exact venv setup (python3.11, `mcp` installed, `starlette<0.37`) in backend README; consider a constraints file.
 
-**OpenAI SDK Version Pinned Narrowly:**
-- Risk: `backend/requirements.txt:9` pins `openai==1.12.0`. Future versions may change API. Also supporting Anthropic with `anthropic>=0.39.0` (loose bound).
-- Impact: OpenAI updates require code changes. Anthropic version mismatch can introduce bugs.
-- Migration plan: Loosen bounds to `openai>=1.12,<2.0` and `anthropic>=0.39,<1.0`. Pin exact versions only in lock files.
-
-**FastAPI Async Compatibility Risk:**
-- Risk: Some middleware (e.g., `backend/app/middleware.py:LoggingMiddleware`) uses async/await. If any dependency is not async-safe, the entire stack blocks.
-- Impact: Slow requests block event loop. App becomes unresponsive.
-- Migration plan: Audit all dependencies for async safety. Use `asyncio.to_thread()` for sync operations.
-
-**pgvector Version May Conflict:**
-- Risk: `backend/requirements.txt:16` uses `pgvector==0.3.6`. Custom `SafeVector` type in `backend/app/models/database.py:12-46` wraps pgvector's behavior. If pgvector API changes, custom type breaks.
-- Impact: Vector operations fail. Knowledge graph searches return errors.
-- Migration plan: Version lock pgvector. Add tests for vector serialization/deserialization edge cases.
+**Dual AI provider abstraction:**
+- Risk: `AI_PROVIDER` toggles openai/anthropic (`config.py:15-24`); both SDKs are dependencies and both code paths must stay working. Model defaults (`claude-opus-4-8`, `gpt-4o`, `gpt-4` for KG extraction) are hardcoded defaults that drift as providers deprecate models.
+- Files: `backend/app/services/ai_provider.py`, `backend/app/config.py:16-24`, `:69`
+- Migration plan: Centralize model names in config (mostly done); add a smoke test per provider path.
 
 ## Missing Critical Features
 
-**No API Documentation for New Endpoints:**
-- Problem: New endpoints added for template system (`/api/ai/*`, `/api/templates/*`, `/api/wizards/*`) but no OpenAPI/Swagger documentation visible
-- Blocks: Client library generation, integration testing, external API consumers
-- Fix: Add response_model to all endpoints. Run `fastapi.openapi.utils.get_openapi()` to verify schema completeness.
+**No production observability / error tracking:**
+- Problem: Errors surface via `logging` (and one stray `print`). No Sentry/error-tracking integration was found.
+- Blocks: Diagnosing the recurring ordering bugs and vapai-bridge 502s in production relies on scraping Railway logs.
 
-**No Error Recovery Strategy:**
-- Problem: If AI API call fails (timeout, rate limit, 500 error), no retry mechanism exists. Request fails immediately.
-- Blocks: Production reliability. Transient failures cause user-visible errors.
-- Fix: Implement exponential backoff retry decorator with max attempts=3, backoff multiplier=2.
-
-**No Data Retention Policy:**
-- Problem: Chat messages, wizard runs, AI sessions accumulate indefinitely in database. No archival or deletion policy.
-- Blocks: Compliance (GDPR right to be forgotten), database growth unbounded
-- Fix: Add data retention settings to config. Implement cron job to soft-delete old records.
+**No CI-enforced frontend tests:**
+- Problem: `find frontend/src -name "*.test.*"` returns zero test files. The frontend (18.5k lines, including the 1650-line `api.tsx` and complex scene/breakdown views) has no automated tests.
+- Blocks: Regressions in the master-detail scene fusion, wizard flows, and breakdown UI can only be caught manually.
 
 ## Test Coverage Gaps
 
-**AI Streaming Response Handling Untested:**
-- What's not tested: Frontend streaming decoders for `data:` events. Backend streaming response generators.
-- Files: `frontend/src/lib/api.tsx:352-405,582-638`, `backend/app/api/endpoints/ai_chat.py` (streaming endpoints)
-- Risk: Malformed AI responses, network interruptions mid-stream not caught until production
-- Priority: High — streaming is core feature, users see failures directly
+**Frontend — no tests at all:**
+- What's not tested: Entire React app — `api.tsx` fetch wrapper, scene editor/compare, breakdown, shows/season-map, sidebar chat.
+- Files: all of `frontend/src/`
+- Risk: High. Silent UI regressions; the ordering contract (episode_index) is enforced on the backend but consumed positionally in many frontend list renders.
+- Priority: High
 
-**Database Migration Compatibility Untested:**
-- What's not tested: Running migrations in order. Rolling back migrations. Data integrity after migrations.
-- Files: `backend/migrations/*.sql`
-- Risk: Duplicate migration files cause schema mismatches. No way to test before deploying to production.
-- Priority: High — affects all deployments
-
-**Frontend Error Boundary Coverage:**
-- What's not tested: Component failures, API errors, timeout handling in UI
-- Files: `frontend/src/App.tsx`, all route components
-- Risk: Unhandled promise rejections, blank screens, no error message to users
-- Priority: Medium — affects UX but not data integrity
-
-**Rate Limiting Under Load:**
-- What's not tested: RateLimitMiddleware behavior under sustained high traffic (memory leak, effectiveness)
-- Files: `backend/app/middleware.py:89-132`
-- Risk: Rate limiter becomes ineffective or crashes server under DDoS
-- Priority: Medium — production resilience
-
-**Template System Edge Cases:**
-- What's not tested: Missing phases, unknown field types, null/empty content, subsection lookup failures
-- Files: `backend/app/templates/`, `backend/app/api/endpoints/ai_chat.py:47-55`
-- Risk: Uncaught KeyError or AttributeError in template processing
-- Priority: Medium — affects template-based workflows
+**Backend — strong but heuristic paths under-covered:**
+- What's not tested: The duplicate-ScreenplayContent-row fallback in `keep_scene_version` (`wizards.py:833-839`), the vapai bridge against a real MCP, and the db_migrator fresh-vs-baseline misclassification edge.
+- Files: `backend/app/api/endpoints/wizards.py`, `backend/app/services/vapai_service.py`, `backend/app/services/db_migrator.py`
+- Risk: Medium — 54 backend test files exist (`test_scene_compare.py`, `test_seasons_api.py`, `test_breakdown_*`, `test_db_migrator.py`, etc.), so happy paths are covered; the heuristic ordering fallbacks are the gap.
+- Priority: Medium
 
 ---
 
-*Concerns audit: 2026-03-11*
+*Concerns audit: 2026-07-24*

@@ -1,238 +1,129 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-03-11
+**Analysis Date:** 2026-07-24
+
+This is a full-stack app: a Python/FastAPI backend (`backend/app/`) and a React/TypeScript/Vite frontend (`frontend/src/`). Conventions differ per side; follow the relevant section.
 
 ## Naming Patterns
 
-**Files:**
-- Python backend: `snake_case` (e.g., `openai_service.py`, `validators.py`, `conftest.py`)
-- TypeScript/React: `PascalCase` for components and interfaces, `camelCase` for utilities and hooks (e.g., `ProjectCard.tsx`, `useKeyboardShortcuts.tsx`, `api.tsx`)
-- Test files: `test_*.py` (Python) — descriptive names indicating what is tested
+**Files (backend):**
+- snake_case modules: `openai_service.py`, `auth_service.py`, `db_migrator.py`
+- Route handlers grouped by resource under `backend/app/api/endpoints/`: `projects.py`, `sections.py`, `review.py`, `breakdown.py`, `seasons.py`, etc.
+- Test files mirror the unit under test: `test_<subject>.py` in `backend/app/tests/` (e.g. `test_validators.py`, `test_breakdown_service.py`)
+
+**Files (frontend):**
+- PascalCase for React components and their files: `CardGridView.tsx`, `SectionEditor.tsx`, `ProjectCard.tsx`
+- camelCase for hooks and libs: `useKeyboardShortcuts.tsx`, `api.tsx`, `constants.ts`, `utils.ts`
+- Components live in feature-named PascalCase directories under `frontend/src/components/`: `Editor/`, `Projects/`, `Breakdown/`, `Patterns/`, `UI/`, `Workspace/`, `Shows/`, `Seasons` (via `Books`/`Shows`), `Storyboard/`, `Snippets/`, `Settings/`, `Auth/`, `Shared/`, `Layout/`
 
 **Functions:**
-- Python: `snake_case` with descriptive verbs (e.g., `validate_project_title()`, `_generate_cache_key()`, `_get_system_prompt()`)
-- TypeScript/React: `camelCase` for functions and methods, `PascalCase` for React components (e.g., `formatDate()`, `handleKeyDown()`, `ProjectCard()`)
-- Private/internal functions: prefix with underscore in both Python and TypeScript (e.g., `_patch_uuid_columns_for_sqlite()`, `_get_openai_client()`)
-- Custom hooks: prefix with `use` (e.g., `useKeyboardShortcuts()`)
+- Backend: snake_case (`validate_title`, `generate_mock_token`, `send_episode_within_series`)
+- Frontend: camelCase (`getAuthToken`, `fetchWithTimeout`, `handleChange`); React components are PascalCase named exports (`export function CardGridView(...)`)
 
 **Variables:**
-- Python: `snake_case` (e.g., `cache_key`, `db_session`, `sanitized_text`)
-- TypeScript/React: `camelCase` for variables (e.g., `templateColor`, `isTemplateProject`, `currentUser`)
-- Constants: `UPPER_SNAKE_CASE` in Python, `UPPER_SNAKE_CASE` in TypeScript when defined in constants files or globally (e.g., `API_BASE_URL`, `MAX_SECTION_LENGTH`, `DEBOUNCE_DELAY`)
-- React props objects: `camelCase` (e.g., `onDelete`, `onSave`, `isLoading`)
+- Backend: snake_case
+- Frontend: camelCase; React state pairs follow `const [thing, setThing] = useState(...)`; refs suffixed `Ref` (`timerRef`, `formDataRef`)
 
 **Types:**
-- TypeScript interfaces: `PascalCase` without `I` prefix (e.g., `ChecklistItem`, `Project`, `ReviewResponse`, not `IProject`)
-- TypeScript enums: `PascalCase` with `UPPER_SNAKE_CASE` enum values (e.g., `enum SectionType { INCITING_INCIDENT = "inciting_incident" }`)
-- Python Pydantic models: `PascalCase` with suffixes for variants (e.g., `ProjectCreate`, `ProjectUpdate`, `ProjectBase`)
-- Database models: `PascalCase` in `database.py` (e.g., `Project`, `Section`, `ChecklistItem`)
+- Backend: Pydantic classes PascalCase with intent suffix — `ProjectBase`, `ProjectCreate`, `ProjectUpdate`, `Project` (response). SQLAlchemy models PascalCase in `backend/app/models/database.py`. Enums PascalCase with UPPER_SNAKE members (`Framework.THREE_ACT`, `SectionType.INCITING_INCIDENT`)
+- Frontend: PascalCase TypeScript interfaces in `frontend/src/types/index.ts` and `frontend/src/types/template.ts`, mirroring backend schema names (`Project`, `Section`, `PhaseDataResponse`)
+
+**Constants:**
+- Frontend: UPPER_SNAKE exported from `frontend/src/lib/constants.ts` (`API_TIMEOUT`, `DEBOUNCE_DELAY`, `MAX_SECTION_LENGTH`, `QUERY_KEYS`, `FRAMEWORK_CONFIG`)
 
 ## Code Style
 
-**Formatting:**
-- No explicit Prettier or ESLint config in project root (not detected)
-- Backend: Follows PEP 8 conventions implicitly
-- Frontend: TypeScript strict mode enabled (`tsconfig.json`), basic ESLint setup from `package.json` with `eslint-plugin-react-hooks` and `eslint-plugin-react-refresh`
-- Line length: No explicit limit, but kept reasonable (typically under 100 characters)
+**Backend formatting:**
+- No enforced formatter config detected (no `black`/`ruff`/`.flake8`/`pyproject.toml` in `backend/`). Match surrounding style: 4-space indent, module-level comment header (`# backend/app/exceptions.py`), docstrings on classes and non-trivial functions.
+- PYTHONPATH must be `/app` for imports to resolve (`from app.main import app`). Handled by the Dockerfile in prod; `pytest.ini` sets `pythonpath = .` for tests run from `backend/`.
 
-**Linting:**
-- Frontend: `npm run lint` runs ESLint with `--max-warnings 0` (fails if any warnings), checks `.ts` and `.tsx` files
-- Backend: No explicit linter configured, but tests use pytest
-- TypeScript strict mode: enabled in `frontend/tsconfig.json`
+**Frontend formatting:**
+- No `.prettierrc` / `.eslintrc` / `eslint.config.*` file is checked in, but `package.json` defines `lint`: `eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0`. Treat zero warnings as the bar.
+- 2-space indent, single quotes, semicolons, trailing-comma multiline imports (see `frontend/src/lib/api.tsx` import block).
+- TypeScript is strict: `tsconfig.json` sets `strict`, `noUnusedLocals`, `noUnusedParameters`, `noFallthroughCasesInSwitch`. Unused locals/params will fail the build (`tsc && vite build`). Prefix intentionally-unused params with `_`.
+
+**Linting stack (frontend):** ESLint 8 + `@typescript-eslint` 6 + `eslint-plugin-react-hooks` + `eslint-plugin-react-refresh` (from `devDependencies`).
 
 ## Import Organization
 
-**Order (Frontend - `api.tsx` pattern):**
-1. External packages (React, third-party libraries)
-2. Internal types (from `../types`)
-3. Internal utilities/constants (from `../lib`)
-4. Components (relative imports)
+**Backend:**
+1. stdlib (`import json`, `import os`, `import uuid`)
+2. third-party (`import pytest`, `from fastapi import ...`, `from sqlalchemy import ...`)
+3. app-local (`from app.models.database import Base`, `from app.main import app`)
 
-Example from `frontend/src/lib/api.tsx`:
-```typescript
-import {
-  Project, Section, ChecklistItem, ReviewRequest, ReviewResponse,
-  Book, Concept, Agent, AgentType, ChatSession, ChatMessage,
-} from '../types';
-import type { YoloEvent } from '../types/template';
-import { API_BASE_URL, AUTH_TOKEN_KEY, API_TIMEOUT } from './constants';
-```
+Always import app code via the `app.` package root, never relative-deep paths.
 
-**Order (Backend - `endpoints/projects.py` pattern):**
-1. Standard library
-2. Third-party (FastAPI, SQLAlchemy, etc.)
-3. Relative imports from current package (models, dependencies, utils, services)
+**Frontend:**
+1. React / third-party (`react`, `@tanstack/react-query`, `lucide-react`)
+2. lib/api (`../../lib/api`, `../../lib/constants`)
+3. types via `import type { ... } from '../types'` (type-only imports are used deliberately)
 
-Example from `backend/app/api/endpoints/projects.py`:
-```python
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
-from typing import List
-from uuid import UUID
-
-from ...models import schemas, database
-from ..dependencies import get_db, get_current_user
-from ...utils import validate_project_title, validate_framework
-```
-
-**Path Aliases:**
-- Frontend uses relative paths (no path aliases configured)
-- Backend uses relative imports with `..` notation (configured via `PYTHONPATH` in Dockerfile)
+**Path aliases:** None configured — imports are relative (`../../lib/...`). `moduleResolution: bundler` with `allowImportingTsExtensions` is set, so `.tsx`-less relative imports resolve through Vite.
 
 ## Error Handling
 
-**Backend Patterns (`app/exceptions.py`):**
-- Custom exception hierarchy: `AppException` base class extending `HTTPException`
-- Specific exception types: `ValidationException`, `AuthenticationException`, `AuthorizationException`, `NotFoundException`, `ConflictException`, `RateLimitException`, `ExternalServiceException`, `OpenAIException`, `DatabaseException`, `ConfigurationException`
-- All exceptions include status code and detail message
-- Usage in endpoints: raise exceptions directly (e.g., `raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Section not found")`)
-- Try-catch patterns in service methods (e.g., `app/services/openai_service.py`): wrap external API calls, log errors, raise `OpenAIException`
+**Backend — custom exception hierarchy (`backend/app/exceptions.py`):**
+- Base `AppException(HTTPException)`; all app errors subclass it and pre-bind an HTTP status:
+  - `ValidationException` → 400 (optional `field` prefix)
+  - `AuthenticationException` → 401 (adds `WWW-Authenticate: Bearer`)
+  - `AuthorizationException` → 403
+  - `NotFoundException(resource, identifier)` → 404
+  - `ConflictException` → 409
+  - `RateLimitException(retry_after)` → 429 (adds `Retry-After`)
+  - `ExternalServiceException(service, detail)` → 503; `OpenAIException` subclasses it
+- Raise the semantic exception, not a bare `HTTPException`. Pydantic field-validation failures surface as 422 with an `errors` array shaped `[{ "field": ..., ... }]` (see `test_api.py` assertions).
 
-Example from `backend/app/api/endpoints/review.py` (lines 55-75):
-```python
-try:
-    review_result = await openai_service.review_section(...)
-    section.ai_suggestions = review_result
-    db.commit()
-    return review_result
-except Exception as e:
-    print(f"Review error: {str(e)}")
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Error processing review request"
-    )
-```
+**Frontend:**
+- `frontend/src/lib/api.tsx` wraps `fetch` with `fetchWithTimeout` (AbortController; `API_TIMEOUT` 30s, `CHAT_TIMEOUT` 120s for AI calls).
+- `authFetch` intercepts any non-auth 401, clears `AUTH_TOKEN_KEY` from localStorage, and hard-redirects to `/login` (auth endpoints excluded so login failures stay inline).
+- Mutations handle failure via React Query `onError` (e.g. resetting `fillingKey` in `CardGridView`).
 
-**Frontend Patterns:**
-- API errors caught in `lib/api.tsx` fetch wrapper with timeout handling (AbortError)
-- Component-level error handling via React Query error states
-- No explicit error boundary detected; errors logged to console or handled in mutation/query error callbacks
+## Authentication Convention
+
+- MVP/dev uses a mock auth token: send `Authorization: Bearer mock-token`. The frontend defaults to this when no real token is in localStorage (`getAuthToken` in `frontend/src/lib/api.tsx`). Backend tests use the `mock_auth_headers` fixture.
+- Real auth is JWT via `backend/app/services/auth_service.py`; mock auth resolves to a fixed user id `12345678-1234-5678-1234-567812345678` (owner-scoped rows in tests must use it).
+- API-key auth uses `sa_`-prefixed Bearer tokens (per-key rate limiting).
 
 ## Logging
 
-**Framework:** Python `logging` module
+- Backend has a `LoggingMiddleware` in the middleware stack (`backend/app/middleware.py`). Prefer structured/middleware logging over ad-hoc prints.
+- Frontend: no logging framework; use sparingly.
 
-**Backend Implementation:**
-- Logger initialized per module: `logger = logging.getLogger(__name__)`
-- Log levels used: `logger.error()`, `logger.info()` (implicit from review of files)
-- Error logging: `logger.error(f"OpenAI API error: {str(e)}")` (from `openai_service.py`)
-- Print statements also used for quick debugging (e.g., `print(f"Review error: {str(e)}")`) — not ideal but present
+## Validation (Pydantic v2)
 
-**Frontend:**
-- No explicit logging framework; relies on console methods
-- Could benefit from structured logging setup
+- Request/response models in `backend/app/models/schemas.py` use Pydantic v2: `Field(..., min_length=, max_length=, pattern=)` for constraints and `@field_validator('name')` / `@model_validator` for custom rules (e.g. `validate_title` strips whitespace and rejects blank).
+- Response models set `model_config = ConfigDict(from_attributes=True)` to serialize SQLAlchemy objects.
+- Additional input sanitization/HTML-stripping lives in `backend/app/utils/validators.py` (tested by `test_validators.py`).
 
-## Comments
+## Function & Component Design
 
-**When to Comment:**
-- Use comments sparingly; code should be self-documenting
-- Comment complex algorithms and non-obvious decisions
-- Docstrings used in test functions for clarity (e.g., `"""Test email validation"""`)
-- Module-level docstrings in service files explain purpose (e.g., `app/services/ai_provider.py`)
+- Backend: thin route handlers in `api/endpoints/`, business logic in `services/*`, DI (DB session, auth) via `backend/app/api/dependencies.py`.
+- Frontend: each "view" pattern is its own component in `frontend/src/components/Patterns/` (`CardGridView`, `OrderedListView`, `StructuredFormView`, `WizardView`, `RepeatableCardsView`, `IndividualEditorView`, `ScreenplayEditorView`, `SceneWorkspaceView`, `CardGridView`, `PlaceholderView`). A template config drives which pattern renders — add a new view type here rather than branching inside an existing view.
+- Autosave pattern: debounced `setTimeout` (multiples of `DEBOUNCE_DELAY`) writing through a React Query mutation, with a `formDataRef` mirror so the debounced callback reads fresh state.
 
-**JSDoc/TSDoc:**
-- Minimal usage observed
-- Test functions include docstrings describing what they test
-- Not systematically enforced
+## State Management (frontend)
 
-Example from `app/tests/test_snippets_api.py`:
-```python
-def test_edit_snippet_persists(self, client, db_session, mock_auth_headers, mock_embed):
-    """EDIT-01: PATCH updates content in DB."""
-```
+- React Query (`@tanstack/react-query` v5) is the single source of server state — no Redux, no global Context store. 5-minute stale time.
+- Query keys are centralized in `QUERY_KEYS` (`frontend/src/lib/constants.ts`); invalidate via `queryClient.invalidateQueries({ queryKey: QUERY_KEYS.X(...) })` after mutations. Do not hand-write query-key arrays.
+- All magic numbers, timeouts, framework/section configs, and feature flags live in `frontend/src/lib/constants.ts` — never inline them.
 
-## Function Design
+## Theming
 
-**Size:** Functions kept reasonably small; endpoints in `endpoints/*.py` are 10-30 lines typically
+- Tailwind CSS with HSL CSS variables (defined in `frontend/tailwind.config.js`). Reference semantic color tokens, not raw hex.
 
-**Parameters:**
-- FastAPI dependency injection used for common parameters (`get_db`, `get_current_user`)
-- Pydantic models for request bodies
-- Type hints everywhere in Python and TypeScript
+## Commit Message Style
 
-Example from `backend/app/api/endpoints/projects.py`:
-```python
-async def create_project(
-    project: schemas.ProjectCreate,
-    current_user: schemas.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-```
+Conventional Commits with a scope, lowercase imperative subject, and an em-dash clarifier. Observed from `git log`:
 
-**Return Values:**
-- Backend endpoints return Pydantic models or lists (with `response_model` annotation)
-- Services return typed objects (dicts, lists, objects)
-- Frontend API methods return typed promises (`Promise<Project>`, `Promise<Project[]>`)
-- Async functions used extensively in backend (FastAPI async)
+- `feat(chat): contextual question chips in the empty sidebar chat`
+- `fix(workspace): unresolvable subsection keys fold into the visible surface`
+- `feat(scenes): master-detail fusion — list + editor in one surface`
+- `chore: favicon + remove the Screenplay Analyzer stub`
+- `docs: MCP guide — connecting agents and driving the pipeline`
+- `polish(templates): sharpen vertical-microdrama prompts`
 
-## Module Design
-
-**Exports:**
-- Python: explicit imports in `__init__.py` where needed; modules import directly from files
-- TypeScript: index files or direct imports from component files
-
-**Barrel Files:**
-- Frontend: no explicit barrel files in observed structure; components imported individually
-- Backend: services, endpoints imported directly from module files
-
-**Organization by Feature/Layer:**
-- Backend: organized by layer (`api/endpoints/`, `services/`, `models/`, `utils/`)
-- Frontend: organized by component type (`components/`, `lib/`, `hooks/`, `types/`)
-
-## Async/Await Patterns
-
-**Backend (Python):**
-- Service methods marked `async` for external API calls
-- Endpoints marked `async` and use `await` for service calls
-- Example from `openai_service.py`:
-```python
-async def review_section(
-    self,
-    section_id: str,
-    text: str,
-    framework: Framework,
-    section_type: SectionType
-) -> Dict[str, List[str]]:
-    # ...
-    ai_text = await chat_completion(...)
-```
-
-**Frontend (TypeScript):**
-- React Query `useQuery` and `useMutation` hooks handle async data fetching
-- Direct `await` calls in event handlers rare; prefer callback-based mutations
-- Example from `components/Books/BookManager.tsx`:
-```typescript
-const { data: books } = useQuery({
-  queryKey: [QUERY_KEYS.BOOKS],
-  queryFn: api.getBooks,
-});
-```
-
-## Data Validation
-
-**Backend:**
-- Pydantic v2 field validators in schema models (`models/schemas.py`)
-- Validator functions in `utils/validators.py` for complex validation
-- Validators strip whitespace, enforce length constraints, validate formats
-- HTML sanitization in review endpoints (`sanitize_html()`)
-
-Example from `models/schemas.py`:
-```python
-class ProjectBase(BaseModel):
-    title: str = Field(..., min_length=2, max_length=255)
-
-    @field_validator('title')
-    def validate_title(cls, v):
-        if not v.strip():
-            raise ValueError("Title cannot be empty or just whitespace")
-        return v.strip()
-```
-
-**Frontend:**
-- Type safety via TypeScript
-- Minimal runtime validation (relies on backend validation)
-- No explicit validation schema library (zod, yup, etc.)
+Types in use: `feat`, `fix`, `chore`, `docs`, `polish`. Scopes are feature areas: `chat`, `scenes`, `seasons`, `shows`, `bible`, `mcp`, `templates`, `doctrine`, `workspace`, `vapai`, `pwa`, `agent-chat`. Per project memory, changes are committed and pushed directly to `main` after tests/typecheck pass.
 
 ---
 
-*Convention analysis: 2026-03-11*
+*Convention analysis: 2026-07-24*

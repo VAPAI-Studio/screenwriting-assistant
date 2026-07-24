@@ -1,168 +1,125 @@
 # Technology Stack
 
-**Analysis Date:** 2026-03-11
+**Analysis Date:** 2026-07-24
 
 ## Languages
 
 **Primary:**
-- **Python 3.11** - Backend API, AI service integration, document processing
-- **TypeScript 5.2** - Frontend application with strict type checking
-- **SQL** - PostgreSQL schemas and migrations
+- Python 3.11 - Backend API, services, MCP server (`backend/app/`). Pinned via `backend/Dockerfile` (`python:3.11-slim`). Note: Python 3.14 breaks SQLAlchemy/tiktoken — use 3.11.
+- TypeScript ~5.2 - Frontend SPA (`frontend/src/`). Strict-ish React app under Vite.
 
 **Secondary:**
-- **JavaScript (ES2020)** - Node.js scripts, build tooling
-- **Bash** - Container initialization, development automation
+- SQL - Postgres init + migrations (`backend/migrations/init_db.sql`, `backend/migrations/`)
+- Bash - Dev/seed scripts (`backend/dev.sh`, `backend/scripts/`, `scripts/`)
 
 ## Runtime
 
-**Backend:**
-- Python 3.11 (slim base image in Docker)
-- Uvicorn ASGI server
-- PYTHONPATH configured to `/app`
+**Backend Environment:**
+- Python 3.11 (CPython, `python:3.11-slim` base image)
+- ASGI server: Uvicorn (`uvicorn>=0.31.1`) running `app.main:app`
+- `PYTHONPATH=/app` required (set in `backend/Dockerfile`)
 
-**Frontend:**
-- Node.js 18 (Alpine base in Docker)
-- Vite 5.1 (dev server and build tool)
-- Browser runtime (ES2020+)
+**Frontend Environment:**
+- Node.js (no `.nvmrc` pin present) — build via Vite 5, dev server on port 4321
+- Browser SPA (React 18), served statically after build
 
 **Package Managers:**
-- **Backend:** pip (Python) with virtual environment isolation (`venv/`)
-- **Frontend:** npm with lockfile (`package-lock.json`)
+- Backend: `pip` + `backend/requirements.txt` (no hash-locked lockfile; versions pinned inline with rationale comments)
+- Frontend: `npm` + `frontend/package.json`; lockfile `frontend/package-lock.json` **present**
 
 ## Frameworks
 
-**Backend:**
-- **FastAPI 0.110.0** - REST API framework with automatic OpenAPI documentation
-- **SQLAlchemy 2.0.27** - ORM with support for PostgreSQL extensions (pgvector)
-- **Pydantic v2** (>=2.10) - Request/response validation with field validators
-- **Pydantic Settings** (>=2.6) - Environment-based configuration management
+**Backend Core:**
+- FastAPI `0.110.0` - HTTP API framework (`backend/app/main.py`). Middleware stack order matters: RateLimit → RequestSizeLimit → Security → Logging.
+- Starlette `>=0.36.3,<0.37` - ASGI foundation. **Pinned** to FastAPI 0.110's range to stop `sse-starlette` pulling Starlette 1.x (MCP constraint).
+- Pydantic v2 (`pydantic[email]>=2.10`) + `pydantic-settings>=2.6` - Schemas (`backend/app/models/schemas.py`) and env-driven config (`backend/app/config.py`)
+- SQLAlchemy `2.0.27` - ORM (`backend/app/models/database.py`)
 
-**Frontend:**
-- **React 18.2** - UI framework with hooks
-- **React Router v6.21** - Client-side routing with `BrowserRouter`
-- **React Query (TanStack) v5.20** - Server state management with 5-minute stale time default
-- **React Markdown 10.1** - Markdown rendering with GitHub flavored markdown support (`remark-gfm`)
+**Frontend Core:**
+- React `^18.2.0` + React DOM - UI (`frontend/src/`)
+- Vite `^5.1.0` (`@vitejs/plugin-react`) - Build/dev tooling (`frontend/vite.config.ts`)
+- React Router DOM `^6.21.3` - Routing (`/`, `/projects/:projectId`, `/login`, plus show/season/breakdown/storyboard routes)
+- TanStack React Query `^5.20.1` - Server-state management (5-min stale time; not Redux/Context)
+- Tailwind CSS `^3.4.1` + PostCSS + autoprefixer - Styling (`frontend/tailwind.config.js`, HSL CSS-variable theming)
+- Radix UI primitives - dialog, dropdown-menu, select, slot, tabs, toast
+- Supporting UI: `lucide-react` (icons), `@hello-pangea/dnd` (drag-and-drop), `react-markdown` + `remark-gfm` (markdown), `class-variance-authority`, `clsx`, `tailwind-merge`
 
-**UI & Styling:**
-- **Tailwind CSS 3.4** - Utility-first CSS framework with HSL CSS variables for theming
-- **Radix UI** - Headless component library:
-  - `@radix-ui/react-dialog` v1.0.5 - Modal dialogs
-  - `@radix-ui/react-dropdown-menu` v2.0.6 - Dropdown menus
-  - `@radix-ui/react-select` v2.0.0 - Accessible select components
-  - `@radix-ui/react-tabs` v1.0.4 - Tabbed interfaces
-  - `@radix-ui/react-toast` v1.1.5 - Toast notifications
-  - `@radix-ui/react-slot` v1.0.2 - Slot rendering
-- **Lucide React 0.314** - Icon library (314+ icons)
-- **Class Variance Authority 0.7** - Type-safe CSS class composition
-- **Tailwind Merge 2.2** - Merge Tailwind CSS classes without conflicts
+**MCP (Model Context Protocol) Server:**
+- `mcp>=1.27.2,<2.0` - Official modelcontextprotocol/python-sdk. FastMCP server mounted in-process at `/mcp` over Streamable HTTP (`backend/app/mcp_server/server.py`)
+- `sse-starlette<2.2` - SSE transport support (kept within Starlette <0.37 line)
 
 **Testing:**
-- **pytest 8.0.2** - Python test runner
-- **pytest-asyncio 0.23.5** - Async test support for FastAPI
-- **pytest-cov 4.1.0** - Code coverage reporting
-- **httpx >=0.25.0,<0.28.0** - Async HTTP client for testing
+- pytest `8.0.2` + `pytest-asyncio 0.23.5` + `pytest-cov 4.1.0` - Backend tests (`backend/app/tests/`, config `backend/pytest.ini`)
+- `pytest-rerunfailures 14.0` - Absorbs documented suite-isolation flakes in CI
+- `httpx>=0.25.0,<0.28.0` - Test client / async HTTP (also used by `vapai_service`)
+- Frontend: **no test runner configured** (only ESLint)
 
-**Development Tools:**
-- **TypeScript 5.2** - Static type checking
-- **Vite 5.1** - Fast dev server and build bundler
-- **ESLint 8.56** - TypeScript/JavaScript linting with React plugin
-- **@typescript-eslint** - TypeScript AST linting support
-- **PostCSS 8.4** - CSS processor for Tailwind
-- **Autoprefixer 10.4** - Browser vendor prefixes
+**Build/Dev (Frontend):**
+- ESLint `^8.56.0` + `@typescript-eslint/*` `^6.21.0` + react-hooks / react-refresh plugins
+- TypeScript compiler (`tsc && vite build`)
 
 ## Key Dependencies
 
-**Critical (Backend):**
-- **openai 1.12.0** - OpenAI API client for GPT models and embeddings
-- **anthropic >=0.39.0** - Anthropic API client for Claude models
-- **psycopg2-binary 2.9.9** - PostgreSQL adapter for Python
-- **python-jose[cryptography] 3.3.0** - JWT authentication
-- **pgvector 0.3.6** - PostgreSQL vector extension support for embeddings
-- **tiktoken 0.7.0** - Token counting for OpenAI models
+**AI / LLM:**
+- `openai>=1.40.0` - GPT-4o chat, `text-embedding-3-small` embeddings, knowledge-graph extraction
+- `anthropic>=0.77.0` - Claude models (default provider). Supports modern Opus 4.7/4.8, Sonnet 5, Fable 5, Mythos 5 request surface (no temperature, adaptive thinking, `output_config.effort`) plus prompt caching (`cache_control` ephemeral blocks)
+- `tiktoken 0.7.0` - Token counting / chunking
 
-**Infrastructure (Backend):**
-- **uvicorn 0.27.1** - ASGI application server
-- **python-multipart 0.0.9** - Form data and file upload parsing
-- **passlib[bcrypt] 1.7.4** - Password hashing (bcrypt)
+**Vector Search / RAG:**
+- `pgvector 0.3.6` - Postgres vector extension bindings. Custom `SafeVector` SQLAlchemy type handles list/string adapter mismatch (`backend/app/models/database.py`). 1536-dim embeddings on Concept/BookChunk tables (`deferred` columns).
+- `numpy>=1.24.0` - Vector math
 
-**Document Processing:**
-- **PyPDF2 3.0.1** - PDF extraction and manipulation
-- **ebooklib 0.18** - eBook format handling (EPUB)
-- **beautifulsoup4 4.12.3** - HTML/XML parsing
-- **numpy >=1.24.0** - Numerical operations (required by pgvector)
+**Document Processing (book ingestion):**
+- `PyPDF2 3.0.1` - PDF text extraction
+- `ebooklib 0.18` + `beautifulsoup4 4.12.3` - EPUB extraction (`backend/app/services/document_service.py`)
 
-**Frontend State & Utilities:**
-- **clsx 2.1.0** - Conditional CSS class concatenation
-- **react-dom 18.2** - React DOM rendering
+**Image / Media:**
+- `Pillow>=12.0` - WebP thumbnail generation (`backend/app/services/media_service.py`)
+- `google-cloud-aiplatform>=1.60.0` - Google Vertex AI Imagen storyboard frame generation (`backend/app/services/imagen_service.py`)
+
+**Database Driver:**
+- `psycopg2-binary 2.9.9` - PostgreSQL driver
+
+**Auth / Security:**
+- `python-jose[cryptography] 3.3.0` - JWT encode/decode (`backend/app/services/auth_service.py`, HS256, 7-day tokens)
+- `passlib[bcrypt] 1.7.4` + `bcrypt<4.1` - Password hashing. **bcrypt pinned <4.1** (passlib 1.7.4 incompatible with 4.1+ 72-byte check)
+- `python-multipart 0.0.9` - File upload form parsing
 
 ## Configuration
 
-**Environment:**
+**Environment (backend):**
+- Loaded via Pydantic Settings from `.env` (`backend/app/config.py`, `case_sensitive=True`)
+- `AI_PROVIDER` selects `openai` | `anthropic` (default `anthropic`)
+- Critical keys: `DATABASE_URL`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `SECRET_KEY`, `ALLOWED_ORIGINS`
+- Feature/tuning knobs: screenplay critique loop (`SCREENPLAY_CRITIQUE_ENABLED`, `_THRESHOLD`, `_POLISH_ENABLED`), craft doctrine injection (`DOCTRINE_*`), embedding (`EMBEDDING_MODEL`, `EMBEDDING_DIMENSION=1536`), book processing (`CHUNK_SIZE_TOKENS`, `MAX_BOOK_SIZE_MB`), agents/pipeline budgets
+- Production guards: refuses default `SECRET_KEY`, warns on localhost in `ALLOWED_ORIGINS`
+- Example files: `backend/.env.example.txt`, `.env.docker.example`
+- App will NOT import in prod without `OPENAI_API_KEY` (SDK validates at construction; services lazy-init clients to keep CI import safe)
 
-Backend configuration via Pydantic Settings (`backend/app/config.py`) with `.env` file support:
-- `DATABASE_URL` - PostgreSQL connection string (required)
-- `AI_PROVIDER` - "openai" or "anthropic" (default: "anthropic")
-- `OPENAI_API_KEY` - OpenAI API key (required if provider is openai)
-- `OPENAI_MODEL` - Model name (default: "gpt-4o")
-- `ANTHROPIC_API_KEY` - Anthropic API key (required if provider is anthropic)
-- `ANTHROPIC_MODEL` - Model name (default: "claude-sonnet-4-6")
-- `SECRET_KEY` - JWT signing key (must be changed in production)
-- `ALLOWED_ORIGINS` - CORS whitelist (defaults: localhost:5173, localhost:3000, localhost:5174)
-- `ENVIRONMENT` - "development", "staging", or "production"
-- `DEBUG` - Debug mode (auto-set based on ENVIRONMENT)
-- `EMBEDDING_MODEL` - OpenAI embedding model (default: "text-embedding-3-small")
-- `MAX_TOKENS` - Max response tokens (default: 4000)
-- `MAX_SECTION_LENGTH` - Max section content length (default: 1500)
-- `CACHE_TTL` - Caching time-to-live in seconds (default: 900 / 15 min)
-- `UPLOAD_DIR` - File upload directory (default: `backend/uploads/`)
-- `MAX_BOOK_SIZE_MB` - Max book file size (default: 50)
-- `CHUNK_SIZE_TOKENS` - Document chunk size (default: 750)
-- `AGENT_REVIEW_TIMEOUT` - Agent timeout in seconds (default: 90)
-
-Frontend configuration via Vite environment:
-- `VITE_API_URL` - API endpoint path (default: "/api", proxied to backend)
-- `VITE_PROXY_TARGET` - Backend URL for dev proxy (default: "http://localhost:8000")
-
-Docker Compose overrides via environment:
-- `POSTGRES_USER` - Database user (default: "screenwriter")
-- `POSTGRES_PASSWORD` - Database password (required)
-- `POSTGRES_DB` - Database name (default: "screenwriter_db")
+**Environment (frontend):**
+- `VITE_API_URL` (defaults to `/api`), `VITE_PROXY_TARGET` (dev proxy target)
+- Example: `frontend/.env.example.txt`
 
 **Build:**
-- Frontend: `frontend/tsconfig.json` (ES2020, JSX support, strict mode)
-- Frontend: `frontend/vite.config.ts` (React plugin, API proxy on port 5173)
-- Backend: Uses standard Python packaging with `requirements.txt`
-
-**Testing:**
-- `backend/pytest.ini` - pytest configuration
-- Test discovery: `backend/app/tests/test_*.py`
-- Run: `pytest` or specific test file `pytest app/tests/test_api.py`
+- Backend: `backend/Dockerfile` (multi-step pip install, non-root `appuser`, `EXPOSE 8000`, shell-form CMD expanding `${PORT}`)
+- Frontend: `frontend/vite.config.ts` (port 4321, `/api` and `/media` dev proxy to `:8000`), `frontend/tsconfig.json`
+- MCP config lives inline in `Settings`: `MCP_BASE_URL`, `MCP_DNS_REBINDING_PROTECTION`
 
 ## Platform Requirements
 
 **Development:**
-- **Python 3.11+** (backend)
-- **Node.js 18+** (frontend, Alpine image in Docker)
-- **PostgreSQL 15 with pgvector extension** (database)
-- **Docker & Docker Compose** (optional, full-stack via containers)
-- **OpenAI API key** or **Anthropic API key** (for AI features)
+- Docker Compose (`docker-compose.yml` + `docker-compose.override.yml`) brings up: `db` (pgvector/pgvector:pg15), `backend`, `frontend`
+- Standalone: Python 3.11 venv + `uvicorn app.main:app --reload`; `npm run dev`
+- Local backend sometimes runs on port 8001 (per project notes); MCP metadata defaults to `http://localhost:8001`
+- Backend test suite requires `mcp` dep installed in venv or the WHOLE pytest collection fails; re-pin `starlette<0.37` after installing
 
 **Production:**
-- Deployment target: Container orchestration (Kubernetes) or managed cloud platforms
-- Minimum: Docker, PostgreSQL 15, API keys for AI providers
-- Security: Production-grade `SECRET_KEY`, HTTPS CORS origins, environment-based config
-- Validation: ENVIRONMENT must be set to "production" to trigger security checks
-
-## Node and Python Versions
-
-**Node:**
-- `frontend/Dockerfile` specifies `node:18-alpine`
-- No `.nvmrc` file detected
-
-**Python:**
-- `backend/Dockerfile` specifies `python:3.11-slim`
-- No `.python-version` file detected
+- **Backend:** Railway (`backend/railway.json`, DOCKERFILE builder, healthcheck `/health`, `targetPort=8000`, restart ON_FAILURE). Service host `web-production-73857` (Railway "web").
+- **Frontend:** Vercel (`frontend/vercel.json`, Vite framework, SPA rewrites to `/index.html`). Domain `guion.vapai.studio`. `.vercel/` present at repo root.
+- **Database:** PostgreSQL 15 with pgvector extension
+- CORS is domain-gated via `ALLOWED_ORIGINS` — unlisted domain => "Failed to fetch"
+- PWA: installable web app manifest (`frontend/public/manifest.json`)
 
 ---
 
-*Stack analysis: 2026-03-11*
+*Stack analysis: 2026-07-24*
