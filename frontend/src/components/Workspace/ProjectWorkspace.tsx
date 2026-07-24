@@ -60,9 +60,12 @@ export function ProjectWorkspace() {
     (s: SubsectionConfig) => s.key === selectedSubsection
   );
 
+  const visibleSubsections: SubsectionConfig[] =
+    currentPhase?.subsections?.filter((s: SubsectionConfig) => !s.hidden) || [];
+
   useEffect(() => {
-    if (currentPhase && currentPhase.subsections.length > 0 && !selectedSubsection) {
-      const firstKey = currentPhase.subsections[0].key;
+    if (currentPhase && visibleSubsections.length > 0 && !selectedSubsection) {
+      const firstKey = visibleSubsections[0].key;
       setSelectedSubsection(firstKey);
       try {
         const subs = JSON.parse(localStorage.getItem(STORAGE_KEYS.LAST_SUBSECTION) || '{}');
@@ -71,6 +74,21 @@ export function ProjectWorkspace() {
       } catch {}
     }
   }, [currentPhase, selectedSubsection, projectId]);
+
+  // Legacy routes / stale localStorage may point at a hidden subsection
+  // (e.g. scenes/scene_detail/:itemId) — fold them into the visible surface.
+  useEffect(() => {
+    if (currentSubsection?.hidden && visibleSubsections.length > 0) {
+      const target = visibleSubsections[0].key;
+      setSelectedSubsection(target);
+      navigate(
+        itemId
+          ? `/projects/${projectId}/${selectedPhase}/${target}/${itemId}`
+          : `/projects/${projectId}/${selectedPhase}/${target}`,
+        { replace: true }
+      );
+    }
+  }, [currentSubsection, itemId, projectId, selectedPhase]);
 
   useEffect(() => {
     if (phase && phase !== selectedPhase) setSelectedPhase(phase);
@@ -183,10 +201,10 @@ export function ProjectWorkspace() {
       {projectId && <EpisodeContextPanel projectId={projectId} />}
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Subsection Sidebar */}
-        {currentPhase && (
+        {/* Subsection Sidebar — omitted when the phase has a single surface */}
+        {currentPhase && visibleSubsections.length > 1 && (
           <SubsectionSidebar
-            subsections={currentPhase.subsections}
+            subsections={visibleSubsections}
             currentSubsection={selectedSubsection}
             onSubsectionChange={handleSubsectionChange}
           />

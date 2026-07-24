@@ -1,4 +1,4 @@
-import { Wand2, MessageSquare, Import, ClipboardList, Users, LayoutGrid, List, Edit3, Theater, Search } from 'lucide-react';
+import { Wand2, MessageSquare, Import, ClipboardList, Users, LayoutGrid, List, Edit3, Theater, Search, Clapperboard } from 'lucide-react';
 import type { SubsectionConfig } from '../../types/template';
 
 const PATTERN_ICONS: Record<string, typeof Wand2> = {
@@ -10,6 +10,7 @@ const PATTERN_ICONS: Record<string, typeof Wand2> = {
   card_grid: LayoutGrid,
   ordered_list: List,
   individual_editor: Edit3,
+  scene_workspace: Clapperboard,
   screenplay_editor: Theater,
   analyzer: Search,
 };

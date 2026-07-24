@@ -10,6 +10,7 @@ import { RepeatableCardsView } from '../Patterns/RepeatableCardsView';
 import { WizardView } from '../Patterns/WizardView';
 import { OrderedListView } from '../Patterns/OrderedListView';
 import { IndividualEditorView } from '../Patterns/IndividualEditorView';
+import { SceneWorkspaceView } from '../Patterns/SceneWorkspaceView';
 import { ScreenplayEditorView } from '../Patterns/ScreenplayEditorView';
 import { PlaceholderView } from '../Patterns/PlaceholderView';
 
@@ -68,6 +69,9 @@ export function ContentArea({ subsection, projectId, phase, templateConfig, item
 
     case 'individual_editor':
       return <IndividualEditorView {...commonProps} itemId={itemId} />;
+
+    case 'scene_workspace':
+      return <SceneWorkspaceView {...commonProps} itemId={itemId} />;
 
     case 'screenplay_editor':
       return <ScreenplayEditorView {...commonProps} />;

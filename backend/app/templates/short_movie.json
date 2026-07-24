@@ -315,7 +315,8 @@
       "subsections": [
         {
           "key": "scene_wizard",
-          "name": "1 · Generar escenas",
+          "hidden": true,
+          "name": "Generar escenas",
           "description": "Transform your beats into a tight scene structure. The Scene Wizard helps you jump-start your screenplay planning by creating your Scene List based on the inputted story beats.",
           "ui_pattern": "wizard",
           "wizard_config": {
@@ -391,9 +392,9 @@
         },
         {
           "key": "scene_list",
-          "name": "2 · Lista de escenas",
-          "description": "Organize your short film scenes.",
-          "ui_pattern": "ordered_list",
+          "name": "Escenas",
+          "description": "Tu lista de escenas y el editor de cada una, en una sola vista. Cuando está vacía, generá las escenas con IA.",
+          "ui_pattern": "scene_workspace",
           "list_config": {
             "item_type": "scene",
             "section_label": "SHORT FILM SCENES",
@@ -408,7 +409,8 @@
         },
         {
           "key": "scene_detail",
-          "name": "3 · Escena por escena",
+          "hidden": true,
+          "name": "Escena por escena",
           "description": "Craft each scene with precision. In a short film, every scene must multitask – advance plot, reveal character, and express theme simultaneously. Focus on visual storytelling and minimize dialogue. Each scene should have a clear beginning, middle, and end while contributing to the overall story arc. Populate the goal and climax fields explicitly when inferable.",
           "ui_pattern": "individual_editor",
           "editor_config": {

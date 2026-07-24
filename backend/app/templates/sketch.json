@@ -318,7 +318,8 @@
       "subsections": [
         {
           "key": "scene_wizard",
-          "name": "1 · Generar escenas",
+          "hidden": true,
+          "name": "Generar escenas",
           "description": "Most sketches are ONE scene playing one game. Use multiple scenes only for cutaway or escalating-location formats. The Scene Wizard builds your scene list from the beats.",
           "ui_pattern": "wizard",
           "wizard_config": {
@@ -390,9 +391,9 @@
         },
         {
           "key": "scene_list",
-          "name": "2 · Lista de escenas",
-          "description": "Organize your sketch scenes.",
-          "ui_pattern": "ordered_list",
+          "name": "Escenas",
+          "description": "Tu lista de escenas y el editor de cada una, en una sola vista. Cuando está vacía, generá las escenas con IA.",
+          "ui_pattern": "scene_workspace",
           "list_config": {
             "item_type": "scene",
             "section_label": "SKETCH SCENES",
@@ -407,7 +408,8 @@
         },
         {
           "key": "scene_detail",
-          "name": "3 · Escena por escena",
+          "hidden": true,
+          "name": "Escena por escena",
           "description": "Craft the scene as an escalation ladder. In a sketch, the 'turning point' is a heightening of the game, the 'climax' is the blow, and the 'fallout' is the button. Everything serves the game — cut any line that doesn't feed it.",
           "ui_pattern": "individual_editor",
           "editor_config": {

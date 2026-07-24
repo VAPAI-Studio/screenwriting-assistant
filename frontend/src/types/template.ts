@@ -12,6 +12,7 @@ export type UIPattern =
   | 'card_grid'
   | 'ordered_list'
   | 'individual_editor'
+  | 'scene_workspace'
   | 'screenplay_editor';
 
 export interface FieldDef {
@@ -97,6 +98,9 @@ export interface SubsectionConfig {
   key: string;
   name: string;
   description?: string;
+  // Hidden subsections stay in the template (backend contracts key on them)
+  // but don't render as tabs — a sibling surface consumes their config.
+  hidden?: boolean;
   ui_pattern: UIPattern;
   fields?: FieldDef[];
   field_groups?: FieldGroup[];

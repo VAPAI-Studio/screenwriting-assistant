@@ -213,6 +213,9 @@ export function WizardView({ subsection, projectId, phase, phaseData, templateCo
     mutationFn: () => api.applyWizardResults(wizardRunId!),
     onSuccess: () => {
       setWizardRunId(null);
+      // Applied wizard results land as ListItems (e.g. scenes) — refresh any
+      // mounted list so surfaces like SceneWorkspaceView pick them up live.
+      queryClient.invalidateQueries({ queryKey: ['list-items'] });
       if (subsection.key === 'script_writer_wizard') {
         onApplySuccess?.('screenplay_editor');
       }
