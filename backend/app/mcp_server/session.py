@@ -24,6 +24,13 @@ def set_session_factory_override(factory: Optional[Callable]) -> None:
     _session_factory_override = factory
 
 
+def get_session_factory() -> Callable:
+    """The session factory mcp_session() would use right now (override or
+    SessionLocal). For collaborators that want to open their own sessions —
+    e.g. agent_review_middleware.review_step_output(session_factory=...)."""
+    return _session_factory_override or SessionLocal
+
+
 @contextlib.contextmanager
 def mcp_session():
     """Yield a SQLAlchemy session for the duration of one MCP tool call."""

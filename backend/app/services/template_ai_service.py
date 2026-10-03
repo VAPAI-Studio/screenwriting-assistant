@@ -160,6 +160,85 @@ Return a JSON object with exactly these keys: "genre", "initial_idea", "tone", "
             logger.error(f"Idea generation error: {e}")
             return {"fields": {}, "error": str(e)}
 
+    async def generate_cast(
+        self,
+        card_groups: List[Dict],
+        project_context: str,
+        guidance: str = "",
+    ) -> Dict:
+        """Generate the FULL cast for a project's `story > characters` subsection
+        in one call (MCP story_develop path).
+
+        card_groups is the template's repeatable_cards config: one group per
+        item_type (protagonist / antagonist / supporting) with min/max counts and
+        the fields each card carries. Returns {"characters": [{item_type, name,
+        <fields>...}]} ready to persist as ListItems, or {"characters": [],
+        "error": ...} on failure. Every character gets a DISTINCT dialogue_style —
+        that field is what the scene/script prompts later use to keep voices apart.
+        """
+        if not card_groups:
+            return {"characters": []}
+
+        group_lines = []
+        for g in card_groups:
+            item_type = g.get("item_type", g.get("key", "character"))
+            fields = g.get("fields", [])
+            field_desc = "; ".join(
+                f"{f['key']}: {f.get('placeholder') or f.get('label') or f['key']}"
+                for f in fields if f.get("key")
+            )
+            group_lines.append(
+                f"- item_type \"{item_type}\" ({g.get('label', item_type)}): "
+                f"between {g.get('min_items', 0)} and {g.get('max_items', 1)} characters. "
+                f"Fields: {field_desc}"
+            )
+        groups_block = "\n".join(group_lines)
+
+        prompt = f"""You are an expert screenwriting development partner casting a story.
+
+## Project Context
+{project_context}
+
+{f'## Guidance{chr(10)}{guidance}{chr(10)}' if guidance else ''}
+## Task
+Create the complete cast this story needs — no more. Use the groups and field
+definitions below exactly:
+{groups_block}
+
+Rules:
+- Every character must earn their place: a function in the plot AND a pressure on the protagonist.
+- If the antagonistic force in the context is a person, cast them as the antagonist; if it is a system or circumstance, cast the human who embodies it.
+- dialogue_style must be CONCRETE and DIFFERENT for every character: register (formal/slang), sentence length and rhythm, vocabulary domain, a verbal tic, and the subject they deflect away from. Two characters must never share a style. A reader must be able to tell who speaks with the cue removed.
+- Names: specific to the world and culture of the story; never reuse the same name for two characters.
+- Fill EVERY field for each character with specific, usable content (no placeholders, no "TBD").
+- Write in the same language as the project context.
+
+Return a JSON object: {{"characters": [{{"item_type": "<group item_type>", "name": "...", <every other field key of that group as a string>}}]}}."""
+
+        try:
+            text = await chat_completion(
+                messages=[
+                    {"role": "system", "content": "You are an expert screenwriter and casting-minded story developer. Return valid JSON only."},
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.8,
+                max_tokens=4000,
+                json_mode=True,
+            )
+            data = json.loads(text)
+            allowed = {g.get("item_type", g.get("key")) for g in card_groups}
+            characters = []
+            for c in data.get("characters", []) or []:
+                if not isinstance(c, dict) or c.get("item_type") not in allowed:
+                    continue
+                if not str(c.get("name", "")).strip():
+                    continue
+                characters.append({k: (v if isinstance(v, str) else json.dumps(v, ensure_ascii=False)) for k, v in c.items()})
+            return {"characters": characters}
+        except Exception as e:
+            logger.error(f"Cast generation error: {e}")
+            return {"characters": [], "error": str(e)}
+
     def _get_wizard_config(self, template: Dict, wizard_key: str) -> Dict:
         """Find wizard_config from template by subsection key."""
         for phase in template.get("phases", []):

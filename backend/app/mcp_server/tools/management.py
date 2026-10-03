@@ -92,7 +92,8 @@ def register(mcp):
         sketch (1-5 min comedy sketch), or vertical_drama (60-90s vertical
         microdrama). `framework` (three_act | save_the_cat | hero_journey) is
         recorded for the short-film flow. The project is scaffolded with the
-        template's phases/subsections, ready to develop and screenplay_write.
+        template's phases/subsections. Next: story_develop(project_id, brief)
+        -> scenes_generate -> screenplay_generate.
         For series work use show_create + episode_create instead."""
         from ...templates import get_template_subsections
         title = (title or "").strip()
@@ -410,8 +411,10 @@ def register(mcp):
         show) with a template, ready to write into. template is one of: episode,
         vertical_drama (60-90s vertical microdrama), short_movie, sketch — pick the
         one matching the show's format. episode_number auto-increments per show when
-        omitted. After creating, honor show_read_bible, then screenplay_write the
-        episode. 404 if the show isn't owned by the caller."""
+        omitted. After creating, honor show_read_bible, then develop and write the
+        episode through story_develop -> scenes_generate -> screenplay_generate
+        (screenplay_write only to import an existing script). 404 if the show
+        isn't owned by the caller."""
         from ...templates import get_template_subsections
         title = (title or "").strip()
         if len(title) < 2:

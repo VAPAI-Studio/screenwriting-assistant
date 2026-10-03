@@ -77,11 +77,12 @@ def register(mcp):
 
     @mcp.tool()
     async def screenplay_generate_scene(ctx: Context, project_id: str, episode_index: int, phase: str = "write") -> dict:
-        """PIPELINE STEP 3 (WRITE, revision helper) — generate (regenerate) one
-        screenplay scene by its index using the improved AI generation path
-        (continuity, character voice, craft). Prefer this over hand-rewriting a
-        scene: it already knows the project's synopsis, characters, and the
-        previous scene.
+        """PIPELINE STEP 4 (WRITE, revision helper) — regenerate ONE screenplay
+        scene by its episode_index using the AI generation path (continuity,
+        character voice, craft). Use it to fix a single weak scene after
+        screenplay_generate; it already knows the project's synopsis, characters,
+        planned scene data, and the previous scene. Requires a planned scene list
+        (scenes_generate) — it regenerates a planned scene, it cannot invent one.
 
         LONG-RUNNING: returns a job_id immediately. Poll job_status(job_id) until
         status is "done"; the result is a preview {title, content, episode_index}.
@@ -144,14 +145,19 @@ def register(mcp):
 
     @mcp.tool()
     def screenplay_write(ctx: Context, project_id: str, text: str, phase: str = "write") -> dict:
-        """PIPELINE STEP 3 (WRITE) — the primary way to put a screenplay into the
-        platform. Write it directly from raw text (no AI). Give every scene an
-        INT./EXT. slugline: the text is split into scenes by those headings
-        (no-heading text becomes one "Untitled" scene), persisted to the project,
-        and the breakdown/shotlist are marked stale so extraction picks up the
-        new scenes. Idempotent — repeated writes REPLACE the project's scenes (no
-        duplicate accumulation), so to revise one scene send the FULL screenplay
-        text back, not just the changed scene.
+        """PIPELINE STEP 4 (WRITE, import / save edits) — persist screenplay text
+        AS-IS, with NO AI. This is for (a) importing an existing screenplay the
+        user already has (PDF, Fountain, plain text) and (b) saving hand edits
+        after screenplay_read. It is NOT the way to create a new screenplay: for
+        that run story_develop -> scenes_generate -> screenplay_generate, which
+        write through the platform's quality pipeline.
+
+        Give every scene an INT./EXT. slugline: the text is split into scenes by
+        those headings (no-heading text becomes one "Untitled" scene), persisted
+        to the project, and the breakdown/shotlist are marked stale so extraction
+        picks up the new scenes. Idempotent — repeated writes REPLACE the
+        project's scenes (no duplicate accumulation), so to revise one scene send
+        the FULL screenplay text back, not just the changed scene.
 
         After the screenplay is settled, continue with breakdown_extract.
         Mirrors the Phase 54 direct-writing path. Owner-scoped (404 if not owned).

@@ -34,7 +34,10 @@ _transport_security = TransportSecuritySettings(
 _INSTRUCTIONS = """\
 This server IS the studio's screenplay-production pipeline. When asked to
 create or work on a screenplay, drive it through these tools at every step
-instead of improvising. The canonical flow:
+instead of improvising. NEVER write a new screenplay yourself and paste it in:
+the platform's development pipeline (story -> cast -> beats -> scenes -> script
+with critique, craft doctrine and polish) produces far better scripts than a
+single pass by any agent. The canonical flow:
 
 1. ORIENT — project_list shows standalone film projects; show_list +
    episode_list cover TV shows (an episode is a project with a show_id).
@@ -47,33 +50,46 @@ instead of improvising. The canonical flow:
 2. CREATE — project_create makes a standalone project (not under a show) with a
    template: short_movie (short film), sketch (comedy sketch), or vertical_drama
    (vertical microdrama); it scaffolds the template's phases ready to develop and
-   write. For series work, show_create makes
-   a TV show; bible_write fills or updates its bible (or bible_draft proposes a
-   full bible from a seed for you to refine + persist with bible_write);
-   season_create and slot_create build a season map; episode_create makes an
-   episode (a project under the show) with a template — use vertical_drama for
-   60-90s vertical microdramas, episode for standard TV episodes. Never invent
-   shows, seasons, or episodes — create them through these tools.
-3. WRITE — screenplay_write persists the full screenplay text. Give every
-   scene an INT./EXT. slugline (each slugline becomes one scene). Writes
-   REPLACE all scenes, so to revise one scene: screenplay_read everything,
-   edit, then screenplay_write the full text back. screenplay_generate_scene
-   returns an AI-crafted PREVIEW of a single scene (continuity + character
-   voice); it does not persist — merge the preview via screenplay_write.
-   To import an existing screenplay (PDF, Fountain, plain text): extract the
-   clean text yourself (drop page numbers / repeated headers, keep sluglines)
-   and persist it with screenplay_write — that IS the import path over MCP.
-4. BREAKDOWN — once the screenplay is settled, breakdown_extract pulls
+   write. For series work, show_create makes a TV show; bible_write fills or
+   updates its bible (or bible_draft proposes a full bible from a seed for you to
+   refine + persist with bible_write); season_create and slot_create build a
+   season map; episode_create makes an episode (a project under the show) with a
+   template — use vertical_drama for 60-90s vertical microdramas, episode for
+   standard TV episodes. Never invent shows, seasons, or episodes — create them
+   through these tools.
+3. DEVELOP — story_develop(project_id, brief, ...) turns a brief into the story
+   core, a cast with distinct dialogue styles, and the beats. Write the brief as
+   concrete facts, not as a theme: who, where, what happened, what is really at
+   stake, and the angle. For a screenplay inspired by a real event, put the
+   event itself in the brief so the film stays recognizable. Pass language=...
+   when the screenplay must be in a specific language. Then scenes_generate
+   plans the scene list (ten dramatic fields per scene). Read the job results
+   and, if the story or scenes are off, re-run with sharper guidance (or
+   overwrite=True) before writing.
+4. WRITE — screenplay_generate writes the full screenplay from the planned
+   scenes through the quality pipeline (continuity, character voice, per-scene
+   critique + rewrite, book doctrine, whole-script polish) and persists it.
+   This is THE way to produce a new screenplay. Review it with screenplay_read.
+   To fix one weak scene, screenplay_generate_scene returns an AI preview of
+   that scene (does not persist) — merge it and screenplay_write the full text.
+   screenplay_write persists raw text with NO AI: use it to import an existing
+   screenplay (PDF, Fountain, plain text — extract the clean text yourself,
+   drop page numbers / repeated headers, keep INT./EXT. sluglines) or to save
+   hand edits after screenplay_read. Writes REPLACE all scenes, so always send
+   the full text back, never a single scene.
+5. BREAKDOWN — once the screenplay is settled, breakdown_extract pulls
    production elements (characters, locations, props, ...); read them with
    breakdown_read (filterable by category). A project's breakdown_stale flag
    means the screenplay changed since the last extraction — re-extract.
-5. SHOTLIST — shotlist_generate builds shots from the screenplay (run it
+6. SHOTLIST — shotlist_generate builds shots from the screenplay (run it
    after the breakdown); shotlist_read lists them grouped by scene;
    shot_create adds manual shots. shotlist_stale mirrors breakdown_stale.
 
 ASYNC JOBS — tools marked LONG-RUNNING return {job_id} immediately. Poll
 job_status(job_id) until status is "done" (result holds the output) or
-"error". Never assume a long-running tool finished without polling.
+"error". screenplay_generate takes several minutes for a 5-6 scene short:
+keep polling (every 20-30s), never assume it finished, never fall back to
+writing the script yourself because a job is slow.
 
 RULES — always match scenes by their episode_index field, never by list
 position. All tools are owner-scoped to the API key: you only ever see and
@@ -121,12 +137,14 @@ def whoami(ctx: Context) -> dict:
 # Register tool groups. Imported here (after `mcp` exists) to avoid import cycles.
 from .tools import core as _core_tools  # noqa: E402
 from .tools import screenwriting as _screenwriting_tools  # noqa: E402
+from .tools import development as _development_tools  # noqa: E402
 from .tools import management as _management_tools  # noqa: E402
 from .tools import breakdown as _breakdown_tools  # noqa: E402
 from .tools import shotlist as _shotlist_tools  # noqa: E402
 
 _core_tools.register(mcp)            # generic job_status (Phase 56)
 _screenwriting_tools.register(mcp)   # screenplay_generate_scene/read/write (Phase 56/58)
+_development_tools.register(mcp)     # story_develop/scenes_generate/screenplay_generate (AI pipeline over MCP)
 _management_tools.register(mcp)      # project/show/episode tools (Phase 57)
 _breakdown_tools.register(mcp)       # breakdown_extract/read (Phase 59)
 _shotlist_tools.register(mcp)        # shotlist_read/shot_create/shotlist_generate (Phase 60)
