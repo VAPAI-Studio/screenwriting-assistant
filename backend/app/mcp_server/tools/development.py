@@ -394,9 +394,13 @@ def register(mcp):
         a DISTINCT dialogue style per character, and the story beats. This is the
         first AI step for any new screenplay; run it before scenes_generate.
 
-        brief: the factual, specific seed — for a news-based short: what happened,
-        who was involved, where, what was really at stake, and the angle you want.
-        The more concrete the brief, the more recognizable the resulting film.
+        brief: the factual, specific seed YOU write (150-400 words). For a
+        news-based short, build it from your research: what happened (verified
+        facts, when, where), who was involved and what each wanted/did/lost,
+        the concrete stakes, the filmable detail or image, the dramatic angle
+        (point of view, the question the film asks). Keep the real event
+        recognizable; never abstract it into a generic allegory. The more
+        concrete the brief, the better the film.
         genre / tone / runtime_target: optional; stored with the brief.
         guidance: optional development notes (e.g. "keep the real event
         recognizable", "two locations max", "no on-screen text").

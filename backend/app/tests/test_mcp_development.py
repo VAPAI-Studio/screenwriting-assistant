@@ -90,6 +90,11 @@ def test_instructions_route_new_screenplays_through_the_pipeline():
     assert "scenes_generate" in _INSTRUCTIONS
     assert "screenplay_generate" in _INSTRUCTIONS
     assert "NEVER write a new screenplay yourself" in _INSTRUCTIONS
+    # The agent researches the news and writes the brief itself; the
+    # instructions must say what a usable brief contains and forbid allegory.
+    assert "YOU write the brief" in _INSTRUCTIONS
+    assert "news you researched" in _INSTRUCTIONS
+    assert "allegory" in _INSTRUCTIONS
     # screenplay_write is no longer sold as the primary way to create a screenplay.
     assert "primary way to put a screenplay" not in _INSTRUCTIONS
     write_doc = mcp._tool_manager.get_tool("screenplay_write").description

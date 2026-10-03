@@ -58,14 +58,30 @@ single pass by any agent. The canonical flow:
    standard TV episodes. Never invent shows, seasons, or episodes — create them
    through these tools.
 3. DEVELOP — story_develop(project_id, brief, ...) turns a brief into the story
-   core, a cast with distinct dialogue styles, and the beats. Write the brief as
-   concrete facts, not as a theme: who, where, what happened, what is really at
-   stake, and the angle. For a screenplay inspired by a real event, put the
-   event itself in the brief so the film stays recognizable. Pass language=...
-   when the screenplay must be in a specific language. Then scenes_generate
-   plans the scene list (ten dramatic fields per scene). Read the job results
-   and, if the story or scenes are off, re-run with sharper guidance (or
-   overwrite=True) before writing.
+   core, a cast with distinct dialogue styles, and the beats. YOU write the brief;
+   the platform develops it. A good brief is 150-400 words of concrete material,
+   not a theme or a mood:
+     - what happened: the verified facts, when and where, in order;
+     - who was involved: each person's role, what they wanted, what they
+       did, what it cost them — real human behaviour, not archetypes;
+     - what was concretely at stake (money, a job, a life, a reputation,
+       a place) and how it was resolved or left open;
+     - the specific detail, object or image that makes it filmable;
+     - the dramatic angle: whose point of view, what question the film asks,
+       what the audience should feel at the end;
+     - any constraints (runtime, locations, cast size, language).
+   When the brief comes from news you researched: keep the EVENT recognizable
+   (what happened, where, the kind of people involved) even if you fictionalize
+   names; put the real-world texture into the brief; do NOT reduce the story to
+   an abstract allegory (a generic worker vs. a generic institution with a
+   countdown clock). Each new brief must differ from your previous ones in
+   setting, profession, time structure and protagonist — if you notice you are
+   repeating a mould, change the angle before calling story_develop. Pass
+   language=... when the screenplay must be in a specific language. Then
+   scenes_generate plans the scene list (ten dramatic fields per scene). Read
+   the job results and, if the story or scenes are off or the event became
+   unrecognizable, re-run with sharper guidance (or overwrite=True) before
+   writing.
 4. WRITE — screenplay_generate writes the full screenplay from the planned
    scenes through the quality pipeline (continuity, character voice, per-scene
    critique + rewrite, book doctrine, whole-script polish) and persists it.
